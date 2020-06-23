@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -14,12 +12,23 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sunshineplan/metadata"
 	"github.com/vharitonsky/iniflags"
 )
 
 var config metadata.Config
+var mariadb mysql
+var self string
+
+func init() {
+	c, err := metadata.Get("mybookmarks_mysql", &config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	mariadb = c.(mysql)
+}
 
 func main() {
 	self, err := os.Executable()
@@ -38,42 +47,34 @@ func main() {
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
 
-	key, err := metadata.Get("myip_api_key", &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	f, _ := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	router := gin.Default()
+	router.Use(sessions.Sessions("mysession", sessions.NewCookieStore([]byte("secret"))))
 	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
-	router.LoadHTMLGlob(filepath.Join(filepath.Dir(self), "templates/*"))
+	router.LoadHTMLGlob(filepath.Join(filepath.Dir(self), "templates/**/*"))
 
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{"key": key})
+	auth := router.Group("/auth")
+	auth.GET("/login", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "auth/login.html", nil)
 	})
+	auth.POST("/login", Login)
+	auth.POST("/logout", AuthRequired, Logout)
+	auth.GET("/setting", AuthRequired, func(c *gin.Context) {
+		c.HTML(http.StatusOK, "auth/setting.html", nil)
+	})
+	auth.POST("/setting", AuthRequired, Setting)
 
-	router.GET("/query", func(c *gin.Context) {
-		var resp *http.Response
-		var body []byte
-		remote := c.ClientIP()
-		query := c.DefaultQuery("ip", "")
-		if query == "" {
-			resp, err = http.Get(fmt.Sprintf("api", remote, key))
-		} else {
-			ip, _ := net.LookupIP(query)
-			resp, err = http.Get(fmt.Sprintf("api", ip[0], key))
-		}
-		if err != nil {
-			log.Println(err)
-		}
-		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println(err)
-		}
-		c.Data(resp.StatusCode, "application/json", body)
-	})
+	base := router.Group("/")
+	base.Use(AuthRequired)
+	base.GET("/", func(c *gin.Context) { c.HTML(http.StatusOK, "base.html", nil) })
+	base.GET("/bookmark", bookmark)
+	base.GET("/:mode/:action", modeAction)
+	base.POST("/:mode/:action", doModeAction)
+	base.GET("/:mode/:action/:id", modeActionID)
+	base.POST("/:mode/:action/:id", doModeActionID)
+	base.POST("/reorder", reorder)
 
 	if *unix != "" && runtime.GOOS == "linux" {
 		if _, err = os.Stat(*unix); err == nil {

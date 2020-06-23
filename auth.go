@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
+type user struct {
 	id       int
 	username string
 	password string
@@ -37,10 +38,20 @@ func Login(c *gin.Context) {
 
 	db, err := sql.Open("mysql", "user:password@/dbname")
 	if err != nil {
-		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+		log.Println(err)
+		return
 	}
-	user := new(User)
-	db.QueryRow("select", username).Scan(&user)
+	user := new(user)
+	err = db.QueryRow("select", username).Scan(&user) // Query
+	if err != nil {
+		err = initDB(db)
+		if err == nil {
+			c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": "Detected first time running. Initialized the database."})
+			return
+		}
+		c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+		return
+	}
 
 	if user == nil {
 		err = errors.New("Incorrect username")
@@ -49,24 +60,26 @@ func Login(c *gin.Context) {
 	}
 
 	if err != nil {
-		// Save the username in the session
 		session.Clear()
-		session.Set("user_id", user.id) // In real world usage you'd set this to the users ID
+		session.Set("user_id", user.id)
 		if err := session.Save(); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 			return
 		}
 		c.Redirect(302, "/")
+		return
 	}
 	c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": err.Error()})
 }
 
+// Logout handler
 func Logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
 	c.Redirect(302, "/")
 }
 
+// Setting is a handler that change user password
 func Setting(c *gin.Context) {
 	session := sessions.Default(c)
 	password := c.PostForm("password")
@@ -75,10 +88,11 @@ func Setting(c *gin.Context) {
 
 	db, err := sql.Open("mysql", "user:password@/dbname")
 	if err != nil {
-		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+		log.Println(err)
+		return
 	}
-	user := new(User)
-	db.QueryRow("select", session.Get("user_id")).Scan(&user)
+	user := new(user)
+	db.QueryRow("select", session.Get("user_id")).Scan(&user) //Query
 
 	var message string
 	var errorCode int
