@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name='description' content='My IP'>
+    <meta name='keywords' content='HTML, CSS, JavaScript, jQuery, Bootstrap, JSON, Python, Flask'>
+    <meta name='author' content='Sunshine'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>My IP</title>
+    <script src='https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/ipaddr.js@1/lib/ipaddr.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/sweetalert2@9/dist/sweetalert2.all.min.js'></script>
+    <script src='/static/script.js'></script>
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap@4/dist/css/bootstrap.min.css' rel='stylesheet'>
+    <link rel='stylesheet' href='/static/style.css'>
+    <script>
+        var API_KEY = '{{ .key }}';
+        $(() => {
+            getInfo();
+            $('#online').change(() => {
+                if ($('#online').prop('checked')) 
+                    Swal.fire({
+                        title: 'Warning!',
+                        text: 'It is recommended using online version only when offline version is not working.',
+                        icon: 'warning',
+                        confirmButtonText: 'Continue',
+                        showCancelButton: true,
+                        focusCancel: true,
+                        customClass: {
+                            confirmButton: 'swal btn btn-primary',
+                            cancelButton: 'swal btn btn-danger'
+                        },
+                        buttonsStyling: false
+                    }).then(confirm => {
+                        if (!confirm.value) 
+                            $('#online').prop('checked', false);
+                        else getInfo();
+                    });
+                else getInfo();
+            });
+            $('#input').keyup(event => {
+                if (event.key == 'Enter') {
+                    $('#search').click();
+                };
+            });
+        });
+    </script>
+</head>
+<body>
+    <header class='navbar navbar-expand flex-column flex-md-row'>
+        <a class='navbar-brand text-primary m-0 mr-md-3' href='/'>My IP</a>
+        <div class='custom-control custom-switch'>
+            <input type='checkbox' class='custom-control-input' id='online'>
+            <label class='custom-control-label' for='online'>Online Version</label>
+        </div>
+    </header>
+    <div class='input-group search'>
+        <input class='form-control' placeholder='IPv4 or IPv6 or Host' id='input'>
+        <div class='input-group-append'>
+          <button class='btn btn-outline-primary' type='button' onclick='getInfo(true)' id='search'>Search</button>
+          <button class='btn btn-outline-danger' type='button' onclick='getInfo()'>Reset</button>
+        </div>
+    </div>
+    <table>
+        <tbody>
+            <tr><td class='title'>IP:</td><td><div class='info' id='ip'></div></td></tr>
+            <tr><td class='title'>Country:</td><td><div class='info' id='country_name'></div><img class='flag'></td></tr>
+            <tr><td class='title'>Region:</td><td><div class='info' id='region'></div></td></tr>
+            <tr><td class='title'>City:</td><td><div class='info' id='city'></div></td></tr>
+            <tr><td class='title'>Zip:</td><td><div class='info' id='postal'></div></td></tr>
+            <tr><td class='title'>ISP:</td><td><div class='info' id='isp'></div></td></tr>
+            <tr><td class='title'>Org:</td><td><div class='info' id='org'></div></td></tr>
+            <tr><td class='title'>Timezone:</td><td><div class='info' id='timezone'></div></td></tr>
+            <tr><td class='title'>Localtime:</td><td><div class='navigator' id='localtime'></div></td></tr>
+            <tr><td class='title'>Platform:</td><td><div class='navigator' id='platform'></div></td></tr>
+            <tr><td class='title'>UserAgent:</td><td><div class='navigator' id='useragent'></div></td></tr>
+        </tbody>
+    </table>
+</body>
+
+</html>
