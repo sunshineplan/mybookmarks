@@ -2,12 +2,21 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+type bookmark struct {
+	id       int
+	name     string
+	url      string
+	category string
+}
 
 func getBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", "user:password@/dbname")
@@ -19,17 +28,11 @@ func getBookmark(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	type Bookmark struct {
-		id       int
-		name     string
-		url      string
-		category string
-	}
-	var category map[string]interface{}
-	var bookmarks []Bookmark
+	var category gin.H
+	var bookmarks []bookmark
 	switch categoryID := c.Query("category"); categoryID {
 	case "":
-		category = map[string]interface{}{"id": -1, "name": "All Bookmarks"}
+		category = gin.H{"id": -1, "name": "All Bookmarks"}
 		rows, err := db.Query(`
 SELECT bookmark.id, bookmark, url, category
 FROM bookmark LEFT JOIN category ON category_id = category.id
@@ -41,7 +44,7 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var bookmark Bookmark
+			var bookmark bookmark
 			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url, &bookmark.category); err != nil {
 				log.Println(err)
 				return
@@ -49,7 +52,7 @@ WHERE bookmark.user_id = ? ORDER BY seq
 			bookmarks = append(bookmarks, bookmark)
 		}
 	case "0":
-		category = map[string]interface{}{"id": 0, "name": "Uncategorized"}
+		category = gin.H{"id": 0, "name": "Uncategorized"}
 		rows, err := db.Query(`
 SELECT id, bookmark, url FROM bookmark
 WHERE category_id = 0 AND user_id = ? ORDER BY seq
@@ -60,7 +63,7 @@ WHERE category_id = 0 AND user_id = ? ORDER BY seq
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var bookmark Bookmark
+			var bookmark bookmark
 			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url); err != nil {
 				log.Println(err)
 				return
@@ -68,7 +71,7 @@ WHERE category_id = 0 AND user_id = ? ORDER BY seq
 			bookmarks = append(bookmarks, bookmark)
 		}
 	default:
-		category = map[string]interface{}{"id": categoryID}
+		category = gin.H{"id": categoryID}
 		var name string
 		err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
 			categoryID, userID).Scan(&name)
@@ -86,15 +89,15 @@ WHERE category_id = ? AND user_id = ? ORDER BY seq
 			log.Println(err)
 			return
 		}
+		defer rows.Close()
 		for rows.Next() {
-			var bookmark Bookmark
+			var bookmark bookmark
 			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url); err != nil {
 				log.Println(err)
 				return
 			}
 			bookmarks = append(bookmarks, bookmark)
 		}
-		defer rows.Close()
 		for _, b := range bookmarks {
 			b.category = category["name"].(string)
 		}
@@ -102,122 +105,181 @@ WHERE category_id = ? AND user_id = ? ORDER BY seq
 	}
 }
 
-//
-//
-//def get_category_id(category, user_id):
-//    if category:
-//        db = get_db()
-//        category_id = db.execute(
-//            "SELECT id FROM category WHERE category = ? AND user_id = ?", (category, user_id)).fetchone()
-//        if len(category.encode("utf-8")) > 15:
-//            return None
-//        elif category_id:
-//            return category_id["id"]
-//        else:
-//            db.execute(
-//                "INSERT INTO category (category, user_id) VALUES (?, ?)", (category, user_id))
-//            return db.execute("SELECT last_insert_rowid() id").fetchone()["id"]
-//    else:
-//        return 0
-//
-//
-//@bp.route("/bookmark/add", methods=("GET", "POST"))
-//@login_required
-//def add_bookmark():
-//    """Create a new bookmark for the current user."""
-//    category_id = request.args.get("category_id")
-//    db = get_db()
-//    if category_id:
-//        category = db.execute("SELECT category FROM category WHERE id = ? AND user_id = ?",
-//                              (category_id, g.user["id"])).fetchone()["category"]
-//    else:
-//        category = ""
-//    categories = db.execute(
-//        "SELECT category FROM category WHERE user_id = ? ORDER BY category", (g.user["id"],)).fetchall()
-//    if request.method == "POST":
-//        category = request.form.get("category").strip()
-//        bookmark = request.form.get("bookmark").strip()
-//        url = request.form.get("url").strip()
-//        category_id = get_category_id(category, g.user["id"])
-//        error = 0
-//        if bookmark == "":
-//            message = f"Bookmark name is empty."
-//            error = 1
-//        elif db.execute("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?", (bookmark, g.user["id"])).fetchone() is not None:
-//            message = f"Bookmark name {bookmark} is already existed."
-//            error = 1
-//        elif db.execute("SELECT id FROM bookmark WHERE url = ? AND user_id = ?", (url, g.user["id"])).fetchone() is not None:
-//            message = f"Bookmark url {url} is already existed."
-//            error = 2
-//        elif category_id is None:
-//            message = "Category name exceeded length limit."
-//            error = 3
-//        else:
-//            db.execute("INSERT INTO bookmark (bookmark, url, user_id, category_id)"
-//                       " VALUES (?, ?, ?, ?)", (bookmark, url, g.user["id"], category_id))
-//            db.commit()
-//            return jsonify({"status": 1})
-//        return jsonify({"status": 0, "message": message, "error": error})
-//    return render_template("bookmark/bookmark.html", id=0, bookmark={"category": category}, categories=categories)
-//
-//
-//@bp.route("/bookmark/edit/<int:id>", methods=("GET", "POST"))
-//@login_required
-//def edit_bookmark(id):
-//    """Edit a bookmark for the current user."""
-//    db = get_db()
-//    bookmark = db.execute("SELECT bookmark, url, category FROM bookmark"
-//                          " LEFT JOIN category ON category_id = category.id"
-//                          " WHERE bookmark.id = ? AND bookmark.user_id = ?",
-//                          (id, g.user["id"])).fetchone()
-//    if not bookmark:
-//        abort(403)
-//    else:
-//        if not bookmark["category"]:
-//            bookmark["category"] = ""
-//    categories = db.execute(
-//        "SELECT category FROM category WHERE user_id = ? ORDER BY category", (g.user["id"],)).fetchall()
-//    if request.method == "POST":
-//        old = (bookmark["bookmark"], bookmark["url"], bookmark["category"])
-//        bookmark = request.form.get("bookmark").strip()
-//        url = request.form.get("url").strip()
-//        category = request.form.get("category").strip()
-//        category_id = get_category_id(category, g.user["id"])
-//        error = 0
-//        if bookmark == "":
-//            message = f"Bookmark name is empty."
-//            error = 1
-//        elif old == (bookmark, url, category):
-//            message = "New bookmark is same as old bookmark."
-//        elif db.execute("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?", (bookmark, id, g.user["id"])).fetchone() is not None:
-//            message = f"Bookmark name {bookmark} is already existed."
-//            error = 1
-//        elif db.execute("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?", (url, id, g.user["id"])).fetchone() is not None:
-//            message = f"Bookmark url {url} is already existed."
-//            error = 2
-//        elif category_id is None:
-//            message = "Category name exceeded length limit."
-//            error = 3
-//        else:
-//            db.execute("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ?"
-//                       " WHERE id = ? AND user_id = ?", (bookmark, url, category_id, id, g.user["id"]))
-//            db.commit()
-//            return jsonify({"status": 1})
-//        return jsonify({"status": 0, "message": message, "error": error})
-//    return render_template("bookmark/bookmark.html", id=id, bookmark=bookmark, categories=categories)
-//
-//
-//@bp.route("/bookmark/delete/<int:id>", methods=("POST",))
-//@login_required
-//def delete_bookmark(id):
-//    """Edit a bookmark for the current user."""
-//    db = get_db()
-//    db.execute("DELETE FROM bookmark WHERE id = ? and user_id = ?",
-//               (id, g.user["id"]))
-//    db.commit()
-//    return jsonify({"status": 1})
-//
-//
+func addBookmark(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	categoryID := c.Query("category_id")
+
+	var category string
+	var categories []string
+	if categoryID != "" {
+		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&category)
+	} else {
+		category = ""
+	}
+	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var categoryName string
+		if err := rows.Scan(&categoryName); err != nil {
+			log.Println(err)
+			return
+		}
+		categories = append(categories, categoryName)
+	}
+	c.HTML(200, "bookmark/bookmark.html", gin.H{"id": 0, "bookmark": gin.H{"category": category}, "categories": categories})
+}
+
+func doAddBookmark(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	category := strings.TrimSpace(c.PostForm("category"))
+	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
+	url := strings.TrimSpace(c.PostForm("url"))
+	categoryID := getCategoryID(category, userID.(string))
+
+	var exist, message string
+	var errorCode int
+	if bookmark == "" {
+		message = "Bookmark name is empty."
+		errorCode = 1
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?", bookmark, userID).Scan(&exist); err != nil {
+		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
+		errorCode = 1
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?", url, userID).Scan(&exist); err != nil {
+		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
+		errorCode = 2
+	} else if categoryID == "" {
+		message = "Category name exceeded length limit."
+		errorCode = 3
+	} else {
+		db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)", bookmark, url, userID, categoryID)
+		c.JSON(200, gin.H{"status": 1})
+		return
+	}
+	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
+}
+
+func editBookmark(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	id := c.Param("id")
+
+	var bookmark bookmark
+	err = db.QueryRow(`
+SELECT bookmark, url, category FROM bookmark
+LEFT JOIN category ON category_id = category.id
+WHERE bookmark.id = ? AND bookmark.user_id = ?
+`, id, userID).Scan(&bookmark)
+	if err != nil {
+		c.String(403, "")
+		return
+	}
+
+	var categories []string
+	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var category string
+		if err := rows.Scan(&category); err != nil {
+			log.Println(err)
+			return
+		}
+		categories = append(categories, category)
+	}
+	c.HTML(200, "bookmark/bookmark.html", gin.H{"id": id, "bookmark": bookmark, "categories": categories})
+}
+
+func doEditBookmark(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	id := c.Param("id")
+
+	var old bookmark
+	err = db.QueryRow(`
+SELECT bookmark, url, category FROM bookmark
+LEFT JOIN category ON category_id = category.id
+WHERE bookmark.id = ? AND bookmark.user_id = ?
+`, id, userID).Scan(&old)
+	if err != nil {
+		c.String(403, "")
+		return
+	}
+	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
+	url := strings.TrimSpace(c.PostForm("url"))
+	category := strings.TrimSpace(c.PostForm("category"))
+	categoryID := getCategoryID(category, userID.(string))
+
+	var exist, message string
+	var errorCode int
+	if bookmark == "" {
+		message = "Bookmark name is empty."
+		errorCode = 1
+	} else if old.name == bookmark && old.url == url && old.category == category {
+		message = "New bookmark is same as old bookmark."
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?", bookmark, id, userID).Scan(&exist); err != nil {
+		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
+		errorCode = 1
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?", url, id, userID).Scan(&exist); err != nil {
+		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
+		errorCode = 2
+	} else if categoryID == "" {
+		message = "Category name exceeded length limit."
+		errorCode = 3
+	} else {
+		db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?", bookmark, url, categoryID, id, userID)
+		c.JSON(200, gin.H{"status": 1})
+		return
+	}
+	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
+}
+
+func doDeleteBookmark(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	id := c.Param("id")
+
+	db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID)
+	c.JSON(200, gin.H{"status": 1})
+}
 
 func reorder(c *gin.Context) {
 	db, err := sql.Open("mysql", "user:password@/dbname")

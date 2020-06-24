@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
@@ -15,6 +16,27 @@ type category struct {
 	id    int
 	name  string
 	count int
+}
+
+func getCategoryID(category, userID string) string {
+	if category != "" {
+		db, _ := sql.Open("mysql", "user:password@/dbname")
+		defer db.Close()
+		var categoryID string
+		db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
+		switch {
+		case len(category) > 15:
+			return ""
+		case categoryID != "0":
+			return categoryID
+		default:
+			res, _ := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
+			lastInsertID, _ := res.LastInsertId()
+			return strconv.FormatInt(lastInsertID, 10)
+		}
+	} else {
+		return "0"
+	}
 }
 
 func getCategory(c *gin.Context) {
