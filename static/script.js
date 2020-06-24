@@ -4,6 +4,7 @@ const BootstrapButtons = Swal.mixin({
   },
   buttonsStyling: false
 });
+
 function load(category_id = null) {
   if (category_id === null) {
     category_id = document.cookie.split('LastVisit=')[1];
@@ -18,6 +19,7 @@ function load(category_id = null) {
     $('#categories').append("<li><a class='nav-link category' id=0>Uncategorized (" + json.uncategorized + ')' + '</a></li>');
   }).done(() => my_bookmarks(category_id));
 };
+
 function my_bookmarks(category_id = -1) {
   var param;
   if (category_id == -1) {
@@ -41,6 +43,7 @@ function my_bookmarks(category_id = -1) {
   $('.category').removeClass('active');
   $('#' + category_id).addClass('active');
 };
+
 function category(category_id = 0) {
   var url, title;
   if (category_id == 0) {
@@ -68,6 +71,7 @@ function category(category_id = 0) {
     $('#category').focus();
   });
 };
+
 function bookmark(id = 0, category_id = 0) {
   var url, title;
   if (id == 0) {
@@ -96,6 +100,7 @@ function bookmark(id = 0, category_id = 0) {
     $('#bookmark').focus();
   });
 };
+
 function setting() {
   loading();
   $.get('/auth/setting', html => $('.content').html(html)).done(() => {
@@ -104,6 +109,7 @@ function setting() {
     $('#password').focus()
   });
 };
+
 function doCategory(id) {
   var url;
   if (id == 0) {
@@ -125,6 +131,7 @@ function doCategory(id) {
       };
     });
 };
+
 function doBookmark(id) {
   var url;
   if (id == 0) {
@@ -150,6 +157,7 @@ function doBookmark(id) {
       };
     });
 };
+
 function doDelete(mode, id) {
   var url;
   if (mode == 'category') {
@@ -181,6 +189,7 @@ function doDelete(mode, id) {
     };
   });
 };
+
 function doSetting() {
   if (valid())
     $.post('/auth/setting', $('input').serialize(), json => {
@@ -200,6 +209,7 @@ function doSetting() {
       };
     });
 };
+
 function valid() {
   var result = true
   $('input').each(function () {
@@ -209,7 +219,8 @@ function valid() {
     };
   });
   return result;
-}
+};
+
 function simplify_url() {
   if (isMobile.matches) {
     $('.url').each(function () { $(this).text($(this).text().replace(/https?:\/\/(www\.)?/i, '')) });
@@ -217,10 +228,12 @@ function simplify_url() {
     $('.url').each(function () { $(this).text($(this).attr('href')) });
   };
 };
+
 function goback() {
   var last = document.cookie.split('LastVisit=')[1];
   my_bookmarks(last);
 };
+
 function loading(show = true) {
   if (show) {
     $('.loading').css('display', 'flex');
@@ -229,4 +242,4 @@ function loading(show = true) {
     $('.loading').hide();
     $('.content').css('opacity', 1);
   }
-}
+};

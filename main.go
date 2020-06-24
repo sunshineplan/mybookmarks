@@ -57,19 +57,19 @@ func main() {
 
 	auth := router.Group("/auth")
 	auth.GET("/login", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "auth/login.html", nil)
+		c.HTML(200, "auth/login.html", nil)
 	})
 	auth.POST("/login", Login)
 	auth.POST("/logout", AuthRequired, Logout)
 	auth.GET("/setting", AuthRequired, func(c *gin.Context) {
-		c.HTML(http.StatusOK, "auth/setting.html", nil)
+		c.HTML(200, "auth/setting.html", nil)
 	})
 	auth.POST("/setting", AuthRequired, Setting)
 
 	base := router.Group("/")
 	base.Use(AuthRequired)
-	base.GET("/", func(c *gin.Context) { c.HTML(http.StatusOK, "base.html", nil) })
-	base.GET("/bookmark", bookmark)
+	base.GET("/", func(c *gin.Context) { c.HTML(200, "base.html", nil) })
+	base.GET("/bookmark", getBookmark)
 	base.GET("/:mode/:action", modeAction)
 	base.POST("/:mode/:action", doModeAction)
 	base.GET("/:mode/:action/:id", modeActionID)

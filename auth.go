@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
@@ -41,19 +40,19 @@ func Login(c *gin.Context) {
 		log.Println(err)
 		return
 	}
+	defer db.Close()
 	user := new(user)
-	err = db.QueryRow("select", username).Scan(&user) // Query
+	err = db.QueryRow("SELECT * FROM user WHERE username = ?", username).Scan(&user)
+	//if err != nil {
+	//	err = initDB(db)
+	//	if err == nil {
+	//		c.HTML(200, "/auth/login.html", gin.H{"error": "Detected first time running. Initialized the database."})
+	//		return
+	//	}
+	//	c.HTML(200, "/auth/login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+	//	return
+	//}
 	if err != nil {
-		err = initDB(db)
-		if err == nil {
-			c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": "Detected first time running. Initialized the database."})
-			return
-		}
-		c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
-		return
-	}
-
-	if user == nil {
 		err = errors.New("Incorrect username")
 	} else if err = bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password)); err != nil || user.password != password {
 		err = errors.New("Incorrect password")
@@ -63,13 +62,13 @@ func Login(c *gin.Context) {
 		session.Clear()
 		session.Set("user_id", user.id)
 		if err := session.Save(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+			c.JSON(500, gin.H{"error": "Failed to save session"})
 			return
 		}
 		c.Redirect(302, "/")
 		return
 	}
-	c.HTML(http.StatusOK, "/auth/login.html", gin.H{"error": err.Error()})
+	c.HTML(200, "/auth/login.html", gin.H{"error": err.Error()})
 }
 
 // Logout handler
@@ -81,24 +80,28 @@ func Logout(c *gin.Context) {
 
 // Setting is a handler that change user password
 func Setting(c *gin.Context) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
+	defer db.Close()
 	session := sessions.Default(c)
+	userID := session.Get("user_id")
+
 	password := c.PostForm("password")
 	password1 := c.PostForm("password1")
 	password2 := c.PostForm("password2")
 
-	db, err := sql.Open("mysql", "user:password@/dbname")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	user := new(user)
-	db.QueryRow("select", session.Get("user_id")).Scan(&user) //Query
+	var Password string
+	db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&Password)
 
 	var message string
 	var errorCode int
-	err = bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(Password), []byte(password))
 	switch {
-	case err != nil && user.password != password:
+	case err != nil && Password != password:
 		message = "Incorrect password."
 		errorCode = 1
 	case password1 != password2:
@@ -112,7 +115,19 @@ func Setting(c *gin.Context) {
 	}
 
 	if message != "" {
-		// run db
+		newPassword, err := bcrypt.GenerateFromPassword([]byte(password1), bcrypt.MinCost)
+		if err != nil {
+			log.Println(err)
+			c.String(500, "")
+			return
+		}
+		_, err = db.Exec("UPDATE user SET password = ? WHERE id = ?",
+			string(newPassword), userID)
+		if err != nil {
+			log.Println(err)
+			c.String(500, "")
+			return
+		}
 		session.Clear()
 		c.JSON(200, gin.H{"status": 1})
 		return
