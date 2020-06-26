@@ -1,12 +1,11 @@
-{% extends 'base.html' %}
-
-{% block content %}
+{{ define "title" }}Log In{{ end }}
+{{ define "content" }}
 <header>
-  <h3 class='d-flex justify-content-center align-items-center' style='height: 100%;'>{% block title %}Log In{% endblock %}</h3>
+  <h3 class='d-flex justify-content-center align-items-center' style='height: 100%;'>Log In</h3>
 </header>
-{% for message in get_flashed_messages() %}
-<div class='alert alert-danger login'>{{ message }}</div>
-{% endfor %}
+{{ if ne .error "" }}
+<div class='alert alert-danger login'>{{ .error }}</div>
+{{ end }}
 <form class='login' method='POST'>
   <div class='form-group'>
     <label for='username'>Username</label>
@@ -23,4 +22,4 @@
   <hr>
   <input type='submit' id='submit' value='Log In' class='btn btn-primary login'>
 </form>
-{% endblock %}
+{{ end }}

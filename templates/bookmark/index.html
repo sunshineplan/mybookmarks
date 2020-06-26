@@ -1,9 +1,11 @@
+{{ $cid := (index .category "id") }}
+{{ $cname := (index .category "name") }}
 <header style='padding-left: 20px;'>
   <div style='height: 50px;'>
-    <a class='h3 title'>{{ category['name'] }}</a>
-    <a class='btn icon' onclick="category({{ category['id'] }})" {% if category['id'] <= 0 %} style='display: none;'{% endif %}><i class='material-icons edit'>edit</i></a>
+    <a class='h3 title'>{{ $cname }}</a>
+    <a class='btn icon' onclick='category({{ $cid }})' {{ if le $cid 0 }} style='display: none;'{{ end }}><i class='material-icons edit'>edit</i></a>
   </div>
-  <button class='btn btn-primary' onclick="bookmark(0,{{ category['id'] }})">Add Bookmark</button>
+  <button class='btn btn-primary' onclick='bookmark(0, {{ $cid }})'>Add Bookmark</button>
 </header>
 <div class='table-responsive'>
   <table class='table table-sm'>
@@ -16,20 +18,20 @@
       </tr>
     </thead>
     <tbody id='mybookmarks'>
-      {% for bookmark in bookmarks %}
-      <tr data-id="{{ bookmark['id'] }}">
-        <td>{{ bookmark['bookmark'] }}</td>
-        <td><a href="{{ bookmark['url'] }}" target='_blank' class='url'>{{ bookmark['url'] }}</a></td>
-        <td>{{ bookmark['category'] }}</td>
-        <td><a class='icon' onclick="bookmark({{ bookmark['id'] }})"><i class='material-icons edit'>edit</i></a></td>
+      {{ range $_, $bookmark := .bookmarks }}
+      <tr data-id="{{ $bookmark.ID }}">
+        <td>{{ $bookmark.Name }}</td>
+        <td><a href="{{ $bookmark.URL }}" target='_blank' class='url'>{{ $bookmark.URL }}</a></td>
+        <td>{{ printf "%s" $bookmark.Category }}</td>
+        <td><a class='icon' onclick="bookmark({{ $bookmark.ID }})"><i class='material-icons edit'>edit</i></a></td>
       </tr>
-      {% endfor %}
+      {{ end }}
     </tbody>
   </table>
 </div>
 <script>
   $(() => {
-    document.cookie = "LastVisit={{ category['id'] }}; Path=/";
+    document.cookie = "LastVisit={{ $cid }}; Path=/";
     $('#mybookmarks').sortable({
       update: (event, ui) => {
         var orig = ui.item.data('id');

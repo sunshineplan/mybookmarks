@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -41,16 +42,20 @@ func deleteUser(username string) {
 }
 
 func backup() {
-	c, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
+	m, err := metadata.Get("mybookmarks_backup", &metadataConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
-	mailConfig := c.(mail.Setting)
+	var mailSetting mail.Setting
+	err = json.Unmarshal(m, &mailSetting)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	file := Dump()
 	defer os.Remove(file)
 	err = mail.SendMail(
-		&mailConfig,
+		&mailSetting,
 		fmt.Sprintf("My Bookmarks Backup-%s", time.Now().Format("20060102")),
 		"",
 		&mail.Attachment{FilePath: file, Filename: "database"},

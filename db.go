@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,20 +17,24 @@ var dbConfig mysqlConfig
 var dsn string
 
 type mysqlConfig struct {
-	server   string
-	port     int
-	database string
-	username string
-	password string
+	Server   string
+	Port     int
+	Database string
+	Username string
+	Password string
 }
 
-func init() {
-	c, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
+func getDB() {
+	m, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbConfig = c.(mysqlConfig)
-	dsn = fmt.Sprintf("%s:%s@%s:%d/%s", dbConfig.username, dbConfig.password, dbConfig.server, dbConfig.port, dbConfig.database)
+	err = json.Unmarshal(m, &dbConfig)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	dsn = fmt.Sprintf("%s:%s@%s:%d/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
+	dsn = "root:159357qw@/test" // test
 }
 
 func restore(filePath string, db *sql.DB) error {
@@ -79,11 +84,11 @@ func Dump() string {
 		log.Fatal(err)
 	}
 	args := []string{}
-	args = append(args, fmt.Sprintf("-h%s", dbConfig.server))
-	args = append(args, fmt.Sprintf("-P%d", dbConfig.port))
-	args = append(args, fmt.Sprintf("-B%s", dbConfig.database))
-	args = append(args, fmt.Sprintf("-u%s", dbConfig.username))
-	args = append(args, fmt.Sprintf("-p%s", dbConfig.password))
+	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
+	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
+	args = append(args, fmt.Sprintf("-B%s", dbConfig.Database))
+	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
+	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
 	args = append(args, "-C")
 	args = append(args, fmt.Sprintf("-r%s", tmpfile.Name()))
 	cmd := exec.Command("mysqldump", args...)

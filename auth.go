@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"log"
 	"strings"
 
@@ -13,13 +12,12 @@ import (
 )
 
 type user struct {
-	id       int
-	username string
-	password string
+	ID       int
+	Username string
+	Password string
 }
 
-// AuthRequired is a middleware to check the session
-func AuthRequired(c *gin.Context) {
+func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	if userID == nil {
@@ -29,8 +27,7 @@ func AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
-// Login is a handler that parses a form and checks for specific data
-func Login(c *gin.Context) {
+func login(c *gin.Context) {
 	session := sessions.Default(c)
 	username := strings.TrimSpace(strings.ToLower(c.PostForm("username")))
 	password := c.PostForm("password")
@@ -42,7 +39,7 @@ func Login(c *gin.Context) {
 	}
 	defer db.Close()
 	user := new(user)
-	err = db.QueryRow("SELECT * FROM user WHERE username = ?", username).Scan(&user)
+	err = db.QueryRow("SELECT * FROM user WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
 	//if err != nil {
 	//	err = initDB(db)
 	//	if err == nil {
@@ -52,15 +49,16 @@ func Login(c *gin.Context) {
 	//	c.HTML(200, "/auth/login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
 	//	return
 	//}
+	var message string
 	if err != nil {
-		err = errors.New("Incorrect username")
-	} else if err = bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password)); err != nil || user.password != password {
-		err = errors.New("Incorrect password")
-	}
-
-	if err != nil {
+		message = "Incorrect username"
+	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil && user.Password != password {
+		log.Println(err) // test
+		message = "Incorrect password"
+	} else {
 		session.Clear()
-		session.Set("user_id", user.id)
+		session.Set("user_id", user.ID)
+		session.Set("username", user.Username)
 		if err := session.Save(); err != nil {
 			c.JSON(500, gin.H{"error": "Failed to save session"})
 			return
@@ -68,18 +66,17 @@ func Login(c *gin.Context) {
 		c.Redirect(302, "/")
 		return
 	}
-	c.HTML(200, "/auth/login.html", gin.H{"error": err.Error()})
+	c.HTML(200, "login.html", gin.H{"error": message})
 }
 
-// Logout handler
-func Logout(c *gin.Context) {
+func logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
+	session.Save()
 	c.Redirect(302, "/")
 }
 
-// Setting is a handler that change user password
-func Setting(c *gin.Context) {
+func setting(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
@@ -94,14 +91,14 @@ func Setting(c *gin.Context) {
 	password1 := c.PostForm("password1")
 	password2 := c.PostForm("password2")
 
-	var Password string
-	db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&Password)
+	var oldPassword string
+	db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword)
 
 	var message string
 	var errorCode int
-	err = bcrypt.CompareHashAndPassword([]byte(Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(password))
 	switch {
-	case err != nil && Password != password:
+	case err != nil && password != oldPassword:
 		message = "Incorrect password."
 		errorCode = 1
 	case password1 != password2:
@@ -114,7 +111,7 @@ func Setting(c *gin.Context) {
 		message = "New password cannot be blank."
 	}
 
-	if message != "" {
+	if message == "" {
 		newPassword, err := bcrypt.GenerateFromPassword([]byte(password1), bcrypt.MinCost)
 		if err != nil {
 			log.Println(err)

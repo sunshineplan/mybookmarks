@@ -28,10 +28,11 @@ func main() {
 	unix = flag.String("unix", "", "Server Host")
 	host = flag.String("host", "127.0.0.1", "Server Host")
 	port = flag.String("port", "12345", "Server Port")
-	logPath = flag.String("log", "/var/log/app/mybookmarks-go.log", "Log Path")
+	logPath = flag.String("log", filepath.Join(filepath.Dir(self), "access.log"), "Log Path")
 	iniflags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
+	getDB()
 
 	switch flag.NArg() {
 	case 0:

@@ -13,7 +13,7 @@ function load(category_id = null) {
     $('#categories').empty();
     $('#-1.category').text('All Bookmarks (' + json.total + ')');
     $.each(json.categories, (i, item) => {
-      var $li = $("<li><a class='nav-link category' id='" + item.id + "'>" + item.category + ' (' + item.num + ')' + '</a></li>');
+      var $li = $("<li><a class='nav-link category' id='" + item.ID + "'>" + item.Name + ' (' + item.Count + ')' + '</a></li>');
       $li.appendTo('#categories');
     });
     $('#categories').append("<li><a class='nav-link category' id=0>Uncategorized (" + json.uncategorized + ')' + '</a></li>');

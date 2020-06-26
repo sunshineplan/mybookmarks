@@ -11,38 +11,67 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+func loadTemplates() multitemplate.Renderer {
+	r := multitemplate.NewRenderer()
+	r.AddFromFiles("base.html", "templates/base.html", "templates/root.html")
+	r.AddFromFiles("login.html", "templates/base.html", "templates/auth/login.html")
+	r.AddFromFiles("setting.html", "templates/auth/setting.html")
+
+	includes, err := filepath.Glob(filepath.Join(filepath.Dir(self), "templates/bookmark/*"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, include := range includes {
+		r.AddFromFiles(filepath.Base(include), include)
+	}
+	return r
+}
 
 func run() {
 	f, _ := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	router := gin.Default()
-	router.Use(sessions.Sessions("mysession", sessions.NewCookieStore([]byte("secret")))) // need improve
+	router.Use(sessions.Sessions("session", sessions.NewCookieStore([]byte("secret")))) // need improve
 	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
-	router.LoadHTMLGlob(filepath.Join(filepath.Dir(self), "templates/**/*"))
+	router.HTMLRender = loadTemplates()
 
 	auth := router.Group("/auth")
 	auth.GET("/login", func(c *gin.Context) {
-		c.HTML(200, "auth/login.html", nil)
+		c.HTML(200, "login.html", gin.H{"error": ""})
 	})
-	auth.POST("/login", Login)
-	auth.POST("/logout", AuthRequired, Logout)
-	auth.GET("/setting", AuthRequired, func(c *gin.Context) {
-		c.HTML(200, "auth/setting.html", nil)
+	auth.POST("/login", login)
+	auth.GET("/logout", authRequired, logout)
+	auth.GET("/setting", authRequired, func(c *gin.Context) {
+		c.HTML(200, "setting.html", nil)
 	})
-	auth.POST("/setting", AuthRequired, Setting)
+	auth.POST("/setting", authRequired, setting)
 
 	base := router.Group("/")
-	base.Use(AuthRequired)
-	base.GET("/", func(c *gin.Context) { c.HTML(200, "base.html", nil) })
+	base.Use(authRequired)
+	base.GET("/", func(c *gin.Context) {
+		session := sessions.Default(c)
+		username := session.Get("username")
+		c.HTML(200, "base.html", gin.H{"user": username})
+	})
 	base.GET("/bookmark", getBookmark)
-	base.GET("/:mode/:action", modeAction)
-	base.POST("/:mode/:action", doModeAction)
-	base.GET("/:mode/:action/:id", modeActionID)
-	base.POST("/:mode/:action/:id", doModeActionID)
+	base.GET("/bookmark/add", addBookmark)
+	base.POST("/bookmark/add", doAddBookmark)
+	base.GET("/bookmark/edit/:id", editBookmark)
+	base.POST("/bookmark/edit/:id", doEditBookmark)
+	base.POST("/bookmark/delete/:id", doDeleteBookmark)
+	base.GET("/category/get", getCategory)
+	base.GET("/category/add", addCategory)
+	base.POST("/category/add", doAddCategory)
+	base.GET("/category/edit/:id", editCategory)
+	base.POST("/category/edit/:id", doEditCategory)
+	base.POST("/category/delete/:id", doDeleteCategory)
 	base.POST("/reorder", reorder)
 
 	if *unix != "" && runtime.GOOS == "linux" {

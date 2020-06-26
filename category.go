@@ -13,29 +13,29 @@ import (
 )
 
 type category struct {
-	id    int
-	name  string
-	count int
+	ID    int
+	Name  string
+	Count int
 }
 
-func getCategoryID(category, userID string) string {
+func getCategoryID(category string, userID int) int {
 	if category != "" {
 		db, _ := sql.Open("mysql", dsn)
 		defer db.Close()
-		var categoryID string
-		db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
+		var categoryID int
+		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
 		switch {
 		case len(category) > 15:
-			return ""
-		case categoryID != "0":
-			return categoryID
-		default:
+			return -1
+		case err != nil:
 			res, _ := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 			lastInsertID, _ := res.LastInsertId()
-			return strconv.FormatInt(lastInsertID, 10)
+			return int(lastInsertID)
+		default:
+			return categoryID
 		}
 	} else {
-		return "0"
+		return 0
 	}
 }
 
@@ -66,7 +66,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 	defer rows.Close()
 	for rows.Next() {
 		var category category
-		if err := rows.Scan(&category.id, &category.name, &category.count); err != nil {
+		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
 			log.Println(err)
 			return
 		}
@@ -76,7 +76,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 }
 
 func addCategory(c *gin.Context) {
-	c.HTML(200, "bookmark/category.html", gin.H{"id": 0})
+	c.HTML(200, "category.html", gin.H{"id": 0})
 }
 
 func doAddCategory(c *gin.Context) {
@@ -99,7 +99,7 @@ func doAddCategory(c *gin.Context) {
 	default:
 		var exist string
 		err = db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&exist)
-		if err != nil {
+		if err == nil {
 			message = fmt.Sprintf("Category %s is already existed.", category)
 		} else {
 			db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
@@ -119,15 +119,19 @@ func editCategory(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	var category category
-	err = db.QueryRow("SELECT * FROM category WHERE id = ? AND user_id = ?", userID).Scan(&category)
+	err = db.QueryRow("SELECT id, category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&category.ID, &category.Name)
 	if err != nil {
 		c.String(403, "")
 		return
 	}
-	id := c.Param("id")
-	c.HTML(200, "bookmark/category.html", gin.H{"id": id, "category": category})
+	c.HTML(200, "category.html", gin.H{"id": id, "category": category})
 }
 
 func doEditCategory(c *gin.Context) {
@@ -139,10 +143,14 @@ func doEditCategory(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	var oldCategory string
-	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", userID).Scan(&oldCategory)
+	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&oldCategory)
 	if err != nil {
 		c.String(403, "")
 		return
@@ -162,7 +170,7 @@ func doEditCategory(c *gin.Context) {
 	default:
 		var exist string
 		err = db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", newCategory, userID).Scan(&exist)
-		if err != nil {
+		if err == nil {
 			message = fmt.Sprintf("Category %s is already existed.", newCategory)
 			errorCode = 1
 		} else {
@@ -183,7 +191,11 @@ func doDeleteCategory(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	db.Exec("DELETE FROM category WHERE id = ? and user_id = ?", id, userID)
 	db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?", id, userID)

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
@@ -12,10 +13,10 @@ import (
 )
 
 type bookmark struct {
-	id       int
-	name     string
-	url      string
-	category string
+	ID       int
+	Name     string
+	URL      string
+	Category []byte
 }
 
 func getBookmark(c *gin.Context) {
@@ -30,13 +31,14 @@ func getBookmark(c *gin.Context) {
 
 	var category gin.H
 	var bookmarks []bookmark
-	switch categoryID := c.Query("category"); categoryID {
-	case "":
+	categoryID, err := strconv.Atoi(c.Query("category"))
+	switch {
+	case err != nil:
 		category = gin.H{"id": -1, "name": "All Bookmarks"}
 		rows, err := db.Query(`
 SELECT bookmark.id, bookmark, url, category
 FROM bookmark LEFT JOIN category ON category_id = category.id
-LEFT JOIN seq ON bookmark.user_id = seq.user_id
+LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
 WHERE bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
@@ -46,17 +48,17 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		defer rows.Close()
 		for rows.Next() {
 			var bookmark bookmark
-			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url, &bookmark.category); err != nil {
+			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &bookmark.Category); err != nil {
 				log.Println(err)
 				return
 			}
 			bookmarks = append(bookmarks, bookmark)
 		}
-	case "0":
+	case categoryID == 0:
 		category = gin.H{"id": 0, "name": "Uncategorized"}
 		rows, err := db.Query(`
 SELECT id, bookmark, url FROM bookmark
-LEFT JOIN seq ON bookmark.user_id = seq.user_id
+LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
 WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
@@ -66,7 +68,7 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 		defer rows.Close()
 		for rows.Next() {
 			var bookmark bookmark
-			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url); err != nil {
+			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
 				log.Println(err)
 				return
 			}
@@ -85,7 +87,7 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 		}
 		rows, err := db.Query(`
 SELECT id, bookmark, url FROM bookmark
-LEFT JOIN seq ON bookmark.user_id = seq.user_id
+LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
 WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 `, categoryID, userID)
 		if err != nil {
@@ -95,17 +97,17 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 		defer rows.Close()
 		for rows.Next() {
 			var bookmark bookmark
-			if err := rows.Scan(&bookmark.id, &bookmark.name, &bookmark.url); err != nil {
+			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
 				log.Println(err)
 				return
 			}
 			bookmarks = append(bookmarks, bookmark)
 		}
-		for _, b := range bookmarks {
-			b.category = category["name"].(string)
+		for i := range bookmarks {
+			bookmarks[i].Category = []byte(name)
 		}
-		c.HTML(200, "bookmark/index.html", gin.H{"category": category, "bookmarks": bookmarks})
 	}
+	c.HTML(200, "index.html", gin.H{"category": category, "bookmarks": bookmarks})
 }
 
 func addBookmark(c *gin.Context) {
@@ -117,11 +119,11 @@ func addBookmark(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	categoryID := c.Query("category_id")
 
 	var category string
 	var categories []string
-	if categoryID != "" {
+	categoryID, err := strconv.Atoi(c.Query("category"))
+	if err == nil {
 		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&category)
 	} else {
 		category = ""
@@ -140,7 +142,7 @@ func addBookmark(c *gin.Context) {
 		}
 		categories = append(categories, categoryName)
 	}
-	c.HTML(200, "bookmark/bookmark.html", gin.H{"id": 0, "bookmark": gin.H{"category": category}, "categories": categories})
+	c.HTML(200, "bookmark.html", gin.H{"id": 0, "bookmark": gin.H{"category": category}, "categories": categories})
 }
 
 func doAddBookmark(c *gin.Context) {
@@ -155,20 +157,20 @@ func doAddBookmark(c *gin.Context) {
 	category := strings.TrimSpace(c.PostForm("category"))
 	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
 	url := strings.TrimSpace(c.PostForm("url"))
-	categoryID := getCategoryID(category, userID.(string))
+	categoryID := getCategoryID(category, userID.(int))
 
 	var exist, message string
 	var errorCode int
 	if bookmark == "" {
 		message = "Bookmark name is empty."
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?", bookmark, userID).Scan(&exist); err != nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?", bookmark, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?", url, userID).Scan(&exist); err != nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?", url, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
 		errorCode = 2
-	} else if categoryID == "" {
+	} else if categoryID == -1 {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
@@ -188,14 +190,18 @@ func editBookmark(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	var bookmark bookmark
 	err = db.QueryRow(`
 SELECT bookmark, url, category FROM bookmark
 LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&bookmark)
+`, id, userID).Scan(&bookmark.Name, &bookmark.URL, &bookmark.Category)
 	if err != nil {
 		c.String(403, "")
 		return
@@ -216,7 +222,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 		}
 		categories = append(categories, category)
 	}
-	c.HTML(200, "bookmark/bookmark.html", gin.H{"id": id, "bookmark": bookmark, "categories": categories})
+	c.HTML(200, "bookmark.html", gin.H{"id": id, "bookmark": bookmark, "categories": categories})
 }
 
 func doEditBookmark(c *gin.Context) {
@@ -228,14 +234,18 @@ func doEditBookmark(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	var old bookmark
 	err = db.QueryRow(`
 SELECT bookmark, url, category FROM bookmark
 LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&old)
+`, id, userID).Scan(&old.Name, &old.URL, &old.Category)
 	if err != nil {
 		c.String(403, "")
 		return
@@ -243,22 +253,22 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
 	url := strings.TrimSpace(c.PostForm("url"))
 	category := strings.TrimSpace(c.PostForm("category"))
-	categoryID := getCategoryID(category, userID.(string))
+	categoryID := getCategoryID(category, userID.(int))
 
 	var exist, message string
 	var errorCode int
 	if bookmark == "" {
 		message = "Bookmark name is empty."
 		errorCode = 1
-	} else if old.name == bookmark && old.url == url && old.category == category {
+	} else if old.Name == bookmark && old.URL == url && string(old.Category) == category {
 		message = "New bookmark is same as old bookmark."
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?", bookmark, id, userID).Scan(&exist); err != nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?", bookmark, id, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?", url, id, userID).Scan(&exist); err != nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?", url, id, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
 		errorCode = 2
-	} else if categoryID == "" {
+	} else if categoryID == -1 {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
@@ -278,7 +288,11 @@ func doDeleteBookmark(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(400, "")
+		return
+	}
 
 	db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID)
 	c.JSON(200, gin.H{"status": 1})
@@ -295,9 +309,9 @@ func reorder(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	orig := c.Query("orig")
-	dest := c.Query("dest")
-	next := c.Query("next")
+	orig := c.PostForm("orig")
+	dest := c.PostForm("dest")
+	next := c.PostForm("next")
 
 	var origSeq, destSeq int
 
