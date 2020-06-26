@@ -11,18 +11,10 @@ import (
 	"github.com/vharitonsky/iniflags"
 )
 
-var config metadata.Config
-var mariadb mysql
+var metadataConfig metadata.Config
+
 var self string
 var unix, host, port, logPath *string
-
-func init() {
-	c, err := metadata.Get("mybookmarks_mysql", &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	mariadb = c.(mysql)
-}
 
 func main() {
 	self, err := os.Executable()
@@ -30,9 +22,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	flag.StringVar(&config.Server, "server", "", "Metadata Server Address")
-	flag.StringVar(&config.VerifyHeader, "header", "", "Verify Header Header Name")
-	flag.StringVar(&config.VerifyValue, "value", "", "Verify Header Value")
+	flag.StringVar(&metadataConfig.Server, "server", "", "Metadata Server Address")
+	flag.StringVar(&metadataConfig.VerifyHeader, "header", "", "Verify Header Header Name")
+	flag.StringVar(&metadataConfig.VerifyValue, "value", "", "Verify Header Value")
 	unix = flag.String("unix", "", "Server Host")
 	host = flag.String("host", "127.0.0.1", "Server Host")
 	port = flag.String("port", "12345", "Server Port")
@@ -50,6 +42,11 @@ func main() {
 			run()
 		case "backup":
 			backup()
+		case "init":
+			err := restore("", nil)
+			if err == nil {
+				log.Println("Done.")
+			}
 		default:
 			log.Fatalf("Unknown argument: %s", flag.Arg(0))
 		}
@@ -60,7 +57,10 @@ func main() {
 		case "delete":
 			deleteUser(flag.Arg(1))
 		case "restore":
-			restore(flag.Arg(1))
+			err := restore(flag.Arg(1), nil)
+			if err == nil {
+				log.Println("Done.")
+			}
 		default:
 			log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
 		}

@@ -20,7 +20,7 @@ type category struct {
 
 func getCategoryID(category, userID string) string {
 	if category != "" {
-		db, _ := sql.Open("mysql", "user:password@/dbname")
+		db, _ := sql.Open("mysql", dsn)
 		defer db.Close()
 		var categoryID string
 		db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
@@ -40,7 +40,7 @@ func getCategoryID(category, userID string) string {
 }
 
 func getCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -80,7 +80,7 @@ func addCategory(c *gin.Context) {
 }
 
 func doAddCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -111,7 +111,7 @@ func doAddCategory(c *gin.Context) {
 }
 
 func editCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -131,7 +131,7 @@ func editCategory(c *gin.Context) {
 }
 
 func doEditCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -175,7 +175,7 @@ func doEditCategory(c *gin.Context) {
 }
 
 func doDeleteCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return

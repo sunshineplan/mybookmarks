@@ -35,7 +35,7 @@ func Login(c *gin.Context) {
 	username := strings.TrimSpace(strings.ToLower(c.PostForm("username")))
 	password := c.PostForm("password")
 
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -80,7 +80,7 @@ func Logout(c *gin.Context) {
 
 // Setting is a handler that change user password
 func Setting(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		c.String(500, "")

@@ -1,47 +1,55 @@
 -- Initialize the database.
 
 CREATE TABLE user (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL DEFAULT '123456'
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(20) UNIQUE NOT NULL,
+  password VARCHAR(20) DEFAULT '123456'
 );
 
 CREATE TABLE category (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  category TEXT NOT NULL,
-  user_id INTEGER NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES user (id)
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  category VARCHAR(15) NOT NULL,
+  user_id INT NOT NULL
 );
 
 CREATE TABLE bookmark (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  bookmark TEXT NOT NULL,
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  bookmark VARCHAR(40) NOT NULL,
   url TEXT NOT NULL,
-  seq INTEGER DEFAULT 0,
-  created TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-  user_id INTEGER NOT NULL,
-  category_id INTEGER DEFAULT 0,
-  FOREIGN KEY (user_id) REFERENCES user (id)
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  user_id INT NOT NULL,
+  category_id INT DEFAULT 0
+);
+
+CREATE TABLE seq (
+  user_id INT NOT NULL,
+  bookmark_id INT NOT NULL,
+  seq INT NOT NULL
 );
 
 CREATE TRIGGER add_user AFTER INSERT ON user
-BEGIN
+FOR EACH ROW
     INSERT INTO bookmark
       (user_id, bookmark, url)
     VALUES
       (new.id, 'Google', 'https://www.google.com');
-END;
 
 CREATE TRIGGER add_seq AFTER INSERT ON bookmark
-BEGIN
-    UPDATE bookmark SET seq = (SELECT MAX(seq)+1 FROM bookmark WHERE user_id = new.user_id)
-    WHERE user_id = new.user_id AND url = new.url;
+FOR EACH ROW BEGIN
+    SET @seq := (SELECT IFNULL(MAX(seq)+1, 1) FROM seq WHERE user_id = new.user_id);
+    INSERT INTO seq
+      (user_id, bookmark_id, seq)
+    VALUES
+      (new.user_id, new.id, @seq);
 END;
 
 CREATE TRIGGER reorder AFTER DELETE ON bookmark
-BEGIN
-    UPDATE bookmark SET seq = seq-1
-    WHERE user_id = old.user_id AND seq > old.seq;
+FOR EACH ROW BEGIN
+    SET @seq := (SELECT seq FROM seq WHERE user_id = old.user_id AND bookmark_id = old.id);
+    DELETE FROM seq
+    WHERE user_id = old.user_id AND seq = @seq;
+    UPDATE seq SET seq = seq-1
+    WHERE user_id = old.user_id AND seq > @seq;
 END;
 
 INSERT INTO user (id, username)

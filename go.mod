@@ -9,6 +9,8 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/sessions v1.2.0 // indirect
 	github.com/sunshineplan/metadata v1.0.2
+	github.com/sunshineplan/utils v0.0.0-20200625024123-88d74af4ca23
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
 )

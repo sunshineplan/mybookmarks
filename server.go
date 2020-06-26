@@ -20,7 +20,7 @@ func run() {
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	router := gin.Default()
-	router.Use(sessions.Sessions("mysession", sessions.NewCookieStore([]byte("secret"))))
+	router.Use(sessions.Sessions("mysession", sessions.NewCookieStore([]byte("secret")))) // need improve
 	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
 	router.LoadHTMLGlob(filepath.Join(filepath.Dir(self), "templates/**/*"))
 

@@ -19,7 +19,7 @@ type bookmark struct {
 }
 
 func getBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -36,6 +36,7 @@ func getBookmark(c *gin.Context) {
 		rows, err := db.Query(`
 SELECT bookmark.id, bookmark, url, category
 FROM bookmark LEFT JOIN category ON category_id = category.id
+LEFT JOIN seq ON bookmark.user_id = seq.user_id
 WHERE bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
@@ -55,7 +56,8 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		category = gin.H{"id": 0, "name": "Uncategorized"}
 		rows, err := db.Query(`
 SELECT id, bookmark, url FROM bookmark
-WHERE category_id = 0 AND user_id = ? ORDER BY seq
+LEFT JOIN seq ON bookmark.user_id = seq.user_id
+WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
 			log.Println(err)
@@ -83,7 +85,8 @@ WHERE category_id = 0 AND user_id = ? ORDER BY seq
 		}
 		rows, err := db.Query(`
 SELECT id, bookmark, url FROM bookmark
-WHERE category_id = ? AND user_id = ? ORDER BY seq
+LEFT JOIN seq ON bookmark.user_id = seq.user_id
+WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 `, categoryID, userID)
 		if err != nil {
 			log.Println(err)
@@ -106,7 +109,7 @@ WHERE category_id = ? AND user_id = ? ORDER BY seq
 }
 
 func addBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -141,7 +144,7 @@ func addBookmark(c *gin.Context) {
 }
 
 func doAddBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -177,7 +180,7 @@ func doAddBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -217,7 +220,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 }
 
 func doEditBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -267,7 +270,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 }
 
 func doDeleteBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return
@@ -282,7 +285,7 @@ func doDeleteBookmark(c *gin.Context) {
 }
 
 func reorder(c *gin.Context) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		c.String(500, "")
@@ -294,15 +297,15 @@ func reorder(c *gin.Context) {
 
 	orig := c.Query("orig")
 	dest := c.Query("dest")
-	refer := c.Query("refer")
+	next := c.Query("next")
 
 	var origSeq, destSeq int
 
-	db.QueryRow("SELECT seq FROM bookmark WHERE bookmark = ? AND user_id = ?", orig, userID).Scan(&origSeq)
+	db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", orig, userID).Scan(&origSeq)
 	if dest != "#TOP_POSITION#" {
-		err = db.QueryRow("SELECT seq FROM bookmark WHERE bookmark = ? AND user_id = ?", dest, userID).Scan(&destSeq)
+		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", dest, userID).Scan(&destSeq)
 	} else {
-		err = db.QueryRow("SELECT seq FROM bookmark WHERE bookmark = ? AND user_id = ?", refer, userID).Scan(&destSeq)
+		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", next, userID).Scan(&destSeq)
 		destSeq--
 	}
 	if err != nil {
@@ -313,16 +316,16 @@ func reorder(c *gin.Context) {
 
 	if origSeq > destSeq {
 		destSeq++
-		_, err = db.Exec("UPDATE bookmark SET seq = seq+1 WHERE seq >= ? AND user_id = ? AND seq < ?", destSeq, userID, origSeq)
+		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND user_id = ? AND seq < ?", destSeq, userID, origSeq)
 	} else {
-		_, err = db.Exec("UPDATE bookmark SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?", destSeq, userID, origSeq)
+		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?", destSeq, userID, origSeq)
 	}
 	if err != nil {
 		log.Println(err)
 		c.String(500, "")
 		return
 	}
-	_, err = db.Exec("UPDATE bookmark SET seq = ? WHERE bookmark = ? AND user_id = ?", destSeq, orig, userID)
+	_, err = db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?", destSeq, orig, userID)
 	if err != nil {
 		log.Println(err)
 		c.String(500, "")

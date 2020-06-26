@@ -2,16 +2,19 @@ package main
 
 import (
 	"database/sql"
-	"io/ioutil"
+	"fmt"
 	"log"
-	"path/filepath"
+	"os"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/sunshineplan/metadata"
+	"github.com/sunshineplan/utils/mail"
 )
 
 func addUser(username string) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,7 +27,7 @@ func addUser(username string) {
 }
 
 func deleteUser(username string) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,64 +36,27 @@ func deleteUser(username string) {
 	if n, _ := res.RowsAffected(); n != 0 {
 		log.Println("Done.")
 	} else {
-		log.Fatalf("[ERROR]User {username.lower()} does not exist.\n", strings.ToLower(username))
+		log.Fatalf("[ERROR]User %s does not exist.\n", strings.ToLower(username))
 	}
 }
 
-func restore(filePath string) {
-	file, err := ioutil.ReadFile(filePath)
+func backup() {
+	c, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db, err := sql.Open("mysql", "user:password@/dbname")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	dropAll, err := ioutil.ReadFile(filepath.Join(filepath.Dir(self), "drop_all.sql"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	tx, _ := db.Begin()
-	_, err = tx.Exec(string(dropAll))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Fatal(rollbackErr)
-		}
-		log.Fatal(err)
-	}
-	_, err = tx.Exec(string(file))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Fatal(rollbackErr)
-		}
-		log.Fatal(err)
-	}
-	if err := tx.Commit(); err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Done.")
-}
+	mailConfig := c.(mail.Setting)
 
-//def backup():
-//    try:
-//        msg = EmailMessage()
-//        msg['Subject'] = f'My Bookmarks Backup-{datetime.now():%Y%m%d}'
-//        msg['From'] = BACKUP['sender']
-//        msg['To'] = BACKUP['subscriber']
-//        mem = StringIO()
-//        db = sqlite3.connect(app.config['DATABASE'])
-//        mem.write('\n'.join(db.iterdump()))
-//        db.close()
-//        msg.add_attachment(mem.getvalue(), filename='database')
-//        mem.close()
-//        with SMTP(BACKUP['smtp_server'], BACKUP['smtp_server_port']) as s:
-//            s.starttls()
-//            s.login(BACKUP['sender'], BACKUP['password'])
-//            s.send_message(msg)
-//        click.echo('Done.')
-//    except:
-//        click.echo('Failed. Please check mail setting.')
-//
-//
-//
+	file := Dump()
+	defer os.Remove(file)
+	err = mail.SendMail(
+		&mailConfig,
+		fmt.Sprintf("My Bookmarks Backup-%s", time.Now().Format("20060102")),
+		"",
+		&mail.Attachment{FilePath: file, Filename: "database"},
+	)
+	if err != nil {
+		return
+	}
+	fmt.Println("Done.")
+}
