@@ -18,24 +18,32 @@ type category struct {
 	Count int
 }
 
-func getCategoryID(category string, userID int) int {
+func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 	if category != "" {
-		db, _ := sql.Open("mysql", dsn)
 		defer db.Close()
 		var categoryID int
 		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
 		switch {
 		case len(category) > 15:
-			return -1
+			return -1, nil
 		case err != nil:
-			res, _ := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
-			lastInsertID, _ := res.LastInsertId()
-			return int(lastInsertID)
+			log.Println(err)
+			res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
+			if err != nil {
+				log.Println(err)
+				return 0, err
+			}
+			lastInsertID, err := res.LastInsertId()
+			if err != nil {
+				log.Println(err)
+				return 0, err
+			}
+			return int(lastInsertID), nil
 		default:
-			return categoryID
+			return categoryID, nil
 		}
 	} else {
-		return 0
+		return 0, nil
 	}
 }
 
@@ -43,6 +51,7 @@ func getCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -51,9 +60,18 @@ func getCategory(c *gin.Context) {
 
 	var total, uncategorized int
 	var categories []category
-	db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total)
-	db.QueryRow(
-		"SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?", userID).Scan(&uncategorized)
+	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
+	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?", userID).Scan(&uncategorized)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
 	rows, err := db.Query(`
 SELECT category.id, category, count(bookmark) num
 FROM category LEFT JOIN bookmark ON category.id = category_id
@@ -61,6 +79,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 `, userID)
 	if err != nil {
 		log.Println(err)
+		c.String(500, "")
 		return
 	}
 	defer rows.Close()
@@ -68,6 +87,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 		var category category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
 			log.Println(err)
+			c.String(500, "")
 			return
 		}
 		categories = append(categories, category)
@@ -75,14 +95,11 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 	c.JSON(200, gin.H{"total": total, "uncategorized": uncategorized, "categories": categories})
 }
 
-func addCategory(c *gin.Context) {
-	c.HTML(200, "category.html", gin.H{"id": 0})
-}
-
 func doAddCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -102,6 +119,7 @@ func doAddCategory(c *gin.Context) {
 		if err == nil {
 			message = fmt.Sprintf("Category %s is already existed.", category)
 		} else {
+			log.Println(err)
 			db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 			c.JSON(200, gin.H{"status": 1})
 			return
@@ -114,6 +132,7 @@ func editCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -121,6 +140,7 @@ func editCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		log.Println(err)
 		c.String(400, "")
 		return
 	}
@@ -128,7 +148,8 @@ func editCategory(c *gin.Context) {
 	var category category
 	err = db.QueryRow("SELECT id, category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&category.ID, &category.Name)
 	if err != nil {
-		c.String(403, "")
+		log.Println(err)
+		c.String(500, "")
 		return
 	}
 	c.HTML(200, "category.html", gin.H{"id": id, "category": category})
@@ -138,6 +159,7 @@ func doEditCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -145,6 +167,7 @@ func doEditCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		log.Println(err)
 		c.String(400, "")
 		return
 	}
@@ -152,7 +175,8 @@ func doEditCategory(c *gin.Context) {
 	var oldCategory string
 	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&oldCategory)
 	if err != nil {
-		c.String(403, "")
+		log.Println(err)
+		c.String(500, "")
 		return
 	}
 	newCategory := strings.TrimSpace(c.PostForm("category"))
@@ -174,6 +198,7 @@ func doEditCategory(c *gin.Context) {
 			message = fmt.Sprintf("Category %s is already existed.", newCategory)
 			errorCode = 1
 		} else {
+			log.Println(err)
 			db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?", newCategory, id, userID)
 			c.JSON(200, gin.H{"status": 1})
 			return
@@ -186,6 +211,7 @@ func doDeleteCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -193,11 +219,22 @@ func doDeleteCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		log.Println(err)
 		c.String(400, "")
 		return
 	}
 
-	db.Exec("DELETE FROM category WHERE id = ? and user_id = ?", id, userID)
-	db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?", id, userID)
+	_, err = db.Exec("DELETE FROM category WHERE id = ? and user_id = ?", id, userID)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
+	_, err = db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?", id, userID)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
 	c.JSON(200, gin.H{"status": 1})
 }

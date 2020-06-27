@@ -33,6 +33,7 @@ func login(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
+		c.HTML(200, "login.html", gin.H{"error": "Failed to connect to database."})
 		return
 	}
 	defer db.Close()
@@ -46,9 +47,11 @@ func login(c *gin.Context) {
 				c.HTML(200, "login.html", gin.H{"error": "Detected first time running. Initialized the database."})
 				return
 			}
+			log.Println(err)
 			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
 			return
 		}
+		log.Println(err)
 		message = "Incorrect username"
 	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil && user.Password != password {
 		message = "Incorrect password"
@@ -57,7 +60,8 @@ func login(c *gin.Context) {
 		session.Set("user_id", user.ID)
 		session.Set("username", user.Username)
 		if err := session.Save(); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to save session"})
+			log.Println(err)
+			c.HTML(200, "login.html", gin.H{"error": "Failed to save session."})
 			return
 		}
 		c.Redirect(302, "/")
@@ -70,7 +74,7 @@ func setting(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Println(err)
-		c.String(500, "")
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -89,6 +93,7 @@ func setting(c *gin.Context) {
 	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(password))
 	switch {
 	case err != nil && password != oldPassword:
+		log.Println(err)
 		message = "Incorrect password."
 		errorCode = 1
 	case password1 != password2:
@@ -108,14 +113,18 @@ func setting(c *gin.Context) {
 			c.String(500, "")
 			return
 		}
-		_, err = db.Exec("UPDATE user SET password = ? WHERE id = ?",
-			string(newPassword), userID)
+		_, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", string(newPassword), userID)
 		if err != nil {
 			log.Println(err)
 			c.String(500, "")
 			return
 		}
 		session.Clear()
+		if err := session.Save(); err != nil {
+			log.Println(err)
+			c.String(500, "")
+			return
+		}
 		c.JSON(200, gin.H{"status": 1})
 		return
 	}

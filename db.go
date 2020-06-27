@@ -30,7 +30,7 @@ func getDB() {
 	}
 	err = json.Unmarshal(m, &dbConfig)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
 }

@@ -35,11 +35,14 @@ func loadTemplates() multitemplate.Renderer {
 }
 
 func run() {
-	f, _ := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
+	f, err := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
+	if err != nil {
+		log.Fatal(err)
+	}
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	secret := make([]byte, 16)
-	_, err := rand.Read(secret)
+	_, err = rand.Read(secret)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,7 +92,9 @@ func run() {
 	base.POST("/bookmark/edit/:id", doEditBookmark)
 	base.POST("/bookmark/delete/:id", doDeleteBookmark)
 	base.GET("/category/get", getCategory)
-	base.GET("/category/add", addCategory)
+	base.GET("/category/add", func(c *gin.Context) {
+		c.HTML(200, "category.html", gin.H{"id": 0})
+	})
 	base.POST("/category/add", doAddCategory)
 	base.GET("/category/edit/:id", editCategory)
 	base.POST("/category/edit/:id", doEditCategory)

@@ -46,9 +46,10 @@ func main() {
 		case "init":
 			log.Println("Start!")
 			err := restore("")
-			if err == nil {
-				log.Println("Done!")
+			if err != nil {
+				log.Fatal(err)
 			}
+			log.Println("Done!")
 		default:
 			log.Fatalf("Unknown argument: %s", flag.Arg(0))
 		}
@@ -61,9 +62,10 @@ func main() {
 		case "restore":
 			log.Println("Start!")
 			err := restore(flag.Arg(1))
-			if err == nil {
-				log.Println("Done!")
+			if err != nil {
+				log.Fatal(err)
 			}
+			log.Println("Done!")
 		default:
 			log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
 		}

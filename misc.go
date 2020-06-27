@@ -23,7 +23,8 @@ func addUser(username string) {
 	defer db.Close()
 	_, err = db.Exec("INSERT INTO user(username) VALUES (?)", strings.ToLower(username))
 	if err != nil {
-		log.Fatalf("[ERROR]Username %s already exists.\n", strings.ToLower(username))
+		log.Printf("[ERROR]Username %s already exists.\n", strings.ToLower(username))
+		log.Fatal(err)
 	}
 	log.Println("Done!")
 }
@@ -35,11 +36,15 @@ func deleteUser(username string) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	res, _ := db.Exec("DELETE FROM user WHERE username=?", strings.ToLower(username))
-	if n, _ := res.RowsAffected(); n != 0 {
+	res, err := db.Exec("DELETE FROM user WHERE username=?", strings.ToLower(username))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if n, err := res.RowsAffected(); n != 0 {
 		log.Println("Done.")
 	} else {
-		log.Fatalf("[ERROR]User %s does not exist.\n", strings.ToLower(username))
+		log.Printf("[ERROR]User %s does not exist.\n", strings.ToLower(username))
+		log.Fatal(err)
 	}
 	log.Println("Done!")
 }
