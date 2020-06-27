@@ -32,11 +32,6 @@ func getDB() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	dbConfig.Server = "localhost"
-	dbConfig.Port = 3306
-	dbConfig.Database = "test"
-	dbConfig.Username = "root"
-	dbConfig.Password = "159357qw"
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
 }
 
