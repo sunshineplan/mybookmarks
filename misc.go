@@ -15,6 +15,7 @@ import (
 )
 
 func addUser(username string) {
+	log.Println("Start!")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -24,10 +25,11 @@ func addUser(username string) {
 	if err != nil {
 		log.Fatalf("[ERROR]Username %s already exists.\n", strings.ToLower(username))
 	}
-	log.Println("Done.")
+	log.Println("Done!")
 }
 
 func deleteUser(username string) {
+	log.Println("Start!")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -39,9 +41,11 @@ func deleteUser(username string) {
 	} else {
 		log.Fatalf("[ERROR]User %s does not exist.\n", strings.ToLower(username))
 	}
+	log.Println("Done!")
 }
 
 func backup() {
+	log.Println("Start!")
 	m, err := metadata.Get("mybookmarks_backup", &metadataConfig)
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +65,7 @@ func backup() {
 		&mail.Attachment{FilePath: file, Filename: "database"},
 	)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
-	fmt.Println("Done.")
+	log.Println("Done!")
 }

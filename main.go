@@ -44,9 +44,10 @@ func main() {
 		case "backup":
 			backup()
 		case "init":
-			err := restore("", nil)
+			log.Println("Start!")
+			err := restore("")
 			if err == nil {
-				log.Println("Done.")
+				log.Println("Done!")
 			}
 		default:
 			log.Fatalf("Unknown argument: %s", flag.Arg(0))
@@ -58,9 +59,10 @@ func main() {
 		case "delete":
 			deleteUser(flag.Arg(1))
 		case "restore":
-			err := restore(flag.Arg(1), nil)
+			log.Println("Start!")
+			err := restore(flag.Arg(1))
 			if err == nil {
-				log.Println("Done.")
+				log.Println("Done!")
 			}
 		default:
 			log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))

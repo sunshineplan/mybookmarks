@@ -27,12 +27,14 @@ CREATE TABLE seq (
   seq INT NOT NULL
 );
 
+DELIMITER ;;
 CREATE TRIGGER add_user AFTER INSERT ON user
-FOR EACH ROW
+FOR EACH ROW BEGIN
     INSERT INTO bookmark
       (user_id, bookmark, url)
     VALUES
       (new.id, 'Google', 'https://www.google.com');
+END;;
 
 CREATE TRIGGER add_seq AFTER INSERT ON bookmark
 FOR EACH ROW BEGIN
@@ -41,7 +43,7 @@ FOR EACH ROW BEGIN
       (user_id, bookmark_id, seq)
     VALUES
       (new.user_id, new.id, @seq);
-END;
+END;;
 
 CREATE TRIGGER reorder AFTER DELETE ON bookmark
 FOR EACH ROW BEGIN
@@ -50,7 +52,8 @@ FOR EACH ROW BEGIN
     WHERE user_id = old.user_id AND seq = @seq;
     UPDATE seq SET seq = seq-1
     WHERE user_id = old.user_id AND seq > @seq;
-END;
+END;;
+DELIMITER ;
 
 INSERT INTO user (id, username)
   VALUES (0, 'guest');

@@ -55,6 +55,11 @@ writeLogrotateScrip() {
     fi
 }
 
+createCronTask() {
+    cp -s /var/www/mybookmarks-go/mybookmarks-go.cron /etc/cron.monthly
+    chmod +x /var/www/mybookmarks-go/mybookmarks-go.cron
+}
+
 setupNGINX() {
     cp -s /var/www/mybookmarks-go/mybookmarks-go.conf /etc/nginx/conf.d
     sed -i "s/\$domain/$domain/" /var/www/mybookmarks-go/mybookmarks-go.conf
@@ -69,6 +74,7 @@ main() {
     configMyIP
     setupsystemd
     writeLogrotateScrip
+    createCronTask
     setupNGINX
 }
 

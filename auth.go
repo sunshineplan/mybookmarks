@@ -38,17 +38,17 @@ func login(c *gin.Context) {
 	defer db.Close()
 	user := new(user)
 	err = db.QueryRow("SELECT * FROM user WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
-	//if err != nil {
-	//	err = initDB(db)
-	//	if err == nil {
-	//		c.HTML(200, "/auth/login.html", gin.H{"error": "Detected first time running. Initialized the database."})
-	//		return
-	//	}
-	//	c.HTML(200, "/auth/login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
-	//	return
-	//}
 	var message string
 	if err != nil {
+		if strings.Contains(err.Error(), "doesn't exist") {
+			err = restore("")
+			if err == nil {
+				c.HTML(200, "login.html", gin.H{"error": "Detected first time running. Initialized the database."})
+				return
+			}
+			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+			return
+		}
 		message = "Incorrect username"
 	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil && user.Password != password {
 		message = "Incorrect password"

@@ -6,9 +6,8 @@ BootstrapButtons = Swal.mixin({
 });
 
 function load(category_id = null) {
-  if (category_id === null) {
+  if (category_id === null)
     category_id = document.cookie.split('LastVisit=')[1];
-  }
   $.getJSON('/category/get', json => {
     $('#categories').empty();
     $('#-1.category').text('All Bookmarks (' + json.total + ')');
@@ -22,11 +21,8 @@ function load(category_id = null) {
 
 function my_bookmarks(category_id = -1) {
   var param;
-  if (category_id == -1) {
-    param = '';
-  } else {
-    param = '?category=' + category_id;
-  };
+  if (category_id == -1) param = '';
+  else param = '?category=' + category_id;
   loading();
   $.get('/bookmark' + param).done(html => {
     loading(false);
@@ -42,9 +38,8 @@ function category(category_id = 0) {
   if (category_id == 0) {
     url = '/category/add';
     title = 'Add Category';
-    if ($(window).width() <= 900) {
+    if ($(window).width() <= 900)
       $('.sidebar').toggle('slide');
-    };
   } else {
     url = '/category/edit/' + category_id;
     title = 'Edit Category';
@@ -61,11 +56,10 @@ function category(category_id = 0) {
 function bookmark(id = 0, category_id = 0) {
   var url, title;
   if (id == 0) {
-    if (category_id > 0) {
+    if (category_id > 0)
       url = '/bookmark/add?category=' + category_id;
-    } else {
+    else
       url = '/bookmark/add';
-    };
     title = 'Add Bookmark';
   } else {
     url = '/bookmark/edit/' + id;
@@ -84,45 +78,35 @@ function setting() {
   loading();
   $.get('/auth/setting').done(html => {
     loading(false);
-    $('.content').html(html)
+    $('.content').html(html);
     document.title = 'Setting - My Bookmarks';
-    $('#password').focus()
+    $('#password').focus();
   }).fail(() => window.location = '/auth/login');
 };
 
 function doCategory(id) {
   var url;
-  if (id == 0) {
-    url = '/category/add';
-  } else {
-    url = '/category/edit/' + id;
-  }
+  if (id == 0) url = '/category/add';
+  else url = '/category/edit/' + id;
   if (valid())
     $.post(url, $('input').serialize(), json => {
       $('.form').removeClass('was-validated');
-      if (json.status == 0) {
+      if (json.status == 0)
         BootstrapButtons.fire('Error', json.message, 'error').then(() => {
-          if (json.error == 1) {
-            $('#category').val('');
-          };
+          if (json.error == 1) $('#category').val('');
         });
-      } else {
-        load();
-      };
+      else load();
     });
 };
 
 function doBookmark(id) {
   var url;
-  if (id == 0) {
-    url = '/bookmark/add';
-  } else {
-    url = '/bookmark/edit/' + id;
-  }
+  if (id == 0) url = '/bookmark/add';
+  else url = '/bookmark/edit/' + id;
   if (valid())
     $.post(url, $('input').serialize(), json => {
       $('.form').removeClass('was-validated');
-      if (json.status == 0) {
+      if (json.status == 0)
         BootstrapButtons.fire('Error', json.message, 'error').then(() => {
           if (json.error == 1) {
             $('#bookmark').val('');
@@ -132,21 +116,17 @@ function doBookmark(id) {
             $('#category').val('');
           };
         });
-      } else {
-        load();
-      };
+      else load();
     });
 };
 
 function doDelete(mode, id) {
   var url;
-  if (mode == 'category') {
+  if (mode == 'category')
     url = '/category/delete/' + id;
-  } else if (mode == 'bookmark') {
+  else if (mode == 'bookmark')
     url = '/bookmark/delete/' + id;
-  } else {
-    return false;
-  };
+  else return false;
   Swal.fire({
     title: 'Are you sure?',
     text: 'This ' + mode + ' will be deleted permanently.',
@@ -160,13 +140,11 @@ function doDelete(mode, id) {
     },
     buttonsStyling: false
   }).then(confirm => {
-    if (confirm.isConfirmed) {
+    if (confirm.isConfirmed)
       $.post(url, json => {
-        if (json.status == 1) {
+        if (json.status == 1)
           if (mode == 'bookmark') load(); else load(-1);
-        };
       });
-    };
   });
 };
 
@@ -174,19 +152,17 @@ function doSetting() {
   if (valid())
     $.post('/auth/setting', $('input').serialize(), json => {
       $('.form').removeClass('was-validated');
-      if (json.status == 1) {
+      if (json.status == 1)
         BootstrapButtons.fire('Success', 'Your password has changed. Please Re-login!', 'success')
           .then(() => window.location = '/auth/login');
-      } else {
-        BootstrapButtons.fire('Error', json.message, 'error').then(() => {
-          if (json.error == 1) {
-            $('#password').val('');
-          } else if (json.error == 2) {
-            $('#password1').val('');
-            $('#password2').val('');
-          };
-        });
-      };
+      else BootstrapButtons.fire('Error', json.message, 'error').then(() => {
+        if (json.error == 1)
+          $('#password').val('');
+        else if (json.error == 2) {
+          $('#password1').val('');
+          $('#password2').val('');
+        };
+      });
     });
 };
 
@@ -202,11 +178,9 @@ function valid() {
 };
 
 function simplify_url() {
-  if (isMobile.matches) {
+  if (isMobile.matches)
     $('.url').each(function () { $(this).text($(this).text().replace(/https?:\/\/(www\.)?/i, '')) });
-  } else {
-    $('.url').each(function () { $(this).text($(this).attr('href')) });
-  };
+  else $('.url').each(function () { $(this).text($(this).attr('href')) });
 };
 
 function goback() {

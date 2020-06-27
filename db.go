@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -33,46 +32,40 @@ func getDB() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	dsn = fmt.Sprintf("%s:%s@%s:%d/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
-	dsn = "root:159357qw@/test" // test
+	dbConfig.Server = "localhost"
+	dbConfig.Port = 3306
+	dbConfig.Database = "test"
+	dbConfig.Username = "root"
+	dbConfig.Password = "159357qw"
+	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
 }
 
-func restore(filePath string, db *sql.DB) error {
+func restore(filePath string) error {
 	if filePath == "" {
 		filePath = filepath.Join(filepath.Dir(self), "schema.sql")
 	}
-	file, err := ioutil.ReadFile(filePath)
-	if err != nil {
+	dropAll := filepath.Join(filepath.Dir(self), "drop_all.sql")
+
+	args := []string{}
+	args = append(args, "/c")
+	args = append(args, "mysql")
+	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
+	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
+	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
+	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
+	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
+	args = append(args, "<")
+
+	drop := exec.Command("cmd", append(args, dropAll)...)
+	if err := drop.Run(); err != nil {
 		log.Fatal(err)
+		return err
 	}
-	if db == nil {
-		db, err = sql.Open("mysql", dsn)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	defer db.Close()
-	dropAll, err := ioutil.ReadFile(filepath.Join(filepath.Dir(self), "drop_all.sql"))
-	if err != nil {
+
+	restore := exec.Command("cmd", append(args, filePath)...)
+	if err := restore.Run(); err != nil {
 		log.Fatal(err)
-	}
-	tx, _ := db.Begin()
-	_, err = tx.Exec(string(dropAll))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Fatal(rollbackErr)
-		}
-		log.Fatal(err)
-	}
-	_, err = tx.Exec(string(file))
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Fatal(rollbackErr)
-		}
-		log.Fatal(err)
-	}
-	if err := tx.Commit(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	return nil
 }
@@ -84,14 +77,19 @@ func Dump() string {
 		log.Fatal(err)
 	}
 	args := []string{}
+	args = append(args, "/c")
+	args = append(args, "mysqldump")
 	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
 	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
-	args = append(args, fmt.Sprintf("-B%s", dbConfig.Database))
 	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
 	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
-	args = append(args, "-C")
 	args = append(args, fmt.Sprintf("-r%s", tmpfile.Name()))
-	cmd := exec.Command("mysqldump", args...)
+	args = append(args, "--add-drop-database")
+	args = append(args, "--add-drop-trigger")
+	args = append(args, "-CB")
+	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
+	cmd := exec.Command("cmd", args...)
+	log.Println(cmd)
 	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}

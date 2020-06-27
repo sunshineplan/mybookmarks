@@ -48,6 +48,15 @@ func run() {
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
 	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
 	router.HTMLRender = loadTemplates()
+	router.GET("/", func(c *gin.Context) {
+		session := sessions.Default(c)
+		username := session.Get("username")
+		if username == nil {
+			c.Redirect(302, "/auth/login")
+			return
+		}
+		c.HTML(200, "base.html", gin.H{"user": username})
+	})
 
 	auth := router.Group("/auth")
 	auth.GET("/login", func(c *gin.Context) {
@@ -73,11 +82,6 @@ func run() {
 
 	base := router.Group("/")
 	base.Use(authRequired)
-	base.GET("/", func(c *gin.Context) {
-		session := sessions.Default(c)
-		username := session.Get("username")
-		c.HTML(200, "base.html", gin.H{"user": username})
-	})
 	base.GET("/bookmark", getBookmark)
 	base.GET("/bookmark/add", addBookmark)
 	base.POST("/bookmark/add", doAddBookmark)
