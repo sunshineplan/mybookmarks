@@ -84,7 +84,6 @@ func Dump() string {
 	args = append(args, "-CB")
 	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
 	cmd := exec.Command("cmd", args...)
-	log.Println(cmd)
 	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}
