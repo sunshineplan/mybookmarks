@@ -1,0 +1,19 @@
+<header style='padding-left: 20px;'>
+  <a class='h3 title'>{{ if eq .id 0 }}Add{{ else }}Edit{{ end }} Category</a>
+  <hr>
+</header>
+<div class='form'>
+  <div class='form-group'>
+    <label for='category'>Category</label>
+    <input class='form-control' name='category' id='category' maxlength=15 value="{{ .category.Name }}" required>
+    <div class='invalid-feedback'>This field is required.</div>
+    <small class='form-text text-muted'>Max length: 15 characters. One chinese character equal three characters.</small>
+  </div>
+  <button class='btn btn-primary' onclick='doCategory({{ .id }})' id='submit'>{{ if eq .id 0 }}Add{{ else }}Save{{ end }}</button>
+  <button class='btn btn-primary' onclick='goback()'>Cancel</button>
+</div>
+{{ if ne .id 0 }}
+<div class='form'>
+  <button class='btn btn-danger delete' onclick="doDelete('category', {{ .id }})">Delete</button>
+</div>
+{{ end }}

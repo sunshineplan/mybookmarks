@@ -1,0 +1,45 @@
+<header style='padding-left: 20px;'>
+  <a class='h3 title'>{{ if eq .id 0 }}Add{{ else }}Edit{{ end }} Bookmark</a>
+  <hr>
+</header>
+<div class='form'>
+  <script>
+    $(() => {
+      $('input[type="url"]').blur(function () {
+        var string = $(this).val();
+        if (!string.match(/^https?:/) && string.length) {
+          string = 'http://' + string;
+          $(this).val(string)
+        }
+      });
+    });
+  </script>
+  <div class='form-group'>
+    <label for='bookmark'>Bookmark</label>
+    <input class='form-control' name='bookmark' id='bookmark' maxlength=40 value='{{ .bookmark.Name }}' required>
+    <div class='invalid-feedback'>This field is required.</div>
+    <small class='form-text text-muted'>Max length: 40 characters.</small>
+  </div>
+  <div class='form-group'>
+    <label for='url'>URL</label>
+    <input class='form-control' type='url' name='url' id='url' value='{{ .bookmark.URL }}' required>
+    <div class='invalid-feedback'>Please enter a valid URL.</div>
+  </div>
+  <div class='form-group'>
+    <label for='category'>Category</label>
+    <input class='form-control' list='category-list' name='category' id='category' maxlength=15 value='{{ printf "%s" .bookmark.Category }}'>
+    <datalist id='category-list'>
+    {{ range $_, $category := .categories }}
+      <option value="{{ $category }}"></option>
+    {{ end }}
+    </datalist>
+    <small class='form-text text-muted'>Max length: 15 characters. One chinese character equal three characters.</small>
+  </div>
+  <button class='btn btn-primary' onclick='doBookmark({{ .id }})' id='submit'>{{ if eq .id 0 }}Add{{ else }}Save{{ end }}</button>
+  <button class='btn btn-primary' onclick='goback()'>Cancel</button>
+</div>
+{{ if ne .id 0 }}
+<div class='form'>
+  <button class='btn btn-danger delete' onclick="doDelete('bookmark', {{ .id }})">Delete</button>
+</div>
+{{ end }}

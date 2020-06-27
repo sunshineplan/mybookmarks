@@ -1,0 +1,10 @@
+[Unit]
+Description=uWSGI instance to serve My Bookmarks
+After=network.target
+
+[Service]
+Environment=GIN_MODE=release
+ExecStart=/var/www/mybookmarks-go/mybookmarks-go
+
+[Install]
+WantedBy=multi-user.target
