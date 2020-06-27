@@ -1,4 +1,4 @@
-const BootstrapButtons = Swal.mixin({
+BootstrapButtons = Swal.mixin({
   customClass: {
     confirmButton: 'swal btn btn-primary'
   },
@@ -28,18 +28,11 @@ function my_bookmarks(category_id = -1) {
     param = '?category=' + category_id;
   };
   loading();
-  fetch('/bookmark' + param).then(response => {
-    if (response.redirected) {
-      window.location = '/auth/login';
-      return;
-    } else {
-      return response.text();
-    };
-  }).then(html => {
+  $.get('/bookmark' + param).done(html => {
     loading(false);
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
-  });
+  }).fail(() => window.location = '/auth/login');
   $('.category').removeClass('active');
   $('#' + category_id).addClass('active');
 };
@@ -57,26 +50,19 @@ function category(category_id = 0) {
     title = 'Edit Category';
   };
   loading();
-  fetch(url).then(response => {
-    if (response.redirected) {
-      window.location = '/auth/login';
-      return;
-    } else {
-      return response.text();
-    };
-  }).then(html => {
+  $.get(url).done(html => {
     loading(false);
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#category').focus();
-  });
+  }).fail(() => window.location = '/auth/login');
 };
 
 function bookmark(id = 0, category_id = 0) {
   var url, title;
   if (id == 0) {
     if (category_id > 0) {
-      url = '/bookmark/add?category_id=' + category_id;
+      url = '/bookmark/add?category=' + category_id;
     } else {
       url = '/bookmark/add';
     };
@@ -86,28 +72,22 @@ function bookmark(id = 0, category_id = 0) {
     title = 'Edit Bookmark';
   };
   loading();
-  fetch(url).then(response => {
-    if (response.redirected) {
-      window.location = '/auth/login';
-      return;
-    } else {
-      return response.text();
-    };
-  }).then(html => {
+  $.get(url).done(html => {
     loading(false);
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#bookmark').focus();
-  });
+  }).fail(() => window.location = '/auth/login');
 };
 
 function setting() {
   loading();
-  $.get('/auth/setting', html => $('.content').html(html)).done(() => {
+  $.get('/auth/setting').done(html => {
     loading(false);
+    $('.content').html(html)
     document.title = 'Setting - My Bookmarks';
     $('#password').focus()
-  });
+  }).fail(() => window.location = '/auth/login');
 };
 
 function doCategory(id) {

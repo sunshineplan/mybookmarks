@@ -21,10 +21,8 @@ func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	if userID == nil {
-		c.Redirect(302, "/auth/login")
-		return
+		c.AbortWithStatus(401)
 	}
-	c.Next()
 }
 
 func login(c *gin.Context) {
@@ -53,7 +51,6 @@ func login(c *gin.Context) {
 	if err != nil {
 		message = "Incorrect username"
 	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil && user.Password != password {
-		log.Println(err) // test
 		message = "Incorrect password"
 	} else {
 		session.Clear()
@@ -67,13 +64,6 @@ func login(c *gin.Context) {
 		return
 	}
 	c.HTML(200, "login.html", gin.H{"error": message})
-}
-
-func logout(c *gin.Context) {
-	session := sessions.Default(c)
-	session.Clear()
-	session.Save()
-	c.Redirect(302, "/")
 }
 
 func setting(c *gin.Context) {

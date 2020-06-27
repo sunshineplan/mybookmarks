@@ -120,13 +120,13 @@ func addBookmark(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	var category string
+	var bookmark bookmark
 	var categories []string
 	categoryID, err := strconv.Atoi(c.Query("category"))
 	if err == nil {
-		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&category)
+		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&bookmark.Category)
 	} else {
-		category = ""
+		bookmark.Category = []byte("")
 	}
 	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
 	if err != nil {
@@ -142,7 +142,7 @@ func addBookmark(c *gin.Context) {
 		}
 		categories = append(categories, categoryName)
 	}
-	c.HTML(200, "bookmark.html", gin.H{"id": 0, "bookmark": gin.H{"category": category}, "categories": categories})
+	c.HTML(200, "bookmark.html", gin.H{"id": 0, "bookmark": bookmark, "categories": categories})
 }
 
 func doAddBookmark(c *gin.Context) {

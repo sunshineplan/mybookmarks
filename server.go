@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"io"
 	"log"
 	"net"
@@ -37,17 +38,34 @@ func run() {
 	f, _ := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	gin.DefaultWriter = io.MultiWriter(f)
 
+	secret := make([]byte, 16)
+	_, err := rand.Read(secret)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	router := gin.Default()
-	router.Use(sessions.Sessions("session", sessions.NewCookieStore([]byte("secret")))) // need improve
+	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
 	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
 	router.HTMLRender = loadTemplates()
 
 	auth := router.Group("/auth")
 	auth.GET("/login", func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user_id")
+		if user != nil {
+			c.Redirect(302, "/")
+			return
+		}
 		c.HTML(200, "login.html", gin.H{"error": ""})
 	})
 	auth.POST("/login", login)
-	auth.GET("/logout", authRequired, logout)
+	auth.GET("/logout", authRequired, func(c *gin.Context) {
+		session := sessions.Default(c)
+		session.Clear()
+		session.Save()
+		c.Redirect(302, "/auth/login")
+	})
 	auth.GET("/setting", authRequired, func(c *gin.Context) {
 		c.HTML(200, "setting.html", nil)
 	})
