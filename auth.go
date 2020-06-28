@@ -58,33 +58,36 @@ func login(c *gin.Context) {
 			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
 			return
 		}
-	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		if (strings.Contains(err.Error(), "too short") && user.Password != password) || strings.Contains(err.Error(), "is not") {
-			message = "Incorrect password"
-		} else {
-			log.Println(err)
-			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
-			return
-		}
 	} else {
-		session.Clear()
-		session.Set("user_id", user.ID)
-		session.Set("username", user.Username)
-
-		rememberme := c.PostForm("rememberme")
-		if rememberme == "on" {
-			session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
-		} else {
-			session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 0})
+		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+			if (strings.Contains(err.Error(), "too short") && user.Password != password) || strings.Contains(err.Error(), "is not") {
+				message = "Incorrect password"
+			} else if user.Password != password {
+				log.Println(err)
+				c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+				return
+			}
 		}
+		if message == "" {
+			session.Clear()
+			session.Set("user_id", user.ID)
+			session.Set("username", user.Username)
 
-		if err := session.Save(); err != nil {
-			log.Println(err)
-			c.HTML(200, "login.html", gin.H{"error": "Failed to save session."})
+			rememberme := c.PostForm("rememberme")
+			if rememberme == "on" {
+				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
+			} else {
+				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 0})
+			}
+
+			if err := session.Save(); err != nil {
+				log.Println(err)
+				c.HTML(200, "login.html", gin.H{"error": "Failed to save session."})
+				return
+			}
+			c.Redirect(302, "/")
 			return
 		}
-		c.Redirect(302, "/")
-		return
 	}
 	c.HTML(200, "login.html", gin.H{"error": message})
 }
@@ -120,7 +123,7 @@ func setting(c *gin.Context) {
 		if (strings.Contains(err.Error(), "too short") && password != oldPassword) || strings.Contains(err.Error(), "is not") {
 			message = "Incorrect password."
 			errorCode = 1
-		} else {
+		} else if password != oldPassword {
 			log.Println(err)
 			c.String(500, "")
 			return
