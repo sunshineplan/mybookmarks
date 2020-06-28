@@ -35,7 +35,7 @@ func main() {
 	flag.StringVar(&metadataConfig.Server, "server", "", "Metadata Server Address")
 	flag.StringVar(&metadataConfig.VerifyHeader, "header", "", "Verify Header Header Name")
 	flag.StringVar(&metadataConfig.VerifyValue, "value", "", "Verify Header Value")
-	unix = flag.String("unix", "", "Server Host")
+	unix = flag.String("unix", "", "UNIX-domain Socket")
 	host = flag.String("host", "127.0.0.1", "Server Host")
 	port = flag.String("port", "12345", "Server Port")
 	logPath = flag.String("log", joinPath(dir(self), "access.log"), "Log Path")

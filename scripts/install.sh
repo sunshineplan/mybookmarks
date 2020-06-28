@@ -16,7 +16,7 @@ configMyIP() {
     read -p 'Please enter metadata server: ' server
     read -p 'Please enter VerifyHeader header: ' header
     read -p 'Please enter VerifyHeader value: ' value
-    read -p 'Please enter unix socket(default: /var/www/mybookmarks-go/mybookmarks-go.sock): ' unix
+    read -p 'Please enter unix socket(default: /run/mybookmarks-go.sock): ' unix
     [ -z $unix ] && unix=/var/www/mybookmarks-go/mybookmarks-go.sock
     read -p 'Please enter host(default: 127.0.0.1): ' host
     [ -z $host ] && host=127.0.0.1
@@ -35,7 +35,7 @@ configMyIP() {
 }
 
 setupsystemd() {
-    cp -s /var/www/mybookmarks-go/mybookmarks-go.service /etc/systemd/system
+    cp -s /var/www/mybookmarks-go/scripts/mybookmarks-go.service /etc/systemd/system
     systemctl enable mybookmarks-go
     service mybookmarks-go start
 }
@@ -56,14 +56,14 @@ writeLogrotateScrip() {
 }
 
 createCronTask() {
-    cp -s /var/www/mybookmarks-go/mybookmarks-go.cron /etc/cron.monthly
-    chmod +x /var/www/mybookmarks-go/mybookmarks-go.cron
+    cp -s /var/www/mybookmarks-go/scripts/mybookmarks-go.cron /etc/cron.monthly
+    chmod +x /var/www/mybookmarks-go/scripts/mybookmarks-go.cron
 }
 
 setupNGINX() {
-    cp -s /var/www/mybookmarks-go/mybookmarks-go.conf /etc/nginx/conf.d
-    sed -i "s/\$domain/$domain/" /var/www/mybookmarks-go/mybookmarks-go.conf
-    sed -i "s,\$unix,$unix," /var/www/mybookmarks-go/mybookmarks-go.conf
+    cp -s /var/www/mybookmarks-go/scripts/mybookmarks-go.conf /etc/nginx/conf.d
+    sed -i "s/\$domain/$domain/" /var/www/mybookmarks-go/scripts/mybookmarks-go.conf
+    sed -i "s,\$unix,$unix," /var/www/mybookmarks-go/scripts/mybookmarks-go.conf
     service nginx reload
 }
 

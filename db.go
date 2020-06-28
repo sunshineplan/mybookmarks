@@ -37,9 +37,9 @@ func getDB() {
 
 func restore(filePath string) error {
 	if filePath == "" {
-		filePath = joinPath(dir(self), "schema.sql")
+		filePath = joinPath(dir(self), "scripts/schema.sql")
 	}
-	dropAll := joinPath(dir(self), "drop_all.sql")
+	dropAll := joinPath(dir(self), "scripts/drop_all.sql")
 
 	var cmd, arg string
 	switch OS {
