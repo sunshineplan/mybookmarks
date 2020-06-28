@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
-	"path/filepath"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sunshineplan/metadata"
@@ -37,9 +36,9 @@ func getDB() {
 
 func restore(filePath string) error {
 	if filePath == "" {
-		filePath = filepath.Join(filepath.Dir(self), "schema.sql")
+		filePath = joinPath(dir(self), "schema.sql")
 	}
-	dropAll := filepath.Join(filepath.Dir(self), "drop_all.sql")
+	dropAll := joinPath(dir(self), "drop_all.sql")
 
 	args := []string{}
 	args = append(args, "/c")

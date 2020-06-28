@@ -19,11 +19,11 @@ import (
 
 func loadTemplates() multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
-	r.AddFromFiles("base.html", "templates/base.html", "templates/root.html")
-	r.AddFromFiles("login.html", "templates/base.html", "templates/auth/login.html")
-	r.AddFromFiles("setting.html", "templates/auth/setting.html")
+	r.AddFromFiles("base.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/root.html"))
+	r.AddFromFiles("login.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/auth/login.html"))
+	r.AddFromFiles("setting.html", joinPath(dir(self), "templates/auth/setting.html"))
 
-	includes, err := filepath.Glob(filepath.Join(filepath.Dir(self), "templates/bookmark/*"))
+	includes, err := filepath.Glob(joinPath(dir(self), "templates/bookmark/*"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func run() {
 
 	router := gin.Default()
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
-	router.StaticFS("/static", http.Dir(filepath.Join(filepath.Dir(self), "static")))
+	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
 	router.HTMLRender = loadTemplates()
 	router.GET("/", func(c *gin.Context) {
 		session := sessions.Default(c)

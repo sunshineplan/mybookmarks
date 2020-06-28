@@ -16,8 +16,14 @@ var metadataConfig metadata.Config
 var self string
 var unix, host, port, logPath *string
 
+var (
+	joinPath = filepath.Join
+	dir      = filepath.Dir
+)
+
 func main() {
-	self, err := os.Executable()
+	var err error
+	self, err = os.Executable()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,8 +34,8 @@ func main() {
 	unix = flag.String("unix", "", "Server Host")
 	host = flag.String("host", "127.0.0.1", "Server Host")
 	port = flag.String("port", "12345", "Server Port")
-	logPath = flag.String("log", filepath.Join(filepath.Dir(self), "access.log"), "Log Path")
-	iniflags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
+	logPath = flag.String("log", joinPath(dir(self), "access.log"), "Log Path")
+	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
 	getDB()
