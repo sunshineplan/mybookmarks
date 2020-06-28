@@ -82,8 +82,7 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 	default:
 		category = gin.H{"id": categoryID}
 		var name string
-		err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
-			categoryID, userID).Scan(&name)
+		err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&name)
 		category["name"] = name
 		if err != nil {
 			log.Println(err)
@@ -282,7 +281,12 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
 	url := strings.TrimSpace(c.PostForm("url"))
 	category := strings.TrimSpace(c.PostForm("category"))
-	categoryID, _ := getCategoryID(category, userID.(int), db)
+	categoryID, err := getCategoryID(category, userID.(int), db)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
 
 	var exist, message string
 	var errorCode int

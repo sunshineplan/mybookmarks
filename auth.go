@@ -51,10 +51,21 @@ func login(c *gin.Context) {
 			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
 			return
 		}
-		log.Println(err)
-		message = "Incorrect username"
-	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil && user.Password != password {
-		message = "Incorrect password"
+		if strings.Contains(err.Error(), "no rows") {
+			message = "Incorrect username"
+		} else {
+			log.Println(err)
+			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+			return
+		}
+	} else if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		if (strings.Contains(err.Error(), "too short") && user.Password != password) || strings.Contains(err.Error(), "is not") {
+			message = "Incorrect password"
+		} else {
+			log.Println(err)
+			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+			return
+		}
 	} else {
 		session.Clear()
 		session.Set("user_id", user.ID)
@@ -94,16 +105,26 @@ func setting(c *gin.Context) {
 	password2 := c.PostForm("password2")
 
 	var oldPassword string
-	db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword)
+	err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword)
+	if err != nil {
+		log.Println(err)
+		c.String(500, "")
+		return
+	}
 
 	var message string
 	var errorCode int
 	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(password))
 	switch {
-	case err != nil && password != oldPassword:
-		log.Println(err)
-		message = "Incorrect password."
-		errorCode = 1
+	case err != nil:
+		if (strings.Contains(err.Error(), "too short") && password != oldPassword) || strings.Contains(err.Error(), "is not") {
+			message = "Incorrect password."
+			errorCode = 1
+		} else {
+			log.Println(err)
+			c.String(500, "")
+			return
+		}
 	case password1 != password2:
 		message = "Confirm password doesn't match new password."
 		errorCode = 2

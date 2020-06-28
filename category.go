@@ -27,18 +27,20 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 		case len(category) > 15:
 			return -1, nil
 		case err != nil:
-			log.Println(err)
-			res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
-			if err != nil {
-				log.Println(err)
-				return 0, err
+			if strings.Contains(err.Error(), "no rows") {
+				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
+				if err != nil {
+					log.Println(err)
+					return 0, err
+				}
+				lastInsertID, err := res.LastInsertId()
+				if err != nil {
+					log.Println(err)
+					return 0, err
+				}
+				return int(lastInsertID), nil
 			}
-			lastInsertID, err := res.LastInsertId()
-			if err != nil {
-				log.Println(err)
-				return 0, err
-			}
-			return int(lastInsertID), nil
+			return 0, err
 		default:
 			return categoryID, nil
 		}
@@ -119,9 +121,18 @@ func doAddCategory(c *gin.Context) {
 		if err == nil {
 			message = fmt.Sprintf("Category %s is already existed.", category)
 		} else {
+			if strings.Contains(err.Error(), "no rows") {
+				_, err = db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
+				if err != nil {
+					log.Println(err)
+					c.String(500, "")
+					return
+				}
+				c.JSON(200, gin.H{"status": 1})
+				return
+			}
 			log.Println(err)
-			db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
-			c.JSON(200, gin.H{"status": 1})
+			c.String(500, "")
 			return
 		}
 	}
@@ -199,7 +210,12 @@ func doEditCategory(c *gin.Context) {
 			errorCode = 1
 		} else {
 			log.Println(err)
-			db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?", newCategory, id, userID)
+			_, err = db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?", newCategory, id, userID)
+			if err != nil {
+				log.Println(err)
+				c.String(500, "")
+				return
+			}
 			c.JSON(200, gin.H{"status": 1})
 			return
 		}
