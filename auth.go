@@ -59,6 +59,14 @@ func login(c *gin.Context) {
 		session.Clear()
 		session.Set("user_id", user.ID)
 		session.Set("username", user.Username)
+
+		rememberme := c.PostForm("rememberme")
+		if rememberme == "on" {
+			session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
+		} else {
+			session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 0})
+		}
+
 		if err := session.Save(); err != nil {
 			log.Println(err)
 			c.HTML(200, "login.html", gin.H{"error": "Failed to save session."})
