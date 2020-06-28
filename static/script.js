@@ -28,7 +28,7 @@ function my_bookmarks(category_id = -1) {
     loading(false);
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
-  }).fail(() => window.location = '/auth/login');
+  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
   $('.category').removeClass('active');
   $('#' + category_id).addClass('active');
 };
@@ -50,7 +50,7 @@ function category(category_id = 0) {
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#category').focus();
-  }).fail(() => window.location = '/auth/login');
+  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function bookmark(id = 0, category_id = 0) {
@@ -71,7 +71,7 @@ function bookmark(id = 0, category_id = 0) {
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#bookmark').focus();
-  }).fail(() => window.location = '/auth/login');
+  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function setting() {
@@ -81,7 +81,7 @@ function setting() {
     $('.content').html(html);
     document.title = 'Setting - My Bookmarks';
     $('#password').focus();
-  }).fail(() => window.location = '/auth/login');
+  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function doCategory(id) {
@@ -96,7 +96,7 @@ function doCategory(id) {
           if (json.error == 1) $('#category').val('');
         });
       else load();
-    });
+    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function doBookmark(id) {
@@ -117,7 +117,7 @@ function doBookmark(id) {
           };
         });
       else load();
-    });
+    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function doDelete(mode, id) {
@@ -144,7 +144,7 @@ function doDelete(mode, id) {
       $.post(url, json => {
         if (json.status == 1)
           if (mode == 'bookmark') load(); else load(-1);
-      });
+      }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
   });
 };
 
@@ -163,7 +163,7 @@ function doSetting() {
           $('#password2').val('');
         };
       });
-    });
+    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
 };
 
 function valid() {
