@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"syscall"
 
 	"github.com/gin-contrib/multitemplate"
@@ -101,7 +100,7 @@ func run() {
 	base.POST("/category/delete/:id", doDeleteCategory)
 	base.POST("/reorder", reorder)
 
-	if *unix != "" && runtime.GOOS == "linux" {
+	if *unix != "" && OS == "linux" {
 		if _, err := os.Stat(*unix); err == nil {
 			err = os.Remove(*unix)
 			if err != nil {

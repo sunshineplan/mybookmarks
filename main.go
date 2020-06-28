@@ -5,11 +5,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/sunshineplan/metadata"
 	"github.com/vharitonsky/iniflags"
 )
+
+// OS is the running program's operating system
+const OS = runtime.GOOS
 
 var metadataConfig metadata.Config
 

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sunshineplan/metadata"
@@ -40,8 +41,19 @@ func restore(filePath string) error {
 	}
 	dropAll := joinPath(dir(self), "drop_all.sql")
 
+	var cmd, arg string
+	switch OS {
+	case "windows":
+		cmd = "cmd"
+		arg = "/c"
+	case "linux":
+		cmd = "bash"
+		arg = "-c"
+	default:
+		log.Fatal("Unsupported operating system.")
+	}
+
 	args := []string{}
-	args = append(args, "/c")
 	args = append(args, "mysql")
 	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
 	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
@@ -50,13 +62,13 @@ func restore(filePath string) error {
 	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
 	args = append(args, "<")
 
-	drop := exec.Command("cmd", append(args, dropAll)...)
+	drop := exec.Command(cmd, arg, strings.Join(append(args, dropAll), " "))
 	if err := drop.Run(); err != nil {
 		log.Fatal(err)
 		return err
 	}
 
-	restore := exec.Command("cmd", append(args, filePath)...)
+	restore := exec.Command(cmd, arg, strings.Join(append(args, filePath), " "))
 	if err := restore.Run(); err != nil {
 		log.Fatal(err)
 		return err
@@ -70,8 +82,20 @@ func Dump() string {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	var cmd, arg string
+	switch OS {
+	case "windows":
+		cmd = "cmd"
+		arg = "/c"
+	case "linux":
+		cmd = "bash"
+		arg = "-c"
+	default:
+		log.Fatal("Unsupported operating system.")
+	}
+
 	args := []string{}
-	args = append(args, "/c")
 	args = append(args, "mysqldump")
 	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
 	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
@@ -82,8 +106,9 @@ func Dump() string {
 	args = append(args, "--add-drop-trigger")
 	args = append(args, "-CB")
 	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
-	cmd := exec.Command("cmd", args...)
-	if err := cmd.Run(); err != nil {
+
+	dump := exec.Command(cmd, arg, strings.Join(args, " "))
+	if err := dump.Run(); err != nil {
 		log.Fatal(err)
 	}
 	return tmpfile.Name()
