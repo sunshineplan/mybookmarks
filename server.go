@@ -39,6 +39,7 @@ func run() {
 		log.Fatal(err)
 	}
 	gin.DefaultWriter = io.MultiWriter(f)
+	log.SetOutput(gin.DefaultWriter)
 
 	secret := make([]byte, 16)
 	_, err = rand.Read(secret)
