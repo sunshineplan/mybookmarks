@@ -56,7 +56,7 @@ writeLogrotateScrip() {
 }
 
 createCronTask() {
-    cp -s /var/www/mybookmarks-go/scripts/mybookmarks-go.cron /etc/cron.monthly
+    cp -s /var/www/mybookmarks-go/scripts/mybookmarks-go.cron /etc/cron.monthly/mybookmarks-go
     chmod +x /var/www/mybookmarks-go/scripts/mybookmarks-go.cron
 }
 
