@@ -20,7 +20,6 @@ type category struct {
 
 func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 	if category != "" {
-		defer db.Close()
 		var categoryID int
 		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
 		switch {
