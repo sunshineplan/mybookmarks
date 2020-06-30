@@ -76,3 +76,18 @@ func backup() {
 	}
 	log.Println("Done!")
 }
+
+func restore(file string) {
+	log.Println("Start!")
+	if file == "" {
+		file = joinPath(dir(self), "scripts/schema.sql")
+	} else {
+		if _, err := os.Stat(file); err != nil {
+			log.Fatalf("File not found: %v", err)
+		}
+	}
+	dropAll := joinPath(dir(self), "scripts/drop_all.sql")
+	execScript(dropAll)
+	execScript(file)
+	log.Println("Done!")
+}

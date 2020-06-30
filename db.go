@@ -35,13 +35,7 @@ func getDB() {
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
 }
 
-func restore(filePath string) {
-	log.Println("Start!")
-	if filePath == "" {
-		filePath = joinPath(dir(self), "scripts/schema.sql")
-	}
-	dropAll := joinPath(dir(self), "scripts/drop_all.sql")
-
+func execScript(file string) {
 	var cmd, arg string
 	switch OS {
 	case "windows":
@@ -62,18 +56,12 @@ func restore(filePath string) {
 	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
 	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
 	args = append(args, "<")
+	args = append(args, file)
 
-	drop := exec.Command(cmd, arg, strings.Join(append(args, dropAll), " "))
-	if err := drop.Run(); err != nil {
-		log.Fatalf("Failed to run drop all script: %v", err)
-		return
+	c := exec.Command(cmd, arg, strings.Join(args, " "))
+	if err := c.Run(); err != nil {
+		log.Fatalf("Failed to execute mysql script: %v", err)
 	}
-
-	restore := exec.Command(cmd, arg, strings.Join(append(args, filePath), " "))
-	if err := restore.Run(); err != nil {
-		log.Fatalf("Failed to run restore script: %v", err)
-	}
-	log.Println("Done!")
 }
 
 func dump() string {
