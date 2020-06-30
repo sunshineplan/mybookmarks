@@ -123,8 +123,11 @@ func run() {
 			if err := listener.Close(); err != nil {
 				log.Printf("HTTP Listener close: %v", err)
 			}
-			if err := os.Remove(*unix); err != nil {
-				log.Printf("Remove socket file: %v", err)
+			if _, err := os.Stat(*unix); err == nil {
+				err = os.Remove(*unix)
+				if err != nil {
+					log.Printf("Remove socket file: %v", err)
+				}
 			}
 			close(idleConnsClosed)
 		}()
