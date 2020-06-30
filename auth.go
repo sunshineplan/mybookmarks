@@ -38,7 +38,7 @@ func login(c *gin.Context) {
 	}
 	defer db.Close()
 	user := new(user)
-	err = db.QueryRow("SELECT * FROM user WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
+	err = db.QueryRow("SELECT id, username, password FROM user WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
 	var message string
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't exist") {
