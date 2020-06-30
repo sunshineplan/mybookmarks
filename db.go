@@ -54,7 +54,7 @@ func restore(filePath string) {
 		log.Fatal("Unsupported operating system.")
 	}
 
-	args := []string{}
+	var args []string
 	args = append(args, "mysql")
 	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
 	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
@@ -76,8 +76,7 @@ func restore(filePath string) {
 	log.Println("Done!")
 }
 
-// Dump database
-func Dump() string {
+func dump() string {
 	tmpfile, err := ioutil.TempFile("", "tmp")
 	if err != nil {
 		log.Fatalf("Failed to create temporary file: %v", err)
@@ -95,7 +94,7 @@ func Dump() string {
 		log.Fatal("Unsupported operating system.")
 	}
 
-	args := []string{}
+	var args []string
 	args = append(args, "mysqldump")
 	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
 	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))

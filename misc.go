@@ -63,7 +63,7 @@ func backup() {
 		log.Fatalf("Failed to unmarshal json: %v", err)
 	}
 
-	file := Dump()
+	file := dump()
 	defer os.Remove(file)
 	err = mail.SendMail(
 		&mailSetting,
