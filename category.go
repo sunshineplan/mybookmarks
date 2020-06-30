@@ -29,12 +29,12 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 			if strings.Contains(err.Error(), "no rows") {
 				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 				if err != nil {
-					log.Println(err)
+					log.Printf("Failed to add category: %v", err)
 					return 0, err
 				}
 				lastInsertID, err := res.LastInsertId()
 				if err != nil {
-					log.Println(err)
+					log.Printf("Failed to get last insert id: %v", err)
 					return 0, err
 				}
 				return int(lastInsertID), nil
@@ -51,7 +51,7 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 func getCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -63,13 +63,13 @@ func getCategory(c *gin.Context) {
 	var categories []category
 	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan all bookmark count: %v", err)
 		c.String(500, "")
 		return
 	}
 	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?", userID).Scan(&uncategorized)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan uncategorized bookmark count: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -79,7 +79,7 @@ FROM category LEFT JOIN bookmark ON category.id = category_id
 WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 `, userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get categories: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -87,7 +87,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 	for rows.Next() {
 		var category category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
-			log.Println(err)
+			log.Printf("Failed to scan category: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -99,7 +99,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 func doAddCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -123,14 +123,14 @@ func doAddCategory(c *gin.Context) {
 			if strings.Contains(err.Error(), "no rows") {
 				_, err = db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 				if err != nil {
-					log.Println(err)
+					log.Printf("Failed to add category: %v", err)
 					c.String(500, "")
 					return
 				}
 				c.JSON(200, gin.H{"status": 1})
 				return
 			}
-			log.Println(err)
+			log.Printf("Failed to scan category: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -141,7 +141,7 @@ func doAddCategory(c *gin.Context) {
 func editCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -150,7 +150,7 @@ func editCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
@@ -158,7 +158,7 @@ func editCategory(c *gin.Context) {
 	var category category
 	err = db.QueryRow("SELECT id, category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&category.ID, &category.Name)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan category: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -168,7 +168,7 @@ func editCategory(c *gin.Context) {
 func doEditCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -177,7 +177,7 @@ func doEditCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
@@ -185,7 +185,7 @@ func doEditCategory(c *gin.Context) {
 	var oldCategory string
 	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&oldCategory)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan category: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -208,10 +208,9 @@ func doEditCategory(c *gin.Context) {
 			message = fmt.Sprintf("Category %s is already existed.", newCategory)
 			errorCode = 1
 		} else {
-			log.Println(err)
 			_, err = db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?", newCategory, id, userID)
 			if err != nil {
-				log.Println(err)
+				log.Printf("Failed to edit category: %v", err)
 				c.String(500, "")
 				return
 			}
@@ -225,7 +224,7 @@ func doEditCategory(c *gin.Context) {
 func doDeleteCategory(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -234,20 +233,20 @@ func doDeleteCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
 
 	_, err = db.Exec("DELETE FROM category WHERE id = ? and user_id = ?", id, userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to delete category: %v", err)
 		c.String(500, "")
 		return
 	}
 	_, err = db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?", id, userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to remove deleted category for bookmark: %v", err)
 		c.String(500, "")
 		return
 	}

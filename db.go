@@ -26,16 +26,17 @@ type mysqlConfig struct {
 func getDB() {
 	m, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get mybookmarks_mysql metadata: %v", err)
 	}
 	err = json.Unmarshal(m, &dbConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to unmarshal json: %v", err)
 	}
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
 }
 
-func restore(filePath string) error {
+func restore(filePath string) {
+	log.Println("Start!")
 	if filePath == "" {
 		filePath = joinPath(dir(self), "scripts/schema.sql")
 	}
@@ -64,23 +65,22 @@ func restore(filePath string) error {
 
 	drop := exec.Command(cmd, arg, strings.Join(append(args, dropAll), " "))
 	if err := drop.Run(); err != nil {
-		log.Fatal(err)
-		return err
+		log.Fatalf("Failed to run drop all script: %v", err)
+		return
 	}
 
 	restore := exec.Command(cmd, arg, strings.Join(append(args, filePath), " "))
 	if err := restore.Run(); err != nil {
-		log.Fatal(err)
-		return err
+		log.Fatalf("Failed to run restore script: %v", err)
 	}
-	return nil
+	log.Println("Done!")
 }
 
 // Dump database
 func Dump() string {
 	tmpfile, err := ioutil.TempFile("", "tmp")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to create temporary file: %v", err)
 	}
 
 	var cmd, arg string
@@ -109,7 +109,7 @@ func Dump() string {
 
 	dump := exec.Command(cmd, arg, strings.Join(args, " "))
 	if err := dump.Run(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to run backup command: %v", err)
 	}
 	return tmpfile.Name()
 }

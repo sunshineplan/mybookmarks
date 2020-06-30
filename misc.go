@@ -18,13 +18,16 @@ func addUser(username string) {
 	log.Println("Start!")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 	_, err = db.Exec("INSERT INTO user(username) VALUES (?)", strings.ToLower(username))
 	if err != nil {
-		log.Printf("[ERROR]Username %s already exists.\n", strings.ToLower(username))
-		log.Fatal(err)
+		if strings.Contains(err.Error(), "Duplicate entry") {
+			log.Fatalf("Username %s already exists.", strings.ToLower(username))
+		} else {
+			log.Fatalf("Failed to add user: %v", err)
+		}
 	}
 	log.Println("Done!")
 }
@@ -33,18 +36,17 @@ func deleteUser(username string) {
 	log.Println("Start!")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 	res, err := db.Exec("DELETE FROM user WHERE username=?", strings.ToLower(username))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to delete user: %v", err)
 	}
-	if n, err := res.RowsAffected(); n != 0 {
-		log.Println("Done.")
-	} else {
-		log.Printf("[ERROR]User %s does not exist.\n", strings.ToLower(username))
-		log.Fatal(err)
+	if n, err := res.RowsAffected(); err != nil {
+		log.Fatalf("Failed to get affected rows: %v", err)
+	} else if n == 0 {
+		log.Fatalf("User %s does not exist.", strings.ToLower(username))
 	}
 	log.Println("Done!")
 }
@@ -53,12 +55,12 @@ func backup() {
 	log.Println("Start!")
 	m, err := metadata.Get("mybookmarks_backup", &metadataConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get mybookmarks_backup metadata: %v", err)
 	}
 	var mailSetting mail.Setting
 	err = json.Unmarshal(m, &mailSetting)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to unmarshal json: %v", err)
 	}
 
 	file := Dump()
@@ -70,7 +72,7 @@ func backup() {
 		&mail.Attachment{FilePath: file, Filename: "database"},
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to send mail: %v", err)
 	}
 	log.Println("Done!")
 }

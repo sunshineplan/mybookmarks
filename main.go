@@ -29,7 +29,7 @@ func main() {
 	var err error
 	self, err = os.Executable()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get self path: %v", err)
 	}
 
 	flag.StringVar(&metadataConfig.Server, "server", "", "Metadata Server Address")
@@ -54,12 +54,7 @@ func main() {
 		case "backup":
 			backup()
 		case "init":
-			log.Println("Start!")
-			err := restore("")
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Println("Done!")
+			restore("")
 		default:
 			log.Fatalf("Unknown argument: %s", flag.Arg(0))
 		}
@@ -70,12 +65,7 @@ func main() {
 		case "delete":
 			deleteUser(flag.Arg(1))
 		case "restore":
-			log.Println("Start!")
-			err := restore(flag.Arg(1))
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Println("Done!")
+			restore(flag.Arg(1))
 		default:
 			log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
 		}

@@ -32,7 +32,7 @@ func login(c *gin.Context) {
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.HTML(200, "login.html", gin.H{"error": "Failed to connect to database."})
 		return
 	}
@@ -42,13 +42,8 @@ func login(c *gin.Context) {
 	var message string
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't exist") {
-			err = restore("")
-			if err == nil {
-				c.HTML(200, "login.html", gin.H{"error": "Detected first time running. Initialized the database."})
-				return
-			}
-			log.Println(err)
-			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
+			restore("")
+			c.HTML(200, "login.html", gin.H{"error": "Detected first time running. Initialized the database."})
 			return
 		}
 		if strings.Contains(err.Error(), "no rows") {
@@ -95,7 +90,7 @@ func login(c *gin.Context) {
 func setting(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}

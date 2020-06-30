@@ -24,7 +24,7 @@ func loadTemplates() multitemplate.Renderer {
 
 	includes, err := filepath.Glob(joinPath(dir(self), "templates/bookmark/*"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to glob bookmark templates: %v", err)
 	}
 
 	for _, include := range includes {
@@ -36,7 +36,7 @@ func loadTemplates() multitemplate.Renderer {
 func run() {
 	f, err := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to open log file: %v", err)
 	}
 	gin.DefaultWriter = io.MultiWriter(f)
 	log.SetOutput(gin.DefaultWriter)
@@ -44,7 +44,7 @@ func run() {
 	secret := make([]byte, 16)
 	_, err = rand.Read(secret)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get secret: %v", err)
 	}
 
 	router := gin.Default()
@@ -105,13 +105,13 @@ func run() {
 		if _, err := os.Stat(*unix); err == nil {
 			err = os.Remove(*unix)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Failed to remove socket file: %v", err)
 			}
 		}
 
 		listener, err := net.Listen("unix", *unix)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to listen socket file: %v", err)
 		}
 
 		idleConnsClosed := make(chan struct{})
@@ -121,19 +121,19 @@ func run() {
 			<-quit
 
 			if err := listener.Close(); err != nil {
-				log.Printf("HTTP Listener close: %v", err)
+				log.Printf("Failed to close listener: %v", err)
 			}
 			if _, err := os.Stat(*unix); err == nil {
 				err = os.Remove(*unix)
 				if err != nil {
-					log.Printf("Remove socket file: %v", err)
+					log.Printf("Failed to remove socket file: %v", err)
 				}
 			}
 			close(idleConnsClosed)
 		}()
 
 		if err = os.Chmod(*unix, 0666); err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to chmod socket file: %v", err)
 		}
 
 		http.Serve(listener, router)

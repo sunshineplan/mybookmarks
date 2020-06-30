@@ -22,7 +22,7 @@ type bookmark struct {
 func getBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -43,7 +43,7 @@ LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_i
 WHERE bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to get all bookmarks: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -51,7 +51,7 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		for rows.Next() {
 			var bookmark bookmark
 			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &bookmark.Category); err != nil {
-				log.Println(err)
+				log.Printf("Failed to scan all bookmarks: %v", err)
 				c.String(500, "")
 				return
 			}
@@ -65,7 +65,7 @@ LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_i
 WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 `, userID)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to get uncategorized bookmarks: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -73,7 +73,7 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 		for rows.Next() {
 			var bookmark bookmark
 			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
-				log.Println(err)
+				log.Printf("Failed to scan uncategorized bookmarks: %v", err)
 				c.String(500, "")
 				return
 			}
@@ -85,7 +85,7 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 		err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&name)
 		category["name"] = name
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to scan category name: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -95,7 +95,7 @@ LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_i
 WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 `, categoryID, userID)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to get bookmarks by category: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -103,7 +103,7 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 		for rows.Next() {
 			var bookmark bookmark
 			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
-				log.Println(err)
+				log.Printf("Failed to scan bookmarks by category: %v", err)
 				c.String(500, "")
 				return
 			}
@@ -119,7 +119,7 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 func addBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -137,7 +137,7 @@ func addBookmark(c *gin.Context) {
 	}
 	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get categories name: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -145,7 +145,7 @@ func addBookmark(c *gin.Context) {
 	for rows.Next() {
 		var categoryName string
 		if err := rows.Scan(&categoryName); err != nil {
-			log.Println(err)
+			log.Printf("Failed to scan category name: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -157,7 +157,7 @@ func addBookmark(c *gin.Context) {
 func doAddBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -169,7 +169,7 @@ func doAddBookmark(c *gin.Context) {
 	url := strings.TrimSpace(c.PostForm("url"))
 	categoryID, err := getCategoryID(category, userID.(int), db)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get category id: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -191,7 +191,7 @@ func doAddBookmark(c *gin.Context) {
 	} else {
 		_, err = db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)", bookmark, url, userID, categoryID)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to add bookmark: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -204,7 +204,7 @@ func doAddBookmark(c *gin.Context) {
 func editBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -213,7 +213,7 @@ func editBookmark(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
@@ -225,7 +225,7 @@ LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
 `, id, userID).Scan(&bookmark.Name, &bookmark.URL, &bookmark.Category)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -233,7 +233,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	var categories []string
 	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get categories: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -241,7 +241,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	for rows.Next() {
 		var category string
 		if err := rows.Scan(&category); err != nil {
-			log.Println(err)
+			log.Printf("Failed to scan category: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -253,7 +253,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 func doEditBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -262,7 +262,7 @@ func doEditBookmark(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
@@ -274,7 +274,7 @@ LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
 `, id, userID).Scan(&old.Name, &old.URL, &old.Category)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -283,7 +283,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	category := strings.TrimSpace(c.PostForm("category"))
 	categoryID, err := getCategoryID(category, userID.(int), db)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get category id: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -307,7 +307,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 	} else {
 		_, err = db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?", bookmark, url, categoryID, id, userID)
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to edit bookmark: %v", err)
 			c.String(500, "")
 			return
 		}
@@ -320,7 +320,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 func doDeleteBookmark(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
 		return
 	}
@@ -329,14 +329,14 @@ func doDeleteBookmark(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to get id param: %v", err)
 		c.String(400, "")
 		return
 	}
 
 	_, err = db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to delete bookmark: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -346,8 +346,8 @@ func doDeleteBookmark(c *gin.Context) {
 func reorder(c *gin.Context) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Println(err)
-		c.String(500, "")
+		log.Printf("Failed to connect to database: %v", err)
+		c.String(503, "")
 		return
 	}
 	defer db.Close()
@@ -362,7 +362,7 @@ func reorder(c *gin.Context) {
 
 	err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", orig, userID).Scan(&origSeq)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan orig seq: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -373,7 +373,7 @@ func reorder(c *gin.Context) {
 		destSeq--
 	}
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to scan dest seq: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -385,13 +385,13 @@ func reorder(c *gin.Context) {
 		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?", destSeq, userID, origSeq)
 	}
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to update other seq: %v", err)
 		c.String(500, "")
 		return
 	}
 	_, err = db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?", destSeq, orig, userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to update orig seq: %v", err)
 		c.String(500, "")
 		return
 	}
