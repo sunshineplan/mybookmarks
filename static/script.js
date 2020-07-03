@@ -197,3 +197,18 @@ function loading(show = true) {
     $('.content').css('opacity', 1);
   }
 };
+
+function scroll(direction = 'down') {
+  var index, len = $('.category').length;
+  $('.category').each((i, e) => {
+    if (e.classList.contains('active')) {
+      index = i;
+      return false;
+    };
+  });
+  if (direction == 'down') {
+    if (index < len - 1) load($('.category')[index + 1].id);
+  } else {
+    if (index > 0) load($('.category')[index - 1].id);
+  };
+};
