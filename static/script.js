@@ -198,7 +198,7 @@ function loading(show = true) {
   }
 };
 
-function scroll(direction = 'down') {
+function arrow(direction) {
   var index, len = $('.category').length;
   $('.category').each((i, e) => {
     if (e.classList.contains('active')) {
@@ -206,9 +206,9 @@ function scroll(direction = 'down') {
       return false;
     };
   });
-  if (direction == 'down') {
-    if (index < len - 1) load($('.category')[index + 1].id);
-  } else {
+  if (direction == 'up') {
     if (index > 0) load($('.category')[index - 1].id);
+  } else if (direction == 'down') {
+    if (index < len - 1) load($('.category')[index + 1].id);
   };
 };
