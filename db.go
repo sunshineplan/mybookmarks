@@ -69,6 +69,7 @@ func dump() string {
 	if err != nil {
 		log.Fatalf("Failed to create temporary file: %v", err)
 	}
+	tmpfile.Close()
 
 	var cmd, arg string
 	switch OS {
