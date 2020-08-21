@@ -51,31 +51,5 @@
 {{ if .user }}
 <script>
   $(() => load(-1));
-  $(document).on('click', '.category', function () {
-    my_bookmarks($(this).prop('id'));
-    if ($(window).width() <= 900) {
-      $('.sidebar').toggle('slide');
-    };
-  });
-  $(document).keyup(event => {
-    if (event.key == 'ArrowUp') {
-      arrow('up');
-    } else if (event.key == 'ArrowDown') {
-      arrow('down');
-    };
-  });
-  $(document).on('keyup', '.content', event => {
-    if (event.key == 'Enter') {
-      $('#submit').click();
-    };
-  });
-  $('.toggle').click(() => {
-    $('.sidebar').toggle('slide');
-  });
-  $('.content').click(() => {
-    if ($('.sidebar').is(':visible') && $(window).width() <= 900) {
-      $('.sidebar').toggle('slide');
-    };
-  });
 </script>
 {{ end }}

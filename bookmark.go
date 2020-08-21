@@ -14,7 +14,7 @@ type bookmark struct {
 	ID       int
 	Name     string
 	URL      string
-	Category []byte
+	Category string
 }
 
 func getBookmark(c *gin.Context) {
@@ -48,11 +48,13 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		defer rows.Close()
 		for rows.Next() {
 			var bookmark bookmark
-			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &bookmark.Category); err != nil {
+			var category []byte
+			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
 				log.Printf("Failed to scan all bookmarks: %v", err)
 				c.String(500, "")
 				return
 			}
+			bookmark.Category = string(category)
 			bookmarks = append(bookmarks, bookmark)
 		}
 	case categoryID == 0:
@@ -108,10 +110,10 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 			bookmarks = append(bookmarks, bookmark)
 		}
 		for i := range bookmarks {
-			bookmarks[i].Category = []byte(name)
+			bookmarks[i].Category = name
 		}
 	}
-	c.HTML(200, "index.html", gin.H{"category": category, "bookmarks": bookmarks})
+	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks})
 }
 
 func addBookmark(c *gin.Context) {
@@ -131,7 +133,7 @@ func addBookmark(c *gin.Context) {
 	if err == nil {
 		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&bookmark.Category)
 	} else {
-		bookmark.Category = []byte("")
+		bookmark.Category = ""
 	}
 	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
 	if err != nil {

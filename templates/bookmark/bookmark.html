@@ -3,17 +3,6 @@
   <hr>
 </header>
 <div class='form'>
-  <script>
-    $(() => {
-      $('input[type="url"]').blur(function () {
-        var string = $(this).val();
-        if (!string.match(/^https?:/) && string.length) {
-          string = 'http://' + string;
-          $(this).val(string)
-        }
-      });
-    });
-  </script>
   <div class='form-group'>
     <label for='bookmark'>Bookmark</label>
     <input class='form-control' name='bookmark' id='bookmark' maxlength=40 value='{{ .bookmark.Name }}' required>

@@ -18,7 +18,7 @@ import (
 
 func loadTemplates() multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
-	r.AddFromFiles("base.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/root.html"))
+	r.AddFromFiles("index.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/index.html"))
 	r.AddFromFiles("login.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/auth/login.html"))
 	r.AddFromFiles("setting.html", joinPath(dir(self), "templates/auth/setting.html"))
 
@@ -58,7 +58,7 @@ func run() {
 			c.Redirect(302, "/auth/login")
 			return
 		}
-		c.HTML(200, "base.html", gin.H{"user": username})
+		c.HTML(200, "index.html", gin.H{"user": username})
 	})
 
 	auth := router.Group("/auth")
@@ -85,7 +85,10 @@ func run() {
 
 	base := router.Group("/")
 	base.Use(authRequired)
-	base.GET("/bookmark", getBookmark)
+	base.GET("/bookmark", func(c *gin.Context) {
+		c.HTML(200, "showBookmarks.html", nil)
+	})
+	base.GET("/bookmark/get", getBookmark)
 	base.GET("/bookmark/add", addBookmark)
 	base.POST("/bookmark/add", doAddBookmark)
 	base.GET("/bookmark/edit/:id", editBookmark)

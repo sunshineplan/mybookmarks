@@ -1,0 +1,34 @@
+<header style='padding-left: 20px;'>
+  <div style='height: 50px;'>
+    <a class='h3 title'></a>
+    <a class='btn icon' id='editCategory'><i class='material-icons edit'>edit</i></a>
+  </div>
+  <button class='btn btn-primary' id='addBookmark'>Add Bookmark</button>
+</header>
+<div class='table-responsive'>
+  <table class='table table-sm'>
+    <thead>
+      <tr>
+        <th>Bookmark</th>
+        <th>URL</th>
+        <th>Category</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id='mybookmarks'></tbody>
+  </table>
+</div>
+<script>
+  $(() => {
+    $('#mybookmarks').sortable({
+      update: (event, ui) => {
+        var orig = ui.item.data('id');
+        if (ui.item.prev().length != 0) var dest = ui.item.prev().data('id')
+        else dest = '#TOP_POSITION#';
+        if (ui.item.next().length != 0) var next = ui.item.next().data('id');
+        else next = '#BOTTOM_POSITION#';
+        $.post('/reorder', { orig: orig, dest: dest, next: next });
+      }
+    });
+  });
+</script>
