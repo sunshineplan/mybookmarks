@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type category struct {
@@ -49,7 +48,7 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 }
 
 func getCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -97,7 +96,7 @@ WHERE category.user_id = ? GROUP BY category.id ORDER BY category
 }
 
 func doAddCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -139,7 +138,7 @@ func doAddCategory(c *gin.Context) {
 }
 
 func editCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -166,7 +165,7 @@ func editCategory(c *gin.Context) {
 }
 
 func doEditCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -222,7 +221,7 @@ func doEditCategory(c *gin.Context) {
 }
 
 func doDeleteCategory(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")

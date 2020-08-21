@@ -1,13 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,7 +28,7 @@ func login(c *gin.Context) {
 	username := strings.TrimSpace(strings.ToLower(c.PostForm("username")))
 	password := c.PostForm("password")
 
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.HTML(200, "login.html", gin.H{"error": "Failed to connect to database."})
@@ -88,7 +86,7 @@ func login(c *gin.Context) {
 }
 
 func setting(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")

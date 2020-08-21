@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/sunshineplan/metadata"
 	"github.com/vharitonsky/iniflags"
 )
@@ -42,7 +43,9 @@ func main() {
 	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
-	getDB()
+	if err := initDB(); err != nil {
+		log.Fatalf("Failed to load database config: %v", err)
+	}
 
 	switch flag.NArg() {
 	case 0:

@@ -1,15 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/sunshineplan/metadata"
 )
 
 var dbConfig mysqlConfig
@@ -23,16 +21,20 @@ type mysqlConfig struct {
 	Password string
 }
 
-func getDB() {
-	m, err := metadata.Get("mybookmarks_mysql", &metadataConfig)
+func initDB() error {
+	m, err := metadataConfig.Get("mybookmarks_mysql")
 	if err != nil {
-		log.Fatalf("Failed to get mybookmarks_mysql metadata: %v", err)
+		return err
 	}
-	err = json.Unmarshal(m, &dbConfig)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal json: %v", err)
+	if err := json.Unmarshal(m, &dbConfig); err != nil {
+		return err
 	}
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
+	return nil
+}
+
+func getDB() (*sql.DB, error) {
+	return sql.Open("mysql", dsn)
 }
 
 func execScript(file string) {

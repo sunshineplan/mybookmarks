@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type bookmark struct {
@@ -20,7 +18,7 @@ type bookmark struct {
 }
 
 func getBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -117,7 +115,7 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 }
 
 func addBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -155,7 +153,7 @@ func addBookmark(c *gin.Context) {
 }
 
 func doAddBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -202,7 +200,7 @@ func doAddBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -251,7 +249,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 }
 
 func doEditBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -318,7 +316,7 @@ WHERE bookmark.id = ? AND bookmark.user_id = ?
 }
 
 func doDeleteBookmark(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")
@@ -344,7 +342,7 @@ func doDeleteBookmark(c *gin.Context) {
 }
 
 func reorder(c *gin.Context) {
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.String(503, "")

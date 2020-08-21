@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,14 +8,12 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/sunshineplan/metadata"
 	"github.com/sunshineplan/utils/mail"
 )
 
 func addUser(username string) {
 	log.Println("Start!")
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -34,7 +31,7 @@ func addUser(username string) {
 
 func deleteUser(username string) {
 	log.Println("Start!")
-	db, err := sql.Open("mysql", dsn)
+	db, err := getDB()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -53,7 +50,7 @@ func deleteUser(username string) {
 
 func backup() {
 	log.Println("Start!")
-	m, err := metadata.Get("mybookmarks_backup", &metadataConfig)
+	m, err := metadataConfig.Get("mybookmarks_backup")
 	if err != nil {
 		log.Fatalf("Failed to get mybookmarks_backup metadata: %v", err)
 	}
