@@ -73,9 +73,8 @@ func getCategory(c *gin.Context) {
 		return
 	}
 	rows, err := db.Query(`
-SELECT category.id, category, count(bookmark) num
-FROM category LEFT JOIN bookmark ON category.id = category_id
-WHERE category.user_id = ? GROUP BY category.id ORDER BY category
+SELECT category_id, category, count(bookmark) FROM mybookmarks
+WHERE category_id != 0 AND user_id = ? GROUP BY category_id ORDER BY category
 `, userID)
 	if err != nil {
 		log.Printf("Failed to get categories: %v", err)

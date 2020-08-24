@@ -29,6 +29,12 @@ CREATE TABLE seq (
   seq INT NOT NULL
 );
 
+CREATE VIEW mybookmarks AS
+  SELECT bookmark.user_id, bookmark.id bookmark_id, bookmark, url, bookmark.category_id, category, seq
+  FROM bookmark LEFT JOIN category ON bookmark.category_id = category.id
+  LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
+  ORDER BY seq;
+
 DELIMITER ;;
 CREATE TRIGGER add_user AFTER INSERT ON user
 FOR EACH ROW BEGIN

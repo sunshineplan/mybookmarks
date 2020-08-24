@@ -34,12 +34,7 @@ func getBookmark(c *gin.Context) {
 	switch {
 	case err != nil:
 		category = gin.H{"id": -1, "name": "All Bookmarks"}
-		rows, err := db.Query(`
-SELECT bookmark.id, bookmark, url, category
-FROM bookmark LEFT JOIN category ON category_id = category.id
-LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
-WHERE bookmark.user_id = ? ORDER BY seq
-`, userID)
+		rows, err := db.Query("SELECT bookmark_id, bookmark, url, category FROM mybookmarks WHERE user_id = ?", userID)
 		if err != nil {
 			log.Printf("Failed to get all bookmarks: %v", err)
 			c.String(500, "")
@@ -59,11 +54,7 @@ WHERE bookmark.user_id = ? ORDER BY seq
 		}
 	case categoryID == 0:
 		category = gin.H{"id": 0, "name": "Uncategorized"}
-		rows, err := db.Query(`
-SELECT id, bookmark, url FROM bookmark
-LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
-WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
-`, userID)
+		rows, err := db.Query("SELECT bookmark_id, bookmark, url FROM mybookmarks WHERE category_id = 0 AND user_id = ?", userID)
 		if err != nil {
 			log.Printf("Failed to get uncategorized bookmarks: %v", err)
 			c.String(500, "")
@@ -81,19 +72,8 @@ WHERE category_id = 0 AND bookmark.user_id = ? ORDER BY seq
 		}
 	default:
 		category = gin.H{"id": categoryID}
-		var name string
-		err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&name)
-		category["name"] = name
-		if err != nil {
-			log.Printf("Failed to scan category name: %v", err)
-			c.String(500, "")
-			return
-		}
-		rows, err := db.Query(`
-SELECT id, bookmark, url FROM bookmark
-LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
-WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
-`, categoryID, userID)
+		rows, err := db.Query(
+			"SELECT bookmark_id, bookmark, url, category FROM mybookmarks WHERE category_id = ? AND user_id = ?", categoryID, userID)
 		if err != nil {
 			log.Printf("Failed to get bookmarks by category: %v", err)
 			c.String(500, "")
@@ -102,15 +82,14 @@ WHERE category_id = ? AND bookmark.user_id = ? ORDER BY seq
 		defer rows.Close()
 		for rows.Next() {
 			var bookmark bookmark
-			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
+			var category []byte
+			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
 				log.Printf("Failed to scan bookmarks by category: %v", err)
 				c.String(500, "")
 				return
 			}
+			bookmark.Category = string(category)
 			bookmarks = append(bookmarks, bookmark)
-		}
-		for i := range bookmarks {
-			bookmarks[i].Category = name
 		}
 	}
 	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks})
@@ -220,12 +199,8 @@ func editBookmark(c *gin.Context) {
 
 	var bookmark bookmark
 	var category []byte
-	err = db.QueryRow(`
-SELECT bookmark, url, category FROM bookmark
-LEFT JOIN category ON category_id = category.id
-WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&bookmark.Name, &bookmark.URL, &category)
-	if err != nil {
+	if err := db.QueryRow("SELECT bookmark, url, category FROM mybookmarks WHERE bookmark_id = ? AND user_id = ?",
+		id, userID).Scan(&bookmark.Name, &bookmark.URL, &category); err != nil {
 		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
@@ -271,12 +246,8 @@ func doEditBookmark(c *gin.Context) {
 
 	var old bookmark
 	var oldCategory []byte
-	err = db.QueryRow(`
-SELECT bookmark, url, category FROM bookmark
-LEFT JOIN category ON category_id = category.id
-WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&old.Name, &old.URL, &oldCategory)
-	if err != nil {
+	if err := db.QueryRow("SELECT bookmark, url, category FROM mybookmarks WHERE bookmark_id = ? AND user_id = ?",
+		id, userID).Scan(&old.Name, &old.URL, &oldCategory); err != nil {
 		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
