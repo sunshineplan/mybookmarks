@@ -219,16 +219,18 @@ func editBookmark(c *gin.Context) {
 	}
 
 	var bookmark bookmark
+	var category []byte
 	err = db.QueryRow(`
 SELECT bookmark, url, category FROM bookmark
 LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&bookmark.Name, &bookmark.URL, &bookmark.Category)
+`, id, userID).Scan(&bookmark.Name, &bookmark.URL, &category)
 	if err != nil {
 		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
 	}
+	bookmark.Category = string(category)
 
 	var categories []string
 	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
@@ -268,16 +270,18 @@ func doEditBookmark(c *gin.Context) {
 	}
 
 	var old bookmark
+	var oldCategory []byte
 	err = db.QueryRow(`
 SELECT bookmark, url, category FROM bookmark
 LEFT JOIN category ON category_id = category.id
 WHERE bookmark.id = ? AND bookmark.user_id = ?
-`, id, userID).Scan(&old.Name, &old.URL, &old.Category)
+`, id, userID).Scan(&old.Name, &old.URL, &oldCategory)
 	if err != nil {
 		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")
 		return
 	}
+	old.Category = string(oldCategory)
 	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
 	url := strings.TrimSpace(c.PostForm("url"))
 	category := strings.TrimSpace(c.PostForm("category"))
