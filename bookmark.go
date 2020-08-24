@@ -18,6 +18,12 @@ type bookmark struct {
 }
 
 func getBookmark(c *gin.Context) {
+	var obj map[string]interface{}
+	if err := c.BindJSON(&obj); err != nil {
+		c.String(400, "")
+		return
+	}
+
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
@@ -33,7 +39,7 @@ func getBookmark(c *gin.Context) {
 	stmt := "SELECT %s FROM mybookmarks WHERE"
 
 	var args []interface{}
-	categoryID, err := strconv.Atoi(c.Query("category"))
+	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", obj["category"]))
 	switch {
 	case err != nil:
 		category = gin.H{"id": -1, "name": "All Bookmarks"}
@@ -50,9 +56,20 @@ func getBookmark(c *gin.Context) {
 		args = append(args, userID)
 	}
 
-	rows, err := db.Query(fmt.Sprintf(stmt, "bookmark_id, bookmark, url, category"), args...)
+	var total int
+	bc := make(chan bool, 1)
+	go func() {
+		if err := db.QueryRow(fmt.Sprintf(stmt, "count(*)"), args...).Scan(&total); err != nil {
+			log.Printf("Failed to get total count: %v", err)
+			bc <- false
+		}
+		bc <- true
+	}()
+
+	limit := fmt.Sprintf(" LIMIT %v, 30", obj["start"])
+	rows, err := db.Query(fmt.Sprintf(stmt+limit, "bookmark_id, bookmark, url, category"), args...)
 	if err != nil {
-		log.Printf("Failed to get bookmarks by category: %v", err)
+		log.Printf("Failed to get bookmarks: %v", err)
 		c.String(500, "")
 		return
 	}
@@ -62,14 +79,18 @@ func getBookmark(c *gin.Context) {
 		var bookmark bookmark
 		var category []byte
 		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
-			log.Printf("Failed to scan bookmarks by category: %v", err)
+			log.Printf("Failed to scan bookmarks: %v", err)
 			c.String(500, "")
 			return
 		}
 		bookmark.Category = string(category)
 		bookmarks = append(bookmarks, bookmark)
 	}
-	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks})
+	if v := <-bc; !v {
+		c.String(500, "")
+		return
+	}
+	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks, "total": total})
 }
 
 func addBookmark(c *gin.Context) {

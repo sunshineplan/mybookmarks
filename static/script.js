@@ -14,6 +14,8 @@ $(document).on('click', '.category', function () {
   $(this).addClass('active');
   var categoryID = $(this).prop('id');
   document.cookie = 'LastVisit=' + categoryID + '; Path=/';
+  $('tbody').empty();
+  $('#mybookmarks').removeData('start');
   loadBookmarks(categoryID);
   if ($(window).width() <= 900) $('.sidebar').toggle('slide');
 });
@@ -39,6 +41,20 @@ $(document).on('click', '.content', () => {
     $('.sidebar').toggle('slide');
 });
 
+document.addEventListener('scroll', () => {
+  var div = $('.table-responsive').get(0);
+  if (div.scrollTop + div.clientHeight >= div.scrollHeight) {
+    var start = $('#mybookmarks').data('start')
+    if (start === undefined) start = 30;
+    var total = $('#mybookmarks').data('total');
+    if (start < total) {
+      var last = document.cookie.split('LastVisit=')[1];
+      loadBookmarks(last, start);
+      $('#mybookmarks').data('start', start + 30);
+    };
+  };
+}, true);
+
 function load(categoryID) {
   if (categoryID === undefined) categoryID = document.cookie.split('LastVisit=')[1];
   else document.cookie = 'LastVisit=' + categoryID + '; Path=/';
@@ -46,37 +62,42 @@ function load(categoryID) {
     $('#categories').empty();
     $('#-1.category').text('All Bookmarks (' + json.total + ')');
     $.each(json.categories, (index, i) =>
-      $('#categories').append("<li><a class='nav-link category' id='" + i.ID + "'>" + i.Name + ' (' + i.Count + ')' + '</a></li>'));
+      $('#categories').append("<li><a class='nav-link category' id=" + i.ID + '>' + i.Name + ' (' + i.Count + ')' + '</a></li>'));
     $('#categories').append("<li><a class='nav-link category' id=0>Uncategorized (" + json.uncategorized + ')' + '</a></li>');
     $('#' + categoryID).addClass('active');
   }).done(() => loadBookmarks(categoryID))
     .fail(jqXHR => checkXHR(jqXHR));
 };
 
-function loadBookmarks(categoryID = -1) {
-  var param, promise;
-  if (categoryID == -1) param = '';
-  else param = '?category=' + categoryID;
+function loadBookmarks(categoryID = -1, start = 0) {
+  var data, promise;
+  if (categoryID == -1) data = { start: start };
+  else data = { category: categoryID, start: start };
   loading();
   if (!$('#mybookmarks').length) promise = $.get('/bookmark', html => $('.content').html(html));
   else promise = Promise.resolve();
   promise.then(() => {
-    $('tbody').empty();
-    $.getJSON('/bookmark/get' + param, json => {
-      $.each(json.bookmarks, (i, bookmark) => {
-        var $tr = $("<tr data-id='" + bookmark.ID + "'></tr>");
-        $tr.append('<td>' + bookmark.Name + '</td>');
-        $tr.append("<td><a href='" + bookmark.URL + "' target='_blank' class='url'></a></td>");
-        $tr.append('<td>' + bookmark.Category + '</td>');
-        $tr.append("<td><a class='icon' onclick='bookmark(" + bookmark.ID + ")'><i class='material-icons edit'>edit</i></a></td>");
-        $tr.appendTo('tbody');
-      });
-      simplify_url();
-      document.title = json.category.name + ' - My Bookmarks';
-      $('.title').text(json.category.name);
-      if (json.category.id > 0) $('#editCategory').show().attr('onclick', 'category(' + json.category.id + ')');
-      else $('#editCategory').hide().removeAttr('onclick');
-      $('#addBookmark').attr('onclick', 'bookmark(0, ' + json.category.id + ')');
+    $.ajax('/bookmark/get', {
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      success: json => {
+        $.each(json.bookmarks, (i, bookmark) => {
+          var $tr = $("<tr data-id='" + bookmark.ID + "'></tr>");
+          $tr.append('<td>' + bookmark.Name + '</td>');
+          $tr.append("<td><a href='" + bookmark.URL + "' target='_blank' class='url'></a></td>");
+          $tr.append('<td>' + bookmark.Category + '</td>');
+          $tr.append("<td><a class='icon' onclick='bookmark(" + bookmark.ID + ")'><i class='material-icons edit'>edit</i></a></td>");
+          $tr.appendTo('tbody');
+        });
+        simplify_url();
+        document.title = json.category.name + ' - My Bookmarks';
+        $('.title').text(json.category.name);
+        if (json.category.id > 0) $('#editCategory').show().attr('onclick', 'category(' + json.category.id + ')');
+        else $('#editCategory').hide().removeAttr('onclick');
+        $('#addBookmark').attr('onclick', 'bookmark(0, ' + json.category.id + ')');
+        $('#mybookmarks').data('total', json.total);
+      },
     }).done(() => loading(false))
       .fail(jqXHR => checkXHR(jqXHR));
   }).catch(jqXHR => checkXHR(jqXHR));
@@ -254,12 +275,16 @@ function arrow(direction) {
     if (index > 0) {
       $('.category').removeClass('active');
       $('#' + $('.category')[index - 1].id).addClass('active');
+      $('tbody').empty();
+      $('#removeData').data('start');
       loadBookmarks($('.category')[index - 1].id);
     };
   if (direction == 'down')
     if (index < len - 1) {
       $('.category').removeClass('active');
       $('#' + $('.category')[index + 1].id).addClass('active');
+      $('tbody').empty();
+      $('#removeData').data('start');
       loadBookmarks($('.category')[index + 1].id);
     }
 };

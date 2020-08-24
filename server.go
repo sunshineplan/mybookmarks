@@ -89,7 +89,7 @@ func run() {
 	base.GET("/bookmark", func(c *gin.Context) {
 		c.HTML(200, "showBookmarks.html", nil)
 	})
-	base.GET("/bookmark/get", getBookmark)
+	base.POST("/bookmark/get", getBookmark)
 	base.GET("/bookmark/add", addBookmark)
 	base.POST("/bookmark/add", doAddBookmark)
 	base.GET("/bookmark/edit/:id", editBookmark)
