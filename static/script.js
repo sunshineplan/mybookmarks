@@ -45,13 +45,12 @@ function load(categoryID) {
   $.getJSON('/category/get', json => {
     $('#categories').empty();
     $('#-1.category').text('All Bookmarks (' + json.total + ')');
-    $.each(json.categories, (i, item) =>
-      $("<li><a class='nav-link category' id='" + item.ID + "'>" + item.Name + ' (' + item.Count + ')' + '</a></li>').appendTo('#categories')
-    );
+    $.each(json.categories, (index, i) =>
+      $('#categories').append("<li><a class='nav-link category' id='" + i.ID + "'>" + i.Name + ' (' + i.Count + ')' + '</a></li>'));
     $('#categories').append("<li><a class='nav-link category' id=0>Uncategorized (" + json.uncategorized + ')' + '</a></li>');
     $('#' + categoryID).addClass('active');
   }).done(() => loadBookmarks(categoryID))
-    .fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+    .fail(jqXHR => checkXHR(jqXHR));
 };
 
 function loadBookmarks(categoryID = -1) {
@@ -79,8 +78,8 @@ function loadBookmarks(categoryID = -1) {
       else $('#editCategory').hide().removeAttr('onclick');
       $('#addBookmark').attr('onclick', 'bookmark(0, ' + json.category.id + ')');
     }).done(() => loading(false))
-      .fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
-  });
+      .fail(jqXHR => checkXHR(jqXHR));
+  }).catch(jqXHR => checkXHR(jqXHR));
 };
 
 function category(categoryID = 0) {
@@ -96,7 +95,7 @@ function category(categoryID = 0) {
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#category').focus();
-  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+  }).fail(jqXHR => checkXHR(jqXHR));
 };
 
 function bookmark(id = 0, categoryID = 0) {
@@ -112,7 +111,7 @@ function bookmark(id = 0, categoryID = 0) {
     $('.content').html(html);
     document.title = $('.title').text() + ' - My Bookmarks';
     $('#bookmark').focus();
-  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+  }).fail(jqXHR => checkXHR(jqXHR));
 };
 
 function setting() {
@@ -123,7 +122,7 @@ function setting() {
     $('.content').html(html);
     document.title = 'Setting - My Bookmarks';
     $('#password').focus();
-  }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+  }).fail(jqXHR => checkXHR(jqXHR));
 };
 
 function doCategory(id) {
@@ -138,7 +137,7 @@ function doCategory(id) {
           if (json.error == 1) $('#category').val('');
         });
       else load();
-    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+    }).fail(jqXHR => checkXHR(jqXHR));
 };
 
 function doBookmark(id) {
@@ -159,7 +158,7 @@ function doBookmark(id) {
           };
         });
       else goback();
-    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+    }).fail(jqXHR => checkXHR(jqXHR));
 };
 
 function doDelete(mode, id) {
@@ -184,7 +183,7 @@ function doDelete(mode, id) {
       $.post(url, json => {
         if (json.status == 1)
           if (mode == 'bookmark') goback(); else load(-1);
-      }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+      }).fail(jqXHR => checkXHR(jqXHR));
   });
 };
 
@@ -203,7 +202,11 @@ function doSetting() {
           $('#password2').val('');
         };
       });
-    }).fail(jqXHR => { if (jqXHR.status == 401) window.location = '/auth/login'; });
+    }).fail(jqXHR => checkXHR(jqXHR));
+};
+
+function checkXHR(xhr) {
+  if (xhr.status == 401) window.location = '/auth/login';
 };
 
 function valid() {
