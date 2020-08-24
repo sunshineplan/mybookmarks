@@ -1,5 +1,5 @@
 [Unit]
-Description=uWSGI instance to serve My Bookmarks
+Description=Instance to serve My Bookmarks
 After=network.target
 
 [Service]
