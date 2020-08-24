@@ -29,68 +29,45 @@ func getBookmark(c *gin.Context) {
 	userID := session.Get("user_id")
 
 	var category gin.H
-	var bookmarks []bookmark
+
+	stmt := "SELECT %s FROM mybookmarks WHERE"
+
+	var args []interface{}
 	categoryID, err := strconv.Atoi(c.Query("category"))
 	switch {
 	case err != nil:
 		category = gin.H{"id": -1, "name": "All Bookmarks"}
-		rows, err := db.Query("SELECT bookmark_id, bookmark, url, category FROM mybookmarks WHERE user_id = ?", userID)
-		if err != nil {
-			log.Printf("Failed to get all bookmarks: %v", err)
-			c.String(500, "")
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var bookmark bookmark
-			var category []byte
-			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
-				log.Printf("Failed to scan all bookmarks: %v", err)
-				c.String(500, "")
-				return
-			}
-			bookmark.Category = string(category)
-			bookmarks = append(bookmarks, bookmark)
-		}
+		stmt += " user_id = ?"
+		args = append(args, userID)
 	case categoryID == 0:
 		category = gin.H{"id": 0, "name": "Uncategorized"}
-		rows, err := db.Query("SELECT bookmark_id, bookmark, url FROM mybookmarks WHERE category_id = 0 AND user_id = ?", userID)
-		if err != nil {
-			log.Printf("Failed to get uncategorized bookmarks: %v", err)
-			c.String(500, "")
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var bookmark bookmark
-			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL); err != nil {
-				log.Printf("Failed to scan uncategorized bookmarks: %v", err)
-				c.String(500, "")
-				return
-			}
-			bookmarks = append(bookmarks, bookmark)
-		}
+		stmt += " category_id = 0 AND user_id = ?"
+		args = append(args, userID)
 	default:
 		category = gin.H{"id": categoryID}
-		rows, err := db.Query(
-			"SELECT bookmark_id, bookmark, url, category FROM mybookmarks WHERE category_id = ? AND user_id = ?", categoryID, userID)
-		if err != nil {
-			log.Printf("Failed to get bookmarks by category: %v", err)
+		stmt += " category_id = ? AND user_id = ?"
+		args = append(args, categoryID)
+		args = append(args, userID)
+	}
+
+	rows, err := db.Query(fmt.Sprintf(stmt, "bookmark_id, bookmark, url, category"), args...)
+	if err != nil {
+		log.Printf("Failed to get bookmarks by category: %v", err)
+		c.String(500, "")
+		return
+	}
+	defer rows.Close()
+	var bookmarks []bookmark
+	for rows.Next() {
+		var bookmark bookmark
+		var category []byte
+		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
+			log.Printf("Failed to scan bookmarks by category: %v", err)
 			c.String(500, "")
 			return
 		}
-		defer rows.Close()
-		for rows.Next() {
-			var bookmark bookmark
-			var category []byte
-			if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
-				log.Printf("Failed to scan bookmarks by category: %v", err)
-				c.String(500, "")
-				return
-			}
-			bookmark.Category = string(category)
-			bookmarks = append(bookmarks, bookmark)
-		}
+		bookmark.Category = string(category)
+		bookmarks = append(bookmarks, bookmark)
 	}
 	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks})
 }
