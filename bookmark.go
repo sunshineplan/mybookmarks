@@ -77,14 +77,17 @@ func getBookmark(c *gin.Context) {
 	var bookmarks []bookmark
 	for rows.Next() {
 		var bookmark bookmark
-		var category []byte
-		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &category); err != nil {
+		var categoryByte []byte
+		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &categoryByte); err != nil {
 			log.Printf("Failed to scan bookmarks: %v", err)
 			c.String(500, "")
 			return
 		}
-		bookmark.Category = string(category)
+		bookmark.Category = string(categoryByte)
 		bookmarks = append(bookmarks, bookmark)
+		if category["id"].(int) > 0 {
+			category["name"] = string(categoryByte)
+		}
 	}
 	if v := <-bc; !v {
 		c.String(500, "")
