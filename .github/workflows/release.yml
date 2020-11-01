@@ -23,4 +23,3 @@ jobs:
               repo: context.repo.repo,
               tag: 'test'
             })
-            console.log(release)
