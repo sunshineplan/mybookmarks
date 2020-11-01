@@ -18,8 +18,13 @@ jobs:
         uses: actions/github-script@v3
         with:
           script: |
-            const release = await github.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: 'test'
-            })
+            try {
+              const release = await github.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: 'test'
+              })
+            } catch (e) {
+              console.error(e)
+            }
+            console.log(release)
