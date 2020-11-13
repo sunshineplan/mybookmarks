@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -49,21 +48,30 @@ func deleteUser(username string) {
 
 func backup() {
 	log.Println("Start!")
-	m, err := metadataConfig.Get("mybookmarks_backup")
-	if err != nil {
-		log.Fatalf("Failed to get mybookmarks_backup metadata: %v", err)
+	var config struct {
+		SMTPServer     string
+		SMTPServerPort int
+		From, Password string
+		To             []string
 	}
-	var mailSetting mail.Setting
-	if err := json.Unmarshal(m, &mailSetting); err != nil {
-		log.Fatalf("Failed to unmarshal json: %v", err)
+	if err := meta.Get("mybookmarks_backup", &config); err != nil {
+		log.Fatalln("Failed to get mybookmarks_backup metadata:", err)
+	}
+	dialer := &mail.Dialer{
+		Host:     config.SMTPServer,
+		Port:     config.SMTPServerPort,
+		Account:  config.From,
+		Password: config.Password,
 	}
 
 	file := dump()
 	defer os.Remove(file)
-	if err := mailSetting.Send(
-		fmt.Sprintf("My Bookmarks Backup-%s", time.Now().Format("20060102")),
-		"",
-		&mail.Attachment{FilePath: file, Filename: "database"},
+	if err := dialer.Send(
+		&mail.Message{
+			To:          config.To,
+			Subject:     fmt.Sprintf("My Bookmarks Backup-%s", time.Now().Format("20060102")),
+			Attachments: []*mail.Attachment{{Path: file, Filename: "database"}},
+		},
 	); err != nil {
 		log.Fatalf("Failed to send mail: %v", err)
 	}

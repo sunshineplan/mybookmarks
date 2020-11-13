@@ -2,15 +2,15 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
-var dbConfig mysqlConfig
+var dbc mysqlConfig
 var dsn string
 
 type mysqlConfig struct {
@@ -22,14 +22,10 @@ type mysqlConfig struct {
 }
 
 func initDB() error {
-	m, err := metadataConfig.Get("mybookmarks_mysql")
-	if err != nil {
+	if err := meta.Get("mybookmarks_mysql", &dbc); err != nil {
 		return err
 	}
-	if err := json.Unmarshal(m, &dbConfig); err != nil {
-		return err
-	}
-	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbConfig.Username, dbConfig.Password, dbConfig.Server, dbConfig.Port, dbConfig.Database)
+	dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbc.Username, dbc.Password, dbc.Server, dbc.Port, dbc.Database)
 	return nil
 }
 
@@ -39,7 +35,7 @@ func getDB() (*sql.DB, error) {
 
 func execScript(file string) {
 	var cmd, arg string
-	switch OS {
+	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
 		arg = "/c"
@@ -52,11 +48,11 @@ func execScript(file string) {
 
 	var args []string
 	args = append(args, "mysql")
-	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
-	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
-	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
-	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
-	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
+	args = append(args, fmt.Sprintf("%s", dbc.Database))
+	args = append(args, fmt.Sprintf("-h%s", dbc.Server))
+	args = append(args, fmt.Sprintf("-P%d", dbc.Port))
+	args = append(args, fmt.Sprintf("-u%s", dbc.Username))
+	args = append(args, fmt.Sprintf("-p%s", dbc.Password))
 	args = append(args, "<")
 	args = append(args, file)
 
@@ -74,7 +70,7 @@ func dump() string {
 	tmpfile.Close()
 
 	var cmd, arg string
-	switch OS {
+	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
 		arg = "/c"
@@ -87,15 +83,15 @@ func dump() string {
 
 	var args []string
 	args = append(args, "mysqldump")
-	args = append(args, fmt.Sprintf("-h%s", dbConfig.Server))
-	args = append(args, fmt.Sprintf("-P%d", dbConfig.Port))
-	args = append(args, fmt.Sprintf("-u%s", dbConfig.Username))
-	args = append(args, fmt.Sprintf("-p%s", dbConfig.Password))
+	args = append(args, fmt.Sprintf("-h%s", dbc.Server))
+	args = append(args, fmt.Sprintf("-P%d", dbc.Port))
+	args = append(args, fmt.Sprintf("-u%s", dbc.Username))
+	args = append(args, fmt.Sprintf("-p%s", dbc.Password))
 	args = append(args, fmt.Sprintf("-r%s", tmpfile.Name()))
 	args = append(args, "--add-drop-database")
 	args = append(args, "--add-drop-trigger")
 	args = append(args, "-CB")
-	args = append(args, fmt.Sprintf("%s", dbConfig.Database))
+	args = append(args, fmt.Sprintf("%s", dbc.Database))
 
 	dump := exec.Command(cmd, arg, strings.Join(args, " "))
 	if err := dump.Run(); err != nil {

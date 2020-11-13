@@ -3,12 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"log"
-	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/contrib/sessions"
@@ -33,8 +30,8 @@ func loadTemplates() multitemplate.Renderer {
 }
 
 func run() {
-	if *logPath != "" {
-		f, err := os.OpenFile(*logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
+	if logPath != "" {
+		f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 		if err != nil {
 			log.Fatalf("Failed to open log file: %v", err)
 		}
@@ -49,6 +46,7 @@ func run() {
 	}
 
 	router := gin.Default()
+	server.Handler = router
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
 	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
 	router.HTMLRender = loadTemplates()
@@ -105,42 +103,7 @@ func run() {
 	base.POST("/category/delete/:id", doDeleteCategory)
 	base.POST("/reorder", reorder)
 
-	if *unix != "" && OS == "linux" {
-		if _, err := os.Stat(*unix); err == nil {
-			if err := os.Remove(*unix); err != nil {
-				log.Fatalf("Failed to remove socket file: %v", err)
-			}
-		}
-
-		listener, err := net.Listen("unix", *unix)
-		if err != nil {
-			log.Fatalf("Failed to listen socket file: %v", err)
-		}
-
-		idleConnsClosed := make(chan struct{})
-		go func() {
-			quit := make(chan os.Signal, 1)
-			signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-			<-quit
-
-			if err := listener.Close(); err != nil {
-				log.Printf("Failed to close listener: %v", err)
-			}
-			if _, err := os.Stat(*unix); err == nil {
-				if err := os.Remove(*unix); err != nil {
-					log.Printf("Failed to remove socket file: %v", err)
-				}
-			}
-			close(idleConnsClosed)
-		}()
-
-		if err := os.Chmod(*unix, 0666); err != nil {
-			log.Fatalf("Failed to chmod socket file: %v", err)
-		}
-
-		http.Serve(listener, router)
-		<-idleConnsClosed
-	} else {
-		router.Run(*host + ":" + *port)
+	if err := server.Run(); err != nil {
+		log.Fatal(err)
 	}
 }
