@@ -94,7 +94,7 @@ WHERE category_id != 0 AND user_id = ? GROUP BY category_id ORDER BY category
 	c.JSON(200, gin.H{"total": total, "uncategorized": uncategorized, "categories": categories})
 }
 
-func doAddCategory(c *gin.Context) {
+func addCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
@@ -153,33 +153,6 @@ func editCategory(c *gin.Context) {
 		return
 	}
 
-	var category category
-	err = db.QueryRow("SELECT id, category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&category.ID, &category.Name)
-	if err != nil {
-		log.Printf("Failed to scan category: %v", err)
-		c.String(500, "")
-		return
-	}
-	c.HTML(200, "category.html", gin.H{"id": id, "category": category})
-}
-
-func doEditCategory(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
-		c.String(400, "")
-		return
-	}
-
 	var oldCategory string
 	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&oldCategory)
 	if err != nil {
@@ -219,7 +192,7 @@ func doEditCategory(c *gin.Context) {
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
 }
 
-func doDeleteCategory(c *gin.Context) {
+func deleteCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)

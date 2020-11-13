@@ -51,56 +51,29 @@ func run() {
 	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
 	router.HTMLRender = loadTemplates()
 	router.GET("/", func(c *gin.Context) {
-		session := sessions.Default(c)
-		username := session.Get("username")
-		if username == nil {
-			c.Redirect(302, "/auth/login")
-			return
-		}
-		c.HTML(200, "index.html", gin.H{"user": username})
+		c.HTML(200, "index.html", gin.H{"user": sessions.Default(c).Get("username")})
 	})
 
-	auth := router.Group("/auth")
-	auth.GET("/login", func(c *gin.Context) {
-		session := sessions.Default(c)
-		user := session.Get("user_id")
-		if user != nil {
-			c.Redirect(302, "/")
-			return
-		}
-		c.HTML(200, "login.html", gin.H{"error": ""})
-	})
+	auth := router.Group("/")
 	auth.POST("/login", login)
-	auth.GET("/logout", authRequired, func(c *gin.Context) {
+	auth.POST("/logout", authRequired, func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Clear()
 		session.Save()
-		c.Redirect(302, "/auth/login")
-	})
-	auth.GET("/setting", authRequired, func(c *gin.Context) {
-		c.HTML(200, "setting.html", nil)
+		c.JSON(200, gin.H{"status": 1})
 	})
 	auth.POST("/setting", authRequired, setting)
 
 	base := router.Group("/")
 	base.Use(authRequired)
-	base.GET("/bookmark", func(c *gin.Context) {
-		c.HTML(200, "showBookmarks.html", nil)
-	})
 	base.POST("/bookmark/get", getBookmark)
-	base.GET("/bookmark/add", addBookmark)
-	base.POST("/bookmark/add", doAddBookmark)
-	base.GET("/bookmark/edit/:id", editBookmark)
-	base.POST("/bookmark/edit/:id", doEditBookmark)
-	base.POST("/bookmark/delete/:id", doDeleteBookmark)
-	base.GET("/category/get", getCategory)
-	base.GET("/category/add", func(c *gin.Context) {
-		c.HTML(200, "category.html", gin.H{"id": 0})
-	})
-	base.POST("/category/add", doAddCategory)
-	base.GET("/category/edit/:id", editCategory)
-	base.POST("/category/edit/:id", doEditCategory)
-	base.POST("/category/delete/:id", doDeleteCategory)
+	base.POST("/bookmark/add", addBookmark)
+	base.POST("/bookmark/edit/:id", editBookmark)
+	base.POST("/bookmark/delete/:id", deleteBookmark)
+	base.POST("/category/get", getCategory)
+	base.POST("/category/add", addCategory)
+	base.POST("/category/edit/:id", editCategory)
+	base.POST("/category/delete/:id", deleteCategory)
 	base.POST("/reorder", reorder)
 
 	if err := server.Run(); err != nil {

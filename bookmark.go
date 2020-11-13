@@ -106,44 +106,6 @@ func addBookmark(c *gin.Context) {
 	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-
-	var bookmark bookmark
-	var categories []string
-	categoryID, err := strconv.Atoi(c.Query("category"))
-	if err == nil {
-		db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", categoryID, userID).Scan(&bookmark.Category)
-	} else {
-		bookmark.Category = ""
-	}
-	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
-	if err != nil {
-		log.Printf("Failed to get categories name: %v", err)
-		c.String(500, "")
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var categoryName string
-		if err := rows.Scan(&categoryName); err != nil {
-			log.Printf("Failed to scan category name: %v", err)
-			c.String(500, "")
-			return
-		}
-		categories = append(categories, categoryName)
-	}
-	c.HTML(200, "bookmark.html", gin.H{"id": 0, "bookmark": bookmark, "categories": categories})
-}
-
-func doAddBookmark(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
 	category := strings.TrimSpace(c.PostForm("category"))
 	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
 	url := strings.TrimSpace(c.PostForm("url"))
@@ -182,53 +144,6 @@ func doAddBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
-		c.String(400, "")
-		return
-	}
-
-	var bookmark bookmark
-	var category []byte
-	if err := db.QueryRow("SELECT bookmark, url, category FROM mybookmarks WHERE bookmark_id = ? AND user_id = ?",
-		id, userID).Scan(&bookmark.Name, &bookmark.URL, &category); err != nil {
-		log.Printf("Failed to scan bookmark: %v", err)
-		c.String(500, "")
-		return
-	}
-	bookmark.Category = string(category)
-
-	var categories []string
-	rows, err := db.Query("SELECT category FROM category WHERE user_id = ? ORDER BY category", userID)
-	if err != nil {
-		log.Printf("Failed to get categories: %v", err)
-		c.String(500, "")
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var category string
-		if err := rows.Scan(&category); err != nil {
-			log.Printf("Failed to scan category: %v", err)
-			c.String(500, "")
-			return
-		}
-		categories = append(categories, category)
-	}
-	c.HTML(200, "bookmark.html", gin.H{"id": id, "bookmark": bookmark, "categories": categories})
-}
-
-func doEditBookmark(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
@@ -293,7 +208,7 @@ func doEditBookmark(c *gin.Context) {
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
 }
 
-func doDeleteBookmark(c *gin.Context) {
+func deleteBookmark(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
