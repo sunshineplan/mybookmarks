@@ -25,7 +25,7 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 		case len(category) > 15:
 			return -1, nil
 		case err != nil:
-			if strings.Contains(err.Error(), "no rows") {
+			if err == sql.ErrNoRows {
 				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 				if err != nil {
 					log.Printf("Failed to add category: %v", err)
@@ -118,7 +118,7 @@ func addCategory(c *gin.Context) {
 		if err == nil {
 			message = fmt.Sprintf("Category %s is already existed.", category)
 		} else {
-			if strings.Contains(err.Error(), "no rows") {
+			if err == sql.ErrNoRows {
 				_, err = db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 				if err != nil {
 					log.Printf("Failed to add category: %v", err)

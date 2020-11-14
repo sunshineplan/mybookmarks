@@ -28,7 +28,7 @@
   </nav>
   <login v-if='!user'></login>
   <div v-else>
-    <sidebar></sidebar>
+    <sidebar ref='categories'></sidebar>
     <component :is='content' v-bind='prop'></component>
   </div>
   <div class='loading' v-if='loading'>

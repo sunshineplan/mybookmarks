@@ -5,29 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
-	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
-
-func loadTemplates() multitemplate.Renderer {
-	r := multitemplate.NewRenderer()
-	r.AddFromFiles("index.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/index.html"))
-	r.AddFromFiles("login.html", joinPath(dir(self), "templates/base.html"), joinPath(dir(self), "templates/auth/login.html"))
-	r.AddFromFiles("setting.html", joinPath(dir(self), "templates/auth/setting.html"))
-
-	includes, err := filepath.Glob(joinPath(dir(self), "templates/bookmark/*"))
-	if err != nil {
-		log.Fatalf("Failed to glob bookmark templates: %v", err)
-	}
-
-	for _, include := range includes {
-		r.AddFromFiles(filepath.Base(include), include)
-	}
-	return r
-}
 
 func run() {
 	if logPath != "" {
@@ -49,7 +30,7 @@ func run() {
 	server.Handler = router
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
 	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
-	router.HTMLRender = loadTemplates()
+	router.LoadHTMLFiles(joinPath(dir(self), "templates/index.html"))
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{"user": sessions.Default(c).Get("username")})
 	})

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"strings"
 
@@ -31,37 +32,40 @@ func login(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
-		c.HTML(200, "login.html", gin.H{"error": "Failed to connect to database."})
+		c.String(500, "Failed to connect to database.")
 		return
 	}
 	defer db.Close()
 	user := new(user)
-	err = db.QueryRow("SELECT id, username, password FROM user WHERE username = ?", username).Scan(&user.ID, &user.Username, &user.Password)
+	statusCode := 200
 	var message string
-	if err != nil {
+	if err := db.QueryRow(
+		"SELECT id, username, password FROM user WHERE username = ?",
+		username,
+	).Scan(&user.ID, &user.Username, &user.Password); err != nil {
 		if strings.Contains(err.Error(), "doesn't exist") {
 			restore("")
-			c.HTML(200, "login.html", gin.H{"error": "Detected first time running. Initialized the database."})
-			return
-		}
-		if strings.Contains(err.Error(), "no rows") {
+			statusCode = 503
+			message = "Detected first time running. Initialized the database."
+		} else if err == sql.ErrNoRows {
+			statusCode = 403
 			message = "Incorrect username"
 		} else {
-			log.Println(err)
-			c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
-			return
+			log.Print(err)
+			statusCode = 500
+			message = "Critical Error! Please contact your system administrator."
 		}
 	} else {
 		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-			if (strings.Contains(err.Error(), "too short") && user.Password != password) || strings.Contains(err.Error(), "is not") {
+			if (err == bcrypt.ErrHashTooShort && user.Password != password) || err == bcrypt.ErrMismatchedHashAndPassword {
+				statusCode = 403
 				message = "Incorrect password"
 			} else if user.Password != password {
-				log.Println(err)
-				c.HTML(200, "login.html", gin.H{"error": "Critical Error! Please contact your system administrator."})
-				return
+				log.Print(err)
+				statusCode = 500
+				message = "Critical Error! Please contact your system administrator."
 			}
-		}
-		if message == "" {
+		} else if message == "" {
 			session.Clear()
 			session.Set("user_id", user.ID)
 			session.Set("username", user.Username)
@@ -74,15 +78,13 @@ func login(c *gin.Context) {
 			}
 
 			if err := session.Save(); err != nil {
-				log.Println(err)
-				c.HTML(200, "login.html", gin.H{"error": "Failed to save session."})
-				return
+				log.Print(err)
+				statusCode = 500
+				message = "Failed to save session."
 			}
-			c.Redirect(302, "/")
-			return
 		}
 	}
-	c.HTML(200, "login.html", gin.H{"error": message})
+	c.String(statusCode, message)
 }
 
 func setting(c *gin.Context) {
@@ -103,7 +105,7 @@ func setting(c *gin.Context) {
 	var oldPassword string
 	err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword)
 	if err != nil {
-		log.Println(err)
+		log.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -113,11 +115,11 @@ func setting(c *gin.Context) {
 	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(password))
 	switch {
 	case err != nil:
-		if (strings.Contains(err.Error(), "too short") && password != oldPassword) || strings.Contains(err.Error(), "is not") {
+		if (err == bcrypt.ErrHashTooShort && password != oldPassword) || err == bcrypt.ErrMismatchedHashAndPassword {
 			message = "Incorrect password."
 			errorCode = 1
 		} else if password != oldPassword {
-			log.Println(err)
+			log.Print(err)
 			c.String(500, "")
 			return
 		}
@@ -134,19 +136,19 @@ func setting(c *gin.Context) {
 	if message == "" {
 		newPassword, err := bcrypt.GenerateFromPassword([]byte(password1), bcrypt.MinCost)
 		if err != nil {
-			log.Println(err)
+			log.Print(err)
 			c.String(500, "")
 			return
 		}
 		_, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", string(newPassword), userID)
 		if err != nil {
-			log.Println(err)
+			log.Print(err)
 			c.String(500, "")
 			return
 		}
 		session.Clear()
 		if err := session.Save(); err != nil {
-			log.Println(err)
+			log.Print(err)
 			c.String(500, "")
 			return
 		}
