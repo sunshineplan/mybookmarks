@@ -1,3 +1,13 @@
+valid = () => {
+  var result = true
+  Array.from(document.getElementsByTagName('input'))
+    .forEach(i => {
+      if (!i.checkValidity())
+        result = false
+    })
+  return result
+}
+
 post = (url, obj) => {
   return fetch(url, {
     method: 'post',
@@ -20,12 +30,32 @@ BootstrapButtons = Swal.mixin({
   buttonsStyling: false
 });
 
-valid = () => {
-  var result = true
-  Array.from(document.getElementsByTagName('input'))
-    .forEach(i => {
-      if (!i.checkValidity())
-        result = false
-    })
-  return result
+confirm = (type) => {
+  return Swal.fire({
+    title: 'Are you sure?',
+    text: 'This ' + type + ' will be deleted permanently.',
+    icon: 'warning',
+    confirmButtonText: 'Delete',
+    showCancelButton: true,
+    focusCancel: true,
+    customClass: {
+      confirmButton: 'swal btn btn-danger',
+      cancelButton: 'swal btn btn-primary'
+    },
+    buttonsStyling: false
+  }).then(confirm => { return confirm.isConfirmed })
 }
+
+document.addEventListener('scroll', () => {
+  var div = $('.table-responsive').get(0);
+  if (div.scrollTop + div.clientHeight >= div.scrollHeight) {
+    var start = $('#mybookmarks').data('start')
+    if (start === undefined) start = 30;
+    var total = $('#mybookmarks').data('total');
+    if (start < total) {
+      var last = document.cookie.split('LastVisit=')[1];
+      loadBookmarks(last, start);
+      $('#mybookmarks').data('start', start + 30);
+    };
+  };
+}, true);
