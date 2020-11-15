@@ -37,11 +37,11 @@ func run() {
 
 	auth := router.Group("/")
 	auth.POST("/login", login)
-	auth.POST("/logout", authRequired, func(c *gin.Context) {
+	auth.GET("/logout", authRequired, func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Clear()
 		session.Save()
-		c.JSON(200, gin.H{"status": 1})
+		c.Redirect(302, "/")
 	})
 	auth.POST("/setting", authRequired, setting)
 

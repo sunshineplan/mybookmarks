@@ -5,33 +5,35 @@
 <script src='https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/jquery-ui-dist@1/jquery-ui.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/sweetalert2@9/dist/sweetalert2.all.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/vue@next/dist/vue.global.prod.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/vue@next/dist/vue.global.js'></script>
 <script src='/static/script.js'></script>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@4/dist/css/bootstrap.min.css'>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/spinkit@2/spinkit.min.css'>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/gh/google/material-design-icons@3/iconfont/material-icons.min.css'>
 <link rel='stylesheet' href='/static/style.css'>
-<div id='bookmark'>
+<div id='bookmark' data-user='{{ .user }}'>
   <nav class='navbar navbar-light topbar'>
     <div class='d-flex' style='height: 100%;'>
       <a class='toggle' v-if='user'><i class='material-icons menu'>menu</i></a>
       <a class='brand' href='/'>My Bookmarks</a>
     </div>
-    <div class='navbar-nav flex-row'>
-      <div v-if='user'>
-        <a class='nav-link' id='user'>{{ .user }}</a>
-        <a class='nav-link link' @click='setting'>Setting</a>
-        <a class='nav-link link' href='/logout'>Log Out</a>
-      </div>
-      <a class='nav-link' v-else>Log In</a></li>
+    <div class='navbar-nav flex-row' v-if='user'>
+      <a class='nav-link'>{% user %}</a>
+      <a class='nav-link link' @click='setting'>Setting</a>
+      <a class='nav-link link' href='/logout'>Log Out</a>
+    </div>
+    <div class='navbar-nav flex-row' v-else>
+      <a class='nav-link'>Log In</a>
     </div>
   </nav>
   <login v-if='!user'></login>
   <div v-else>
-    <sidebar ref='categories'></sidebar>
-    <component :is='content' v-bind='prop'></component>
+    <sidebar ref='categories' :active='active'></sidebar>
+    <div class='content' style='padding-left: 250px' :style='{opacity: loading ? 0.5 : 1}' v-if='siderbar'>
+      <component :is='content' v-bind='prop'></component>
+    </div>
   </div>
-  <div class='loading' v-if='loading'>
+  <div class='loading' v-show='loading'>
     <div class='sk-wave sk-center'>
       <div class='sk-wave-rect'></div>
       <div class='sk-wave-rect'></div>

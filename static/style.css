@@ -139,7 +139,7 @@ form.login {
     left: 250px;
     height: calc(100% - 70px);
     width: calc(100% - 250px);
-    display: none;
+    display: flex;
 }
 
 header {

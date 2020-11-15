@@ -18,12 +18,6 @@ type bookmark struct {
 }
 
 func getBookmark(c *gin.Context) {
-	var obj map[string]interface{}
-	if err := c.BindJSON(&obj); err != nil {
-		c.String(400, "")
-		return
-	}
-
 	db, err := getDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
@@ -39,9 +33,9 @@ func getBookmark(c *gin.Context) {
 	stmt := "SELECT %s FROM mybookmarks WHERE"
 
 	var args []interface{}
-	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", obj["category"]))
+	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", c.PostForm("category")))
 	switch {
-	case err != nil:
+	case err != nil, categoryID == -1:
 		category = gin.H{"id": -1, "name": "All Bookmarks"}
 		stmt += " user_id = ?"
 		args = append(args, userID)
@@ -66,7 +60,11 @@ func getBookmark(c *gin.Context) {
 		bc <- true
 	}()
 
-	limit := fmt.Sprintf(" LIMIT %v, 30", obj["start"])
+	start := c.PostForm("start")
+	if start == "" {
+		start = "0"
+	}
+	limit := fmt.Sprintf(" LIMIT %v, 30", start)
 	rows, err := db.Query(fmt.Sprintf(stmt+limit, "bookmark_id, bookmark, url, category"), args...)
 	if err != nil {
 		log.Printf("Failed to get bookmarks: %v", err)
