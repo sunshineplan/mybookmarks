@@ -64,7 +64,7 @@ bookmark.component('login', {
     <button class='btn btn-primary login' @click='login'>Log In</button>
   </div>
 </div>`,
-  mounted() { document.title = 'Log In' },
+  mounted() { document.title = 'Log In - My Bookmarks' },
   methods: {
     login: function () {
       if (valid()) {
@@ -120,7 +120,7 @@ bookmark.component('setting', {
     <button class='btn btn-primary' @click='goback'>Cancel</button>
   </div>
 </div>`,
-  mounted() { document.title = 'Setting' },
+  mounted() { document.title = 'Setting - My Bookmarks' },
   methods: {
     setting: function () {
       if (valid()) {
