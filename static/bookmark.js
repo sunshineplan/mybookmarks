@@ -74,13 +74,10 @@ bookmark.component('login', {
           password: this.password,
           rememberme: this.rememberme
         }).then(resp => {
-          if (!resp.ok)
-            resp.text().then(err =>
-              BootstrapButtons.fire('Error', err, 'error'))
-          else
-            window.location = '/'
-        }).catch(e =>
-          BootstrapButtons.fire('Error', e, 'error'))
+          if (!resp.ok) resp.text().then(err =>
+            BootstrapButtons.fire('Error', err, 'error'))
+          else window.location = '/'
+        }).catch(e => BootstrapButtons.fire('Error', e, 'error'))
       }
       else this.validated = true
     }
@@ -133,27 +130,23 @@ bookmark.component('setting', {
           password1: this.password1,
           password2: this.password2
         }).then(resp => {
-          if (!resp.ok)
-            resp.text().then(err =>
-              BootstrapButtons.fire('Error', err, 'error'))
-          else
-            resp.json().then(json => {
-              if (json.status == 1)
-                BootstrapButtons.fire('Success', 'Your password has changed. Please Re-login!', 'success')
-                  .then(() => window.location = '/')
-              else
-                BootstrapButtons.fire('Error', json.message, 'error')
-                  .then(() => {
-                    if (json.error == 1)
-                      this.password = ''
-                    else {
-                      this.password1 = ''
-                      this.password2 = ''
-                    }
-                  })
-            })
-        }).catch(e =>
-          BootstrapButtons.fire('Error', e, 'error'))
+          if (!resp.ok) resp.text().then(err =>
+            BootstrapButtons.fire('Error', err, 'error'))
+          else resp.json().then(json => {
+            if (json.status == 1)
+              BootstrapButtons.fire('Success', 'Your password has changed. Please Re-login!', 'success')
+                .then(() => window.location = '/')
+            else
+              BootstrapButtons.fire('Error', json.message, 'error')
+                .then(() => {
+                  if (json.error == 1) this.password = ''
+                  else {
+                    this.password1 = ''
+                    this.password2 = ''
+                  }
+                })
+          })
+        }).catch(e => BootstrapButtons.fire('Error', e, 'error'))
       }
       else this.validated = true
     },
@@ -162,14 +155,8 @@ bookmark.component('setting', {
 })
 
 bookmark.component('sidebar', {
-  props: {
-    active: Number
-  },
-  data() {
-    return {
-      category: {}
-    }
-  },
+  props: { active: Number },
+  data() { return { category: {} } },
   template: `
 <nav class='nav flex-column navbar-light sidebar'>
   <div class='category-menu'>
@@ -299,20 +286,18 @@ bookmark.component('showBookmark', {
 </div>`,
   mounted() {
     this.load(this.$parent.current.id)
-    window.addEventListener('resize', this.simplifyURL)
+    window.addEventListener('resize', this.checkSize)
   },
   beforeUnmount: function () {
-    window.removeEventListener('resize', this.simplifyURL)
+    window.removeEventListener('resize', this.checkSize)
   },
   watch: {
     current(obj) { this.load(obj.id) },
     smallSize(isSmall) {
-      if (isSmall)
-        Array.from(document.getElementsByClassName('url'))
-          .forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
-      else
-        Array.from(document.getElementsByClassName('url'))
-          .forEach(i => i.text = i.dataset.url)
+      if (isSmall) Array.from(document.getElementsByClassName('url'))
+        .forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
+      else Array.from(document.getElementsByClassName('url'))
+        .forEach(i => i.text = i.dataset.url)
     }
   },
   methods: {
@@ -321,25 +306,20 @@ bookmark.component('showBookmark', {
       this.$parent.loading = true
       post('/bookmark/get', { category: id })
         .then(resp => {
-          if (!resp.ok)
-            resp.text().then(err =>
-              BootstrapButtons.fire('Error', err, 'error'))
-          else
-            resp.json().then(json => {
-              this.bookmark = json
-              this.$parent.loading = false
-              document.title = this.current.category + ' - My Bookmarks'
-            })
-        }).catch(e =>
-          BootstrapButtons.fire('Error', e, 'error'))
+          if (!resp.ok) resp.text().then(err =>
+            BootstrapButtons.fire('Error', err, 'error'))
+          else resp.json().then(json => {
+            this.bookmark = json
+            this.$parent.loading = false
+            document.title = this.current.category + ' - My Bookmarks'
+          })
+        })
+        .catch(e => BootstrapButtons.fire('Error', e, 'error'))
         .then(() => this.$parent.loading = false)
     },
-    simplifyURL: function () {
-      if (window.innerWidth <= 700)
-        this.smallSize = true
-      else {
-        this.smallSize = false
-      }
+    checkSize: function () {
+      if (window.innerWidth <= 700) this.smallSize = true
+      else this.smallSize = false
     },
     editCategory: function () {
       this.$parent.category = {
@@ -360,9 +340,7 @@ bookmark.component('showBookmark', {
 })
 
 bookmark.component('category', {
-  props: {
-    category: Object
-  },
+  props: { category: Object },
   data() {
     return {
       name: this.category.Name,
@@ -400,42 +378,33 @@ bookmark.component('category', {
         else
           r = post('/category/edit/' + this.category.ID, { category: this.name })
         r.then(resp => {
-          if (!resp.ok)
-            resp.text().then(err =>
-              BootstrapButtons.fire('Error', err, 'error'))
-          else
-            resp.json().then(json => {
-              if (json.status == 1)
-                this.$parent.content = 'showBookmark'
-              else
-                BootstrapButtons.fire('Error', json.message, 'error')
-            })
-        }).catch(e =>
-          BootstrapButtons.fire('Error', e, 'error'))
+          if (!resp.ok) resp.text().then(err =>
+            BootstrapButtons.fire('Error', err, 'error'))
+          else resp.json().then(json => {
+            if (json.status == 1) this.$parent.content = 'showBookmark'
+            else BootstrapButtons.fire('Error', json.message, 'error')
+          })
+        }).catch(e => BootstrapButtons.fire('Error', e, 'error'))
       }
       else this.validated = true
     },
     del: function () {
       confirm('category').then(confirm => {
-        if (confirm)
-          post('/category/delete/' + this.category.ID)
-            .then(resp => {
-              if (!resp.ok)
-                resp.text().then(err =>
-                  BootstrapButtons.fire('Error', err, 'error'))
-              else
-                this.$parent.content = 'showBookmark'
-            }).catch(e =>
-              BootstrapButtons.fire('Error', e, 'error'))
+        if (confirm) post('/category/delete/' + this.category.ID)
+          .then(resp => {
+            if (!resp.ok) resp.text().then(err =>
+              BootstrapButtons.fire('Error', err, 'error'))
+            else this.$parent.content = 'showBookmark'
+          })
+          .catch(e => BootstrapButtons.fire('Error', e, 'error'))
       })
     },
     goback: function () { this.$parent.content = 'showBookmark' }
   },
   computed: {
     mode: function () {
-      if (this.category.ID == undefined)
-        return 'Add'
-      else return 'Edit'
+      if (this.category.ID == undefined) return 'Add'
+      return 'Edit'
     }
   }
 })
@@ -506,50 +475,38 @@ bookmark.component('bookmark', {
             bookmark: this.name,
             url: this.url
           })
-
         r.then(resp => {
-          if (!resp.ok)
-            resp.text().then(err =>
-              BootstrapButtons.fire('Error', err, 'error'))
-          else
-            resp.json().then(json => {
-              if (json.status == 1)
-                this.$parent.content = 'showBookmark'
-              else
-                BootstrapButtons.fire('Error', json.message, 'error')
-                  .then(() => {
-                    if (json.error == 1)
-                      this.name = ''
-                    else if (json.error == 2)
-                      this.url = ''
-                  })
-            })
-        }).catch(e =>
-          BootstrapButtons.fire('Error', e, 'error'))
+          if (!resp.ok) resp.text().then(err =>
+            BootstrapButtons.fire('Error', err, 'error'))
+          else resp.json().then(json => {
+            if (json.status == 1) this.$parent.content = 'showBookmark'
+            else BootstrapButtons.fire('Error', json.message, 'error')
+              .then(() => {
+                if (json.error == 1) this.name = ''
+                else if (json.error == 2) this.url = ''
+              })
+          })
+        }).catch(e => BootstrapButtons.fire('Error', e, 'error'))
       }
       else this.validated = true
     },
     del: function () {
       confirm('category').then(confirm => {
-        if (confirm)
-          post('/bookmark/delete/' + this.bookmark.ID)
-            .then(resp => {
-              if (!resp.ok)
-                resp.text().then(err =>
-                  BootstrapButtons.fire('Error', err, 'error'))
-              else
-                this.$parent.content = 'showBookmark'
-            }).catch(e =>
-              BootstrapButtons.fire('Error', e, 'error'))
+        if (confirm) post('/bookmark/delete/' + this.bookmark.ID)
+          .then(resp => {
+            if (!resp.ok) resp.text().then(err =>
+              BootstrapButtons.fire('Error', err, 'error'))
+            else this.$parent.content = 'showBookmark'
+          })
+          .catch(e => BootstrapButtons.fire('Error', e, 'error'))
       })
     },
     goback: function () { this.$parent.content = 'showBookmark' }
   },
   computed: {
     mode: function () {
-      if (this.bookmark.ID == undefined)
-        return 'Add'
-      else return 'Edit'
+      if (this.bookmark.ID == undefined) return 'Add'
+      return 'Edit'
     }
   }
 })
