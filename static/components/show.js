@@ -134,6 +134,7 @@ const showBookmarks = {
     window.addEventListener('scroll', this.checkScroll, true)
   },
   beforeUnmount: function () {
+    $('#mybookmarks').sortable('destroy')
     window.removeEventListener('resize', this.checkSize)
     window.removeEventListener('scroll', this.checkScroll, true)
   },
