@@ -67,10 +67,12 @@ const sidebar = {
       }
     },
     add: function () {
+      if ($(window).width() <= 900) $('.sidebar').toggle('slide')
       this.$parent.category = {}
       this.$parent.content = 'category'
     },
     load: function (id, category) {
+      if ($(window).width() <= 900) $('.sidebar').toggle('slide')
       this.$parent.content = 'showBookmark'
       this.$parent.current = { id: id, category: category }
     }
@@ -112,8 +114,8 @@ const showBookmarks = {
             <th></th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for='b in bookmark.bookmarks'>
+        <tbody id='mybookmarks'>
+          <tr v-for='b in bookmark.bookmarks' :data-id='b.ID'>
             <td>{{ b.Name }}</td>
             <td><a :href='b.URL' target='_blank' class='url' :data-url='b.URL'>{{ b.URL }}</a></td>
             <td>{{ b.Category }}</td>
@@ -127,6 +129,7 @@ const showBookmarks = {
   </div>`,
   mounted() {
     this.load(this.$parent.current.id)
+    $('#mybookmarks').sortable(sortable)
     window.addEventListener('resize', this.checkSize)
     window.addEventListener('scroll', this.checkScroll, true)
   },
@@ -195,5 +198,16 @@ const showBookmarks = {
       this.$parent.bookmark = bookmark
       this.$parent.content = 'bookmark'
     }
+  }
+}
+
+const sortable = {
+  update: (event, ui) => {
+    var orig = ui.item.data('id'), dest, next
+    if (ui.item.prev().length != 0) dest = ui.item.prev().data('id')
+    else dest = '#TOP_POSITION#'
+    if (ui.item.next().length != 0) next = ui.item.next().data('id')
+    else next = '#BOTTOM_POSITION#'
+    post('/reorder', { orig: orig, dest: dest, next: next })
   }
 }

@@ -149,7 +149,7 @@ const bookmark = {
       else this.validated = true
     },
     del: function () {
-      confirm('category').then(confirm => {
+      confirm('bookmark').then(confirm => {
         if (confirm) post('/bookmark/delete/' + this.bookmark.ID)
           .then(resp => {
             if (!resp.ok) resp.text().then(err =>
