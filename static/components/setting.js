@@ -9,7 +9,7 @@ const setting = {
   },
   template: `
 <div>
-  <header style='padding-left: 20px;'>
+  <header style='padding-left: 20px'>
     <h3>Setting</h3>
     <hr>
   </header>

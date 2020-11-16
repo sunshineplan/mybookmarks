@@ -38,17 +38,3 @@ confirm = (type) => {
     buttonsStyling: false
   }).then(confirm => { return confirm.isConfirmed })
 }
-
-document.addEventListener('scroll', () => {
-  var div = $('.table-responsive').get(0);
-  if (div.scrollTop + div.clientHeight >= div.scrollHeight) {
-    var start = $('#mybookmarks').data('start')
-    if (start === undefined) start = 30;
-    var total = $('#mybookmarks').data('total');
-    if (start < total) {
-      var last = document.cookie.split('LastVisit=')[1];
-      loadBookmarks(last, start);
-      $('#mybookmarks').data('start', start + 30);
-    };
-  };
-}, true);

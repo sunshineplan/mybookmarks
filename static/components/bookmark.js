@@ -13,7 +13,7 @@ const bookmark = {
   },
   template: `
   <div>
-    <header style='padding-left: 20px;'>
+    <header style='padding-left: 20px'>
       <a class='h3 title'>{{ mode }} Bookmark</a>
       <hr>
     </header>
@@ -40,7 +40,7 @@ const bookmark = {
       <button class='btn btn-primary' @click='save'>{{ mode }}</button>
       <button class='btn btn-primary' @click='goback'>Cancel</button>
     </div>
-    <div class='form' v-if='bookmark.ID != 0'>
+    <div class='form' v-if='bookmark.ID != undefined'>
       <button class='btn btn-danger delete' @click='del'>Delete</button>
     </div>
   </div>`,

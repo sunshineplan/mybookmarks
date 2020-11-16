@@ -8,13 +8,14 @@ const showBookmarks = {
         bookmarks: [],
         category: { name: this.current.category }
       },
-      smallSize: window.innerWidth <= 700 ? true : false
+      smallSize: window.innerWidth <= 700 ? true : false,
+      start: 0
     }
   },
   template: `
-  <div>
-    <header style='padding-left: 20px;'>
-      <div style='height: 50px;'>
+  <div style='height: 100%'>
+    <header style='padding-left: 20px'>
+      <div style='height: 50px'>
         <a class='h3 title'>{{ bookmark.category.name }}</a>
         <a class='btn icon' v-if='bookmark.category.id > 0' @click='editCategory'>
           <i class='material-icons edit'>edit</i>
@@ -48,31 +49,36 @@ const showBookmarks = {
   mounted() {
     this.load(this.$parent.current.id)
     window.addEventListener('resize', this.checkSize)
+    window.addEventListener('scroll', this.checkScroll, true)
   },
   beforeUnmount: function () {
     window.removeEventListener('resize', this.checkSize)
+    window.removeEventListener('scroll', this.checkScroll)
   },
   watch: {
     current(obj) { this.load(obj.id) },
     smallSize(isSmall) {
-      if (isSmall) Array.from(document.getElementsByClassName('url'))
-        .forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
-      else Array.from(document.getElementsByClassName('url'))
-        .forEach(i => i.text = i.dataset.url)
+      var arr = Array.from(document.getElementsByClassName('url'))
+      if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
+      else arr.forEach(i => i.text = i.dataset.url)
     }
   },
   methods: {
-    load: function (id) {
+    load: function (id, more) {
       this.$parent.active = this.$parent.current.id
       this.$parent.loading = true
-      post('/bookmark/get', { category: id })
+      post('/bookmark/get', { category: id, start: this.start })
         .then(resp => {
           if (!resp.ok) resp.text().then(err =>
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
-            this.bookmark = json
+            if (more)
+              this.bookmark.bookmarks = this.bookmark.bookmarks.concat(json.bookmarks)
+            else {
+              this.bookmark = json
+              document.title = this.current.category + ' - My Bookmarks'
+            }
             this.$parent.loading = false
-            document.title = this.current.category + ' - My Bookmarks'
           })
         })
         .catch(e => BootstrapButtons.fire('Error', e, 'error'))
@@ -81,6 +87,15 @@ const showBookmarks = {
     checkSize: function () {
       if (window.innerWidth <= 700) this.smallSize = true
       else this.smallSize = false
+    },
+    checkScroll: function () {
+      var table = document.getElementsByClassName('table-responsive')[0]
+      if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
+        if (this.start + 30 < this.bookmark.total) {
+          this.start += 30
+          this.load(this.current.id, true)
+        }
+      }
     },
     editCategory: function () {
       this.$parent.category = {

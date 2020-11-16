@@ -2,8 +2,6 @@
 <meta name='viewport' content='width=device-width, initial-scale=0.75'>
 <title>My Bookmarks</title>
 <link rel='icon' href='/static/favicon.ico'>
-<script src='https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/jquery-ui-dist@1/jquery-ui.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/sweetalert2@9/dist/sweetalert2.all.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/vue@next/dist/vue.global.js'></script>
 <script src='/static/script.js'></script>
@@ -13,7 +11,7 @@
 <link rel='stylesheet' href='/static/style.css'>
 <div id='bookmark' data-user='{{ .user }}'>
   <nav class='navbar navbar-light topbar'>
-    <div class='d-flex' style='height: 100%;'>
+    <div class='d-flex' style='height: 100%'>
       <a class='toggle' v-if='user'><i class='material-icons menu'>menu</i></a>
       <a class='brand' href='/'>My Bookmarks</a>
     </div>

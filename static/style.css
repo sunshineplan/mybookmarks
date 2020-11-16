@@ -132,6 +132,10 @@ form.login {
     width: 100%;
 }
 
+button + button {
+    margin-left: .3em;
+}
+
 .loading {
     position: fixed;
     z-index: 2;

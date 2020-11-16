@@ -8,7 +8,7 @@ const category = {
   },
   template: `
 <div>
-  <header style='padding-left: 20px;'>
+  <header style='padding-left: 20px'>
     <a class='h3 title'>{{ mode }} Category</a>
     <hr>
   </header>
@@ -22,7 +22,7 @@ const category = {
     <button class='btn btn-primary' @click='save'>{{ mode }}</button>
     <button class='btn btn-primary' @click='goback'>Cancel</button>
   </div>
-  <div class='form' v-if='category.ID != 0'>
+  <div class='form' v-if='category.ID != undefined'>
     <button class='btn btn-danger delete' @click='del'>Delete</button>
   </div>
 </div>`,

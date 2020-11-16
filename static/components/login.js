@@ -10,7 +10,7 @@ const login = {
   template: `
   <div @keyup.enter='login'>
     <header>
-      <h3 class='d-flex justify-content-center align-items-center' style='height: 100%;'>Log In</h3>
+      <h3 class='d-flex justify-content-center align-items-center' style='height: 100%'>Log In</h3>
     </header>
     <div class='login' :class="{ 'was-validated': validated }">
       <div class='form-group'>
