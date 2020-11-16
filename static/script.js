@@ -10,12 +10,16 @@ post = (url, obj) => {
     method: 'post',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(obj)
-  }).then(resp => {
-    if (resp.status == 401)
-      return BootstrapButtons.fire('Error', 'Login status has changed. Please Re-login!', 'error')
-        .then(() => window.location = '/')
-    return resp
   })
+    .catch(e => {
+      return Promise.reject(BootstrapButtons.fire('Error', e, 'error'))
+    })
+    .then(resp => {
+      if (resp.status == 401)
+        return BootstrapButtons.fire('Error', 'Login status has changed. Please Re-login!', 'error')
+          .then(() => window.location = '/')
+      return resp
+    })
 }
 
 BootstrapButtons = Swal.mixin({

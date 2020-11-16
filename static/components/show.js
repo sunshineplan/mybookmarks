@@ -1,3 +1,82 @@
+const sidebar = {
+  props: { active: Number },
+  data() { return { category: {} } },
+  template: `
+<nav class='nav flex-column navbar-light sidebar'>
+  <div class='category-menu'>
+    <button class='btn btn-primary btn-sm' @click='add'>Add Category</button>
+    <ul class='navbar-nav' v-if='category.total'>
+      <a
+        class='navbar-brand category'
+        :class='{ active: active == -1 }'
+        @click="load(-1, 'All Bookmarks')"
+      >
+        All Bookmarks ({{ category.total }})
+      </a>
+      <li v-for='c in category.categories'>
+        <a
+          class='nav-link category'
+          :class='{ active: active == c.ID }'
+          @click='load(c.ID, c.Name)'
+        >
+          {{ c.Name }} ({{ c.Count }})
+        </a>
+      </li>
+      <li>
+        <a
+          class='nav-link category'
+          v-if='category.uncategorized'
+          :class='{ active: active == 0 }'
+          @click="load(0, 'Uncategorized')"
+        >
+          Uncategorized ({{ category.uncategorized }})
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>`,
+  created() {
+    this.$parent.loading = true
+    post('/category/get')
+      .then(response => response.json())
+      .then(json => {
+        this.category = json
+        this.$parent.siderbar = true
+        this.$parent.loading = false
+      })
+  },
+  mounted() { window.addEventListener('keyup', this.arrow) },
+  beforeUnmount: function () { window.removeEventListener('keyup', this.arrow) },
+  methods: {
+    arrow: function (event) {
+      if (this.active != null) {
+        var len = this.category.categories.length
+        var index = this.category.categories.findIndex(item => item.ID == this.active)
+        if (event.key == 'ArrowUp') {
+          if (this.active == 0 && len > 0)
+            this.load(this.category.categories[len - 1].ID, this.category.categories[len - 1].Name)
+          else if (index > 0)
+            this.load(this.category.categories[index - 1].ID, this.category.categories[index - 1].Name)
+          else if (index == 0) this.load(-1, 'All Bookmarks')
+        } else if (event.key == 'ArrowDown')
+          if (this.active == -1 && len > 0)
+            this.load(this.category.categories[0].ID, this.category.categories[0].Name)
+          else if (index >= 0 && index < len - 1)
+            this.load(this.category.categories[index + 1].ID, this.category.categories[index + 1].Name)
+          else if (index == len - 1) this.load(0, 'Uncategorized')
+      }
+    },
+    add: function () {
+      this.$parent.category = {}
+      this.$parent.content = 'category'
+    },
+    load: function (id, category) {
+      this.$parent.content = 'showBookmark'
+      this.$parent.current = { id: id, category: category }
+    }
+  }
+}
+
 const showBookmarks = {
   props: {
     current: Object
@@ -16,7 +95,7 @@ const showBookmarks = {
   <div style='height: 100%'>
     <header style='padding-left: 20px'>
       <div style='height: 50px'>
-        <a class='h3 title'>{{ bookmark.category.name }}</a>
+        <a class='h3'>{{ bookmark.category.name }}</a>
         <a class='btn icon' v-if='bookmark.category.id > 0' @click='editCategory'>
           <i class='material-icons edit'>edit</i>
         </a>
@@ -53,10 +132,13 @@ const showBookmarks = {
   },
   beforeUnmount: function () {
     window.removeEventListener('resize', this.checkSize)
-    window.removeEventListener('scroll', this.checkScroll)
+    window.removeEventListener('scroll', this.checkScroll, true)
   },
   watch: {
-    current(obj) { this.load(obj.id) },
+    current(obj) {
+      this.start = 0
+      this.load(obj.id)
+    },
     smallSize(isSmall) {
       var arr = Array.from(document.getElementsByClassName('url'))
       if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
@@ -67,10 +149,14 @@ const showBookmarks = {
     load: function (id, more) {
       this.$parent.active = this.$parent.current.id
       this.$parent.loading = true
-      post('/bookmark/get', { category: id, start: this.start })
+      var params = { category: id }
+      if (this.start != 0)
+        params.start = this.start
+      post('/bookmark/get', params)
         .then(resp => {
-          if (!resp.ok) resp.text().then(err =>
-            BootstrapButtons.fire('Error', err, 'error'))
+          if (!resp.ok) resp.text().then(err => {
+            return BootstrapButtons.fire('Error', err, 'error')
+          })
           else resp.json().then(json => {
             if (more)
               this.bookmark.bookmarks = this.bookmark.bookmarks.concat(json.bookmarks)
@@ -78,11 +164,8 @@ const showBookmarks = {
               this.bookmark = json
               document.title = this.current.category + ' - My Bookmarks'
             }
-            this.$parent.loading = false
           })
-        })
-        .catch(e => BootstrapButtons.fire('Error', e, 'error'))
-        .then(() => this.$parent.loading = false)
+        }).then(() => this.$parent.loading = false)
     },
     checkSize: function () {
       if (window.innerWidth <= 700) this.smallSize = true
