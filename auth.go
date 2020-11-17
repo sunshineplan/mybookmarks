@@ -71,7 +71,7 @@ func login(c *gin.Context) {
 			session.Set("username", user.Username)
 
 			rememberme := c.PostForm("rememberme")
-			if rememberme == "on" {
+			if rememberme == "true" {
 				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
 			} else {
 				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 0})
