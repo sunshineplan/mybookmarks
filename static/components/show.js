@@ -1,7 +1,7 @@
 const sidebar = {
   computed: {
     active() {
-      if (this.$store.state.component == 'setting')
+      if (this.$store.state.component != 'showBookmark')
         return false
       return this.$store.state.category.id
     },
@@ -23,7 +23,7 @@ const sidebar = {
       <li v-for='c in categories'>
         <a
           class='nav-link category'
-          :class='{ active: active == c.id }'
+          :class='{ active: active === c.id }'
           @click='load(c.id, c.name)'
         >
           {{ c.name }} ({{ c.count }})
