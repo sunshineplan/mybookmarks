@@ -1,9 +1,15 @@
 const category = {
-  props: { category: Object },
   data() {
     return {
-      name: this.category.Name,
+      category: this.$store.state.editCategory,
+      name: '',
       validated: false
+    }
+  },
+  computed: {
+    mode() {
+      if (this.category.id == undefined) return 'Add'
+      return 'Edit'
     }
   },
   template: `
@@ -22,25 +28,31 @@ const category = {
     <button class='btn btn-primary' @click='save'>{{ mode }}</button>
     <button class='btn btn-primary' @click='goback'>Cancel</button>
   </div>
-  <div class='form' v-if='category.ID != undefined'>
+  <div class='form' v-if='category.id != undefined'>
     <button class='btn btn-danger delete' @click='del'>Delete</button>
   </div>
 </div>`,
+  created() { this.name = this.category.name },
   mounted() { document.title = this.mode + ' Category - My Bookmarks' },
   methods: {
     save: function () {
       if (valid()) {
         this.validated = false
         var r
-        if (this.category.ID == undefined)
+        if (this.category.id == undefined)
           r = post('/category/add', { category: this.name })
         else
-          r = post('/category/edit/' + this.category.ID, { category: this.name })
+          r = post('/category/edit/' + this.category.id, { category: this.name })
         r.then(resp => {
           if (!resp.ok) resp.text().then(err =>
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
-            if (json.status == 1) this.$parent.content = 'showBookmark'
+            if (json.status == 1) {
+              if (this.category.id != undefined)
+                this.$store.commit('category', { id: this.category.id, name: this.name })
+              this.$store.commit('categories')
+              this.$store.commit('goto', 'showBookmark')
+            }
             else BootstrapButtons.fire('Error', json.message, 'error')
           })
         })
@@ -49,35 +61,37 @@ const category = {
     },
     del: function () {
       confirm('category').then(confirm => {
-        if (confirm) post('/category/delete/' + this.category.ID)
+        if (confirm) post('/category/delete/' + this.category.id)
           .then(resp => {
             if (!resp.ok) resp.text().then(err =>
               BootstrapButtons.fire('Error', err, 'error'))
-            else this.$parent.content = 'showBookmark'
+            else {
+              this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
+              this.$store.commit('categories')
+              this.$store.commit('goto', 'showBookmark')
+            }
           })
       })
     },
-    goback: function () { this.$parent.content = 'showBookmark' }
-  },
-  computed: {
-    mode: function () {
-      if (this.category.ID == undefined) return 'Add'
-      return 'Edit'
-    }
+    goback: function () { this.$store.commit('goto', 'showBookmark') }
   }
 }
 
 const bookmark = {
-  props: {
-    bookmark: Object,
-    categories: Array
-  },
   data() {
     return {
-      name: this.bookmark.Name,
-      url: this.bookmark.URL,
-      category: this.bookmark.Category,
+      categories: this.$store.state.categories.categories,
+      bookmark: this.$store.state.bookmark,
+      name: '',
+      url: '',
+      category: '',
       validated: false
+    }
+  },
+  computed: {
+    mode() {
+      if (this.bookmark.id == undefined) return 'Add'
+      return 'Edit'
     }
   },
   template: `
@@ -102,34 +116,39 @@ const bookmark = {
         <label for='category'>Category</label>
         <input class='form-control' list='category-list' v-model.trim='category' id='category' maxlength=15>
         <datalist id='category-list'>
-          <option v-for='c in categories'>{{ c.Name }}</option>
+          <option v-for='c in categories'>{{ c.name }}</option>
         </datalist>
         <small class='form-text text-muted'>Max length: 15 characters. One chinese character equal three characters.</small>
       </div>
       <button class='btn btn-primary' @click='save'>{{ mode }}</button>
       <button class='btn btn-primary' @click='goback'>Cancel</button>
     </div>
-    <div class='form' v-if='bookmark.ID != undefined'>
+    <div class='form' v-if='bookmark.id != undefined'>
       <button class='btn btn-danger delete' @click='del'>Delete</button>
     </div>
   </div>`,
+  created() {
+    this.name = this.bookmark.name
+    this.url = this.bookmark.url
+    this.category = this.bookmark.category
+  },
   mounted() { document.title = this.mode + ' Bookmark - My Bookmarks' },
   methods: {
     chkURL: function () {
-      if (!this.url.match(/^https?:/) && this.url.length)
+      if (this.url && !this.url.match(/^https?:/) && this.url.length)
         this.url = 'http://' + this.url
     },
     save: function () {
       if (valid()) {
         this.validated = false
         var r
-        if (this.bookmark.ID == undefined)
+        if (this.bookmark.id == undefined)
           r = post('/bookmark/add', {
             bookmark: this.name,
             url: this.url
           })
         else
-          r = post('/bookmark/edit/' + this.bookmark.ID, {
+          r = post('/bookmark/edit/' + this.bookmark.id, {
             bookmark: this.name,
             url: this.url
           })
@@ -137,7 +156,7 @@ const bookmark = {
           if (!resp.ok) resp.text().then(err =>
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
-            if (json.status == 1) this.$parent.content = 'showBookmark'
+            if (json.status == 1) this.$store.commit('goto', 'showBookmark')
             else BootstrapButtons.fire('Error', json.message, 'error')
               .then(() => {
                 if (json.error == 1) this.name = ''
@@ -150,20 +169,14 @@ const bookmark = {
     },
     del: function () {
       confirm('bookmark').then(confirm => {
-        if (confirm) post('/bookmark/delete/' + this.bookmark.ID)
+        if (confirm) post('/bookmark/delete/' + this.bookmark.id)
           .then(resp => {
             if (!resp.ok) resp.text().then(err =>
               BootstrapButtons.fire('Error', err, 'error'))
-            else this.$parent.content = 'showBookmark'
+            else this.$store.commit('goto', 'showBookmark')
           })
       })
     },
-    goback: function () { this.$parent.content = 'showBookmark' }
-  },
-  computed: {
-    mode: function () {
-      if (this.bookmark.ID == undefined) return 'Add'
-      return 'Edit'
-    }
+    goback: function () { this.$store.commit('goto', 'showBookmark') }
   }
 }

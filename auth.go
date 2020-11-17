@@ -56,7 +56,7 @@ func login(c *gin.Context) {
 			message = "Critical Error! Please contact your system administrator."
 		}
 	} else {
-		if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 			if (err == bcrypt.ErrHashTooShort && user.Password != password) || err == bcrypt.ErrMismatchedHashAndPassword {
 				statusCode = 403
 				message = "Incorrect password"
@@ -103,8 +103,7 @@ func setting(c *gin.Context) {
 	password2 := c.PostForm("password2")
 
 	var oldPassword string
-	err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword)
-	if err != nil {
+	if err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword); err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
@@ -140,8 +139,7 @@ func setting(c *gin.Context) {
 			c.String(500, "")
 			return
 		}
-		_, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", string(newPassword), userID)
-		if err != nil {
+		if _, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", string(newPassword), userID); err != nil {
 			log.Print(err)
 			c.String(500, "")
 			return

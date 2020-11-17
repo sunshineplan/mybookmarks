@@ -1,97 +1,97 @@
 const sidebar = {
-  props: { active: Number },
-  data() { return { category: {} } },
+  computed: {
+    active() {
+      if (this.$store.state.component == 'setting')
+        return false
+      return this.$store.state.category.id
+    },
+    categories() { return this.$store.state.categories }
+  },
   template: `
 <nav class='nav flex-column navbar-light sidebar'>
   <div class='category-menu'>
     <button class='btn btn-primary btn-sm' @click='add'>Add Category</button>
-    <ul class='navbar-nav' v-if='category.total'>
+    <ul class='navbar-nav' v-if='categories.total'>
       <a
         class='navbar-brand category'
-        :class='{ active: active == -1 }'
+        :class='{ active: active == -1 || active == undefined }'
         @click="load(-1, 'All Bookmarks')"
       >
-        All Bookmarks ({{ category.total }})
+        All Bookmarks ({{ categories.total }})
       </a>
-      <li v-for='c in category.categories'>
+      <li v-for='c in categories.categories'>
         <a
           class='nav-link category'
-          :class='{ active: active == c.ID }'
-          @click='load(c.ID, c.Name)'
+          :class='{ active: active == c.id }'
+          @click='load(c.id, c.name)'
         >
-          {{ c.Name }} ({{ c.Count }})
+          {{ c.name }} ({{ c.count }})
         </a>
       </li>
       <li>
         <a
           class='nav-link category'
-          v-if='category.uncategorized'
-          :class='{ active: active == 0 }'
+          v-if='categories.uncategorized'
+          :class='{ active: active === 0 }'
           @click="load(0, 'Uncategorized')"
         >
-          Uncategorized ({{ category.uncategorized }})
+          Uncategorized ({{ categories.uncategorized }})
         </a>
       </li>
     </ul>
   </div>
 </nav>`,
   created() {
-    this.$parent.loading = true
-    post('/category/get')
-      .then(response => response.json())
-      .then(json => {
-        this.category = json
-        this.$parent.siderbar = true
-        this.$parent.loading = false
-      })
+    this.$store.commit('loading', true)
+    this.$store.commit('categories')
   },
   mounted() { window.addEventListener('keyup', this.arrow) },
   beforeUnmount: function () { window.removeEventListener('keyup', this.arrow) },
   methods: {
     arrow: function (event) {
       if (this.active != null) {
-        var len = this.category.categories.length
-        var index = this.category.categories.findIndex(item => item.ID == this.active)
+        var len = this.categories.categories.length
+        var index = this.categories.categories.findIndex(item => item.id == this.active)
         if (event.key == 'ArrowUp') {
           if (this.active == 0 && len > 0)
-            this.load(this.category.categories[len - 1].ID, this.category.categories[len - 1].Name)
+            this.load(this.categories.categories[len - 1].id, this.categories.categories[len - 1].name)
           else if (index > 0)
-            this.load(this.category.categories[index - 1].ID, this.category.categories[index - 1].Name)
+            this.load(this.categories.categories[index - 1].id, this.categories.categories[index - 1].name)
           else if (index == 0) this.load(-1, 'All Bookmarks')
         } else if (event.key == 'ArrowDown')
           if (this.active == -1 && len > 0)
-            this.load(this.category.categories[0].ID, this.category.categories[0].Name)
+            this.load(this.categories.categories[0].id, this.categories.categories[0].name)
           else if (index >= 0 && index < len - 1)
-            this.load(this.category.categories[index + 1].ID, this.category.categories[index + 1].Name)
+            this.load(this.categories.categories[index + 1].id, this.categories.categories[index + 1].name)
           else if (index == len - 1) this.load(0, 'Uncategorized')
       }
     },
     add: function () {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
-      this.$parent.category = {}
-      this.$parent.content = 'category'
+      this.$store.commit('editCategory', {})
+      this.$store.commit('goto', 'category')
     },
     load: function (id, category) {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
-      this.$parent.content = 'showBookmark'
-      this.$parent.current = { id: id, category: category }
+      this.$store.commit('goto', 'showBookmark')
+      this.$store.commit('category', { id: id, name: category })
     }
   }
 }
 
 const showBookmarks = {
-  props: {
-    current: Object
-  },
   data() {
     return {
       bookmark: {
         bookmarks: [],
-        category: { name: this.current.category }
+        category: { name: this.$store.state.category.name }
       },
       smallSize: window.innerWidth <= 700 ? true : false,
       start: 0
     }
+  },
+  computed: {
+    category() { return this.$store.state.category }
   },
   template: `
   <div style='height: 100%'>
@@ -115,10 +115,10 @@ const showBookmarks = {
           </tr>
         </thead>
         <tbody id='mybookmarks'>
-          <tr v-for='b in bookmark.bookmarks' :data-id='b.ID'>
-            <td>{{ b.Name }}</td>
-            <td><a :href='b.URL' target='_blank' class='url' :data-url='b.URL'>{{ b.URL }}</a></td>
-            <td>{{ b.Category }}</td>
+          <tr v-for='b in bookmark.bookmarks' :key='b.id' :data-id='b.id'>
+            <td>{{ b.name }}</td>
+            <td><a :href='b.url' target='_blank' class='url' :data-url='b.url'>{{ b.url }}</a></td>
+            <td>{{ b.category }}</td>
             <td>
               <a class='icon' @click='edit(b)'><i class='material-icons edit'>edit</i></a>
             </td>
@@ -128,7 +128,7 @@ const showBookmarks = {
     </div>
   </div>`,
   mounted() {
-    this.load(this.$parent.current.id)
+    this.load(this.$store.state.category.id)
     $('#mybookmarks').sortable(sortable)
     window.addEventListener('resize', this.checkSize)
     window.addEventListener('scroll', this.checkScroll, true)
@@ -139,9 +139,9 @@ const showBookmarks = {
     window.removeEventListener('scroll', this.checkScroll, true)
   },
   watch: {
-    current(obj) {
+    category(category) {
       this.start = 0
-      this.load(obj.id)
+      this.load(category.id)
     },
     smallSize(isSmall) {
       var arr = Array.from(document.getElementsByClassName('url'))
@@ -151,8 +151,7 @@ const showBookmarks = {
   },
   methods: {
     load: function (id, more) {
-      this.$parent.active = this.$parent.current.id
-      this.$parent.loading = true
+      this.$store.commit('loading', true)
       var params = { category: id }
       if (this.start != 0)
         params.start = this.start
@@ -166,10 +165,10 @@ const showBookmarks = {
               this.bookmark.bookmarks = this.bookmark.bookmarks.concat(json.bookmarks)
             else {
               this.bookmark = json
-              document.title = this.current.category + ' - My Bookmarks'
+              document.title = this.category.name + ' - My Bookmarks'
             }
           })
-        }).then(() => this.$parent.loading = false)
+        }).then(() => this.$store.commit('loading', false))
     },
     checkSize: function () {
       if (window.innerWidth <= 700) this.smallSize = true
@@ -180,24 +179,21 @@ const showBookmarks = {
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
         if (this.start + 30 < this.bookmark.total) {
           this.start += 30
-          this.load(this.current.id, true)
+          this.load(this.category.id, true)
         }
       }
     },
     editCategory: function () {
-      this.$parent.category = {
-        Name: this.bookmark.category.name,
-        ID: this.bookmark.category.id
-      }
-      this.$parent.content = 'category'
+      this.$store.commit('editCategory', this.category)
+      this.$store.commit('goto', 'category')
     },
     add: function () {
-      this.$parent.bookmark = {}
-      this.$parent.content = 'bookmark'
+      this.$store.commit('bookmark', {})
+      this.$store.commit('goto', 'bookmark')
     },
     edit: function (bookmark) {
-      this.$parent.bookmark = bookmark
-      this.$parent.content = 'bookmark'
+      this.$store.commit('bookmark', bookmark)
+      this.$store.commit('goto', 'bookmark')
     }
   }
 }

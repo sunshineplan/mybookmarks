@@ -11,10 +11,10 @@ import (
 )
 
 type bookmark struct {
-	ID       int
-	Name     string
-	URL      string
-	Category string
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Category string `json:"category"`
 }
 
 func getBookmark(c *gin.Context) {
@@ -129,8 +129,8 @@ func addBookmark(c *gin.Context) {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
-		_, err = db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)", bookmark, url, userID, categoryID)
-		if err != nil {
+		if _, err := db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)",
+			bookmark, url, userID, categoryID); err != nil {
 			log.Printf("Failed to add bookmark: %v", err)
 			c.String(500, "")
 			return
@@ -184,18 +184,20 @@ func editBookmark(c *gin.Context) {
 		errorCode = 1
 	} else if old.Name == bookmark && old.URL == url && string(old.Category) == category {
 		message = "New bookmark is same as old bookmark."
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?", bookmark, id, userID).Scan(&exist); err == nil {
+	} else if err := db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?",
+		bookmark, id, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?", url, id, userID).Scan(&exist); err == nil {
+	} else if err := db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?",
+		url, id, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
 		errorCode = 2
 	} else if categoryID == -1 {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
-		_, err = db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?", bookmark, url, categoryID, id, userID)
-		if err != nil {
+		if _, err := db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?",
+			bookmark, url, categoryID, id, userID); err != nil {
 			log.Printf("Failed to edit bookmark: %v", err)
 			c.String(500, "")
 			return
@@ -223,8 +225,7 @@ func deleteBookmark(c *gin.Context) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID)
-	if err != nil {
+	if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID); err != nil {
 		log.Printf("Failed to delete bookmark: %v", err)
 		c.String(500, "")
 		return
@@ -249,8 +250,8 @@ func reorder(c *gin.Context) {
 
 	var origSeq, destSeq int
 
-	err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", orig, userID).Scan(&origSeq)
-	if err != nil {
+	if err := db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
+		orig, userID).Scan(&origSeq); err != nil {
 		log.Printf("Failed to scan orig seq: %v", err)
 		c.String(500, "")
 		return
@@ -278,8 +279,8 @@ func reorder(c *gin.Context) {
 		c.String(500, "")
 		return
 	}
-	_, err = db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?", destSeq, orig, userID)
-	if err != nil {
+	if _, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
+		destSeq, orig, userID); err != nil {
 		log.Printf("Failed to update orig seq: %v", err)
 		c.String(500, "")
 		return

@@ -12,9 +12,9 @@ import (
 )
 
 type category struct {
-	ID    int
-	Name  string
-	Count int
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Count int    `json:"count"`
 }
 
 func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
@@ -60,14 +60,13 @@ func getCategory(c *gin.Context) {
 
 	var total, uncategorized int
 	var categories []category
-	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total)
-	if err != nil {
+	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total); err != nil {
 		log.Printf("Failed to scan all bookmark count: %v", err)
 		c.String(500, "")
 		return
 	}
-	err = db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?", userID).Scan(&uncategorized)
-	if err != nil {
+	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
+		userID).Scan(&uncategorized); err != nil {
 		log.Printf("Failed to scan uncategorized bookmark count: %v", err)
 		c.String(500, "")
 		return
