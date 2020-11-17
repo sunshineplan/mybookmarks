@@ -80,7 +80,7 @@ const category = {
 const bookmark = {
   data() {
     return {
-      categories: this.$store.state.categories.categories,
+      categories: this.$store.state.categories,
       bookmark: this.$store.state.bookmark,
       name: '',
       url: '',

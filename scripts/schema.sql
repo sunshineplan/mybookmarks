@@ -29,11 +29,16 @@ CREATE TABLE seq (
   seq INT NOT NULL
 );
 
-CREATE VIEW mybookmarks AS
+CREATE VIEW bookmarks AS
   SELECT bookmark.user_id, bookmark.id bookmark_id, bookmark, url, bookmark.category_id, category, seq
   FROM bookmark LEFT JOIN category ON bookmark.category_id = category.id
   LEFT JOIN seq ON bookmark.user_id = seq.user_id AND bookmark.id = seq.bookmark_id
   ORDER BY seq;
+
+CREATE VIEW categories AS
+  SELECT category.id, category.user_id, category, COUNT(bookmark) count
+  FROM category LEFT JOIN bookmark ON category.id = category_id
+  GROUP BY category ORDER BY category;
 
 DELIMITER ;;
 CREATE TRIGGER add_user AFTER INSERT ON user

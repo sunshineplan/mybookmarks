@@ -30,7 +30,7 @@ func getBookmark(c *gin.Context) {
 
 	var category gin.H
 
-	stmt := "SELECT %s FROM mybookmarks WHERE"
+	stmt := "SELECT %s FROM bookmarks WHERE"
 
 	var args []interface{}
 	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", c.PostForm("category")))
@@ -160,7 +160,7 @@ func editBookmark(c *gin.Context) {
 
 	var old bookmark
 	var oldCategory []byte
-	if err := db.QueryRow("SELECT bookmark, url, category FROM mybookmarks WHERE bookmark_id = ? AND user_id = ?",
+	if err := db.QueryRow("SELECT bookmark, url, category FROM bookmarks WHERE bookmark_id = ? AND user_id = ?",
 		id, userID).Scan(&old.Name, &old.URL, &oldCategory); err != nil {
 		log.Printf("Failed to scan bookmark: %v", err)
 		c.String(500, "")

@@ -5,37 +5,28 @@ const sidebar = {
         return false
       return this.$store.state.category.id
     },
-    categories() { return this.$store.state.categories }
+    categories() { return this.$store.state.categories },
+    total() { return this.categories.reduce((total, i) => total + i.count, 0) }
   },
   template: `
 <nav class='nav flex-column navbar-light sidebar'>
   <div class='category-menu'>
     <button class='btn btn-primary btn-sm' @click='add'>Add Category</button>
-    <ul class='navbar-nav' v-if='categories.total'>
+    <ul class='navbar-nav' v-if='total'>
       <a
         class='navbar-brand category'
         :class='{ active: active == -1 || active == undefined }'
         @click="load(-1, 'All Bookmarks')"
       >
-        All Bookmarks ({{ categories.total }})
+        All Bookmarks ({{ total }})
       </a>
-      <li v-for='c in categories.categories'>
+      <li v-for='c in categories'>
         <a
           class='nav-link category'
           :class='{ active: active == c.id }'
           @click='load(c.id, c.name)'
         >
           {{ c.name }} ({{ c.count }})
-        </a>
-      </li>
-      <li>
-        <a
-          class='nav-link category'
-          v-if='categories.uncategorized'
-          :class='{ active: active === 0 }'
-          @click="load(0, 'Uncategorized')"
-        >
-          Uncategorized ({{ categories.uncategorized }})
         </a>
       </li>
     </ul>
@@ -50,20 +41,17 @@ const sidebar = {
   methods: {
     arrow: function (event) {
       if (this.active != null) {
-        var len = this.categories.categories.length
-        var index = this.categories.categories.findIndex(item => item.id == this.active)
+        var len = this.categories.length
+        var index = this.categories.findIndex(item => item.id == this.active)
         if (event.key == 'ArrowUp') {
-          if (this.active == 0 && len > 0)
-            this.load(this.categories.categories[len - 1].id, this.categories.categories[len - 1].name)
-          else if (index > 0)
-            this.load(this.categories.categories[index - 1].id, this.categories.categories[index - 1].name)
+          if (index > 0)
+            this.load(this.categories[index - 1].id, this.categories[index - 1].name)
           else if (index == 0) this.load(-1, 'All Bookmarks')
         } else if (event.key == 'ArrowDown')
           if (this.active == -1 && len > 0)
-            this.load(this.categories.categories[0].id, this.categories.categories[0].name)
+            this.load(this.categories[0].id, this.categories[0].name)
           else if (index >= 0 && index < len - 1)
-            this.load(this.categories.categories[index + 1].id, this.categories.categories[index + 1].name)
-          else if (index == len - 1) this.load(0, 'Uncategorized')
+            this.load(this.categories[index + 1].id, this.categories[index + 1].name)
       }
     },
     add: function () {
@@ -97,8 +85,8 @@ const showBookmarks = {
   <div style='height: 100%'>
     <header style='padding-left: 20px'>
       <div style='height: 50px'>
-        <a class='h3'>{{ bookmark.category.name }}</a>
-        <a class='btn icon' v-if='bookmark.category.id > 0' @click='editCategory'>
+        <a class='h3'>{{ category.name }}</a>
+        <a class='btn icon' v-if='category.id > 0' @click='editCategory'>
           <i class='material-icons edit'>edit</i>
         </a>
       </div>

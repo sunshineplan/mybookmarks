@@ -58,29 +58,14 @@ func getCategory(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	var total, uncategorized int
-	var categories []category
-	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE user_id = ?", userID).Scan(&total); err != nil {
-		log.Printf("Failed to scan all bookmark count: %v", err)
-		c.String(500, "")
-		return
-	}
-	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
-		userID).Scan(&uncategorized); err != nil {
-		log.Printf("Failed to scan uncategorized bookmark count: %v", err)
-		c.String(500, "")
-		return
-	}
-	rows, err := db.Query(`
-SELECT category_id, category, count(bookmark) FROM mybookmarks
-WHERE category_id != 0 AND user_id = ? GROUP BY category_id ORDER BY category
-`, userID)
+	rows, err := db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
 	if err != nil {
 		log.Printf("Failed to get categories: %v", err)
 		c.String(500, "")
 		return
 	}
 	defer rows.Close()
+	var categories []category
 	for rows.Next() {
 		var category category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
@@ -90,7 +75,17 @@ WHERE category_id != 0 AND user_id = ? GROUP BY category_id ORDER BY category
 		}
 		categories = append(categories, category)
 	}
-	c.JSON(200, gin.H{"total": total, "uncategorized": uncategorized, "categories": categories})
+
+	var uncategorized int
+	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
+		userID).Scan(&uncategorized); err != nil {
+		log.Printf("Failed to scan uncategorized bookmark count: %v", err)
+		c.String(500, "")
+		return
+	}
+	categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
+
+	c.JSON(200, categories)
 }
 
 func addCategory(c *gin.Context) {

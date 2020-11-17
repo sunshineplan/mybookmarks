@@ -59,7 +59,7 @@ const store = Vuex.createStore({
       component: 'showBookmark',
       sidebar: false,
       loading: false,
-      categories: {},
+      categories: [],
       category: { id: -1, name: 'All Bookmarks' },
       bookmark: {},
       editCategory: {}
