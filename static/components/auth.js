@@ -113,7 +113,6 @@ const setting = {
         })
       }
       else this.validated = true
-    },
-    goback: function () { this.$store.commit('goto', 'showBookmark') }
+    }
   }
 }

@@ -86,6 +86,8 @@ const store = Vuex.createStore({
 })
 app.use(store)
 
+app.mixin({ methods: { goback: function () { this.$store.commit('goto', 'showBookmark') } } })
+
 app.component('login', login)
 app.component('setting', setting)
 app.component('sidebar', sidebar)

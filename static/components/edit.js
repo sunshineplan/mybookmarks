@@ -72,8 +72,7 @@ const category = {
             }
           })
       })
-    },
-    goback: function () { this.$store.commit('goto', 'showBookmark') }
+    }
   }
 }
 
@@ -176,7 +175,6 @@ const bookmark = {
             else this.$store.commit('goto', 'showBookmark')
           })
       })
-    },
-    goback: function () { this.$store.commit('goto', 'showBookmark') }
+    }
   }
 }
