@@ -173,7 +173,10 @@ const showBookmarks = {
       this.$store.commit('goto', 'category')
     },
     add: function () {
-      this.$store.commit('bookmark', {})
+      if (this.category.id > 0)
+        this.$store.commit('bookmark', { category: this.category.name })
+      else
+        this.$store.commit('bookmark', {})
       this.$store.commit('goto', 'bookmark')
     },
     edit: function (bookmark) {
