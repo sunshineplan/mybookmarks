@@ -63,8 +63,8 @@ const sidebar = {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
       this.$store.commit('goto', 'showBookmark')
       if (id != this.active) {
-        this.$store.commit('category', { id: id, name: name, count: count, start: 0 })
-        this.$store.commit('bookmarks', { id: id })
+        this.$store.commit('category', { id, name, count, start: 0 })
+        this.$store.commit('bookmarks', { id })
       }
     }
   }
@@ -167,6 +167,6 @@ const sortable = {
     else dest = '#TOP_POSITION#'
     if (ui.item.next().length != 0) next = ui.item.next().data('id')
     else next = '#BOTTOM_POSITION#'
-    post('/reorder', { orig: orig, dest: dest, next: next })
+    post('/reorder', { orig, dest, next })
   }
 }
