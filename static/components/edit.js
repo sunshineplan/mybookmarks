@@ -26,7 +26,7 @@ const category = {
       <small class='form-text text-muted'>Max length: 15 characters. One chinese character equal three characters.</small>
     </div>
     <button class='btn btn-primary' @click='save'>{{ mode }}</button>
-    <button class='btn btn-primary' @click='goback'>Cancel</button>
+    <button class='btn btn-primary' @click='goback()'>Cancel</button>
   </div>
   <div class='form' v-if='category.id != undefined'>
     <button class='btn btn-danger delete' @click='del'>Delete</button>
@@ -129,7 +129,7 @@ const bookmark = {
         <small class='form-text text-muted'>Max length: 15 characters. One chinese character equal three characters.</small>
       </div>
       <button class='btn btn-primary' @click='save'>{{ mode }}</button>
-      <button class='btn btn-primary' @click='goback'>Cancel</button>
+      <button class='btn btn-primary' @click='goback()'>Cancel</button>
     </div>
     <div class='form' v-if='bookmark.id != undefined'>
       <button class='btn btn-danger delete' @click='del'>Delete</button>

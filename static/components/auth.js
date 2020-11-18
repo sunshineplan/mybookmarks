@@ -81,7 +81,7 @@ const setting = {
       <small class='form-text text-muted'>Max password length: 20 characters.</small>
     </div>
     <button class='btn btn-primary' @click='setting'>Change</button>
-    <button class='btn btn-primary' @click='goback'>Cancel</button>
+    <button class='btn btn-primary' @click='goback()'>Cancel</button>
   </div>
 </div>`,
   mounted() { document.title = 'Setting - My Bookmarks' },
