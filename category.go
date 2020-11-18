@@ -83,7 +83,9 @@ func getCategory(c *gin.Context) {
 		c.String(500, "")
 		return
 	}
-	categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
+	if uncategorized != 0 {
+		categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
+	}
 
 	c.JSON(200, categories)
 }
