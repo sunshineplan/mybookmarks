@@ -40,9 +40,9 @@ const category = {
         this.validated = false
         var r
         if (this.category.id == undefined)
-          r = post('/category/add', { category: this.name })
+          r = post('/category/add', { name: this.name })
         else
-          r = post('/category/edit/' + this.category.id, { category: this.name })
+          r = post('/category/edit/' + this.category.id, { name: this.name })
         r.then(resp => {
           if (!resp.ok) resp.text().then(err =>
             BootstrapButtons.fire('Error', err, 'error'))
@@ -152,13 +152,15 @@ const bookmark = {
         var r
         if (this.bookmark.id == undefined)
           r = post('/bookmark/add', {
-            bookmark: this.name,
-            url: this.url
+            name: this.name,
+            url: this.url,
+            category: this.category
           })
         else
           r = post('/bookmark/edit/' + this.bookmark.id, {
-            bookmark: this.name,
-            url: this.url
+            name: this.name,
+            url: this.url,
+            category: this.category
           })
         r.then(resp => {
           if (!resp.ok) resp.text().then(err =>

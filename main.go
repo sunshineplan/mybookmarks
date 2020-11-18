@@ -27,7 +27,7 @@ func main() {
 	var err error
 	self, err = os.Executable()
 	if err != nil {
-		log.Fatalf("Failed to get self path: %v", err)
+		log.Fatalln("Failed to get self path:", err)
 	}
 
 	flag.StringVar(&meta.Addr, "server", "", "Metadata Server Address")
@@ -42,7 +42,7 @@ func main() {
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
 	if err := initDB(); err != nil {
-		log.Fatalf("Failed to load database config: %v", err)
+		log.Fatalln("Failed to load database config:", err)
 	}
 
 	switch flag.NArg() {
@@ -57,7 +57,7 @@ func main() {
 		case "init":
 			restore("")
 		default:
-			log.Fatalf("Unknown argument: %s", flag.Arg(0))
+			log.Fatalln("Unknown argument:", flag.Arg(0))
 		}
 	case 2:
 		switch flag.Arg(0) {
@@ -68,9 +68,9 @@ func main() {
 		case "restore":
 			restore(flag.Arg(1))
 		default:
-			log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
+			log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
 		}
 	default:
-		log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
+		log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
 	}
 }

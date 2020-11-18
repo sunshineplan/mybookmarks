@@ -10,11 +10,11 @@ valid = () => {
   return result
 }
 
-post = (url, obj) => {
+post = (url, data) => {
   return fetch(url, {
     method: 'post',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(obj)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
   })
     .catch(e => {
       return Promise.reject(BootstrapButtons.fire('Error', e, 'error'))

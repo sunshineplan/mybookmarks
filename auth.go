@@ -25,23 +25,27 @@ func authRequired(c *gin.Context) {
 }
 
 func login(c *gin.Context) {
-	session := sessions.Default(c)
-	username := strings.TrimSpace(strings.ToLower(c.PostForm("username")))
-	password := c.PostForm("password")
+	var login struct{ Username, Password string }
+	if err := c.BindJSON(&login); err != nil {
+		c.String(400, "")
+		return
+	}
+	login.Username = strings.ToLower(login.Username)
 
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(500, "Failed to connect to database.")
 		return
 	}
 	defer db.Close()
-	user := new(user)
+
+	var user user
 	statusCode := 200
 	var message string
 	if err := db.QueryRow(
 		"SELECT id, username, password FROM user WHERE username = ?",
-		username,
+		login.Username,
 	).Scan(&user.ID, &user.Username, &user.Password); err != nil {
 		if strings.Contains(err.Error(), "doesn't exist") {
 			restore("")
@@ -56,16 +60,18 @@ func login(c *gin.Context) {
 			message = "Critical Error! Please contact your system administrator."
 		}
 	} else {
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-			if (err == bcrypt.ErrHashTooShort && user.Password != password) || err == bcrypt.ErrMismatchedHashAndPassword {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password)); err != nil {
+			if (err == bcrypt.ErrHashTooShort && user.Password != login.Password) ||
+				err == bcrypt.ErrMismatchedHashAndPassword {
 				statusCode = 403
 				message = "Incorrect password"
-			} else if user.Password != password {
+			} else if user.Password != login.Password {
 				log.Print(err)
 				statusCode = 500
 				message = "Critical Error! Please contact your system administrator."
 			}
 		} else if message == "" {
+			session := sessions.Default(c)
 			session.Clear()
 			session.Set("user_id", user.ID)
 			session.Set("username", user.Username)
@@ -88,19 +94,22 @@ func login(c *gin.Context) {
 }
 
 func setting(c *gin.Context) {
+	var setting struct{ Password, Password1, Password2 string }
+	if err := c.BindJSON(&setting); err != nil {
+		c.String(400, "")
+		return
+	}
+
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-
-	password := c.PostForm("password")
-	password1 := c.PostForm("password1")
-	password2 := c.PostForm("password2")
 
 	var oldPassword string
 	if err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword); err != nil {
@@ -111,29 +120,30 @@ func setting(c *gin.Context) {
 
 	var message string
 	var errorCode int
-	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(setting.Password))
 	switch {
 	case err != nil:
-		if (err == bcrypt.ErrHashTooShort && password != oldPassword) || err == bcrypt.ErrMismatchedHashAndPassword {
+		if (err == bcrypt.ErrHashTooShort && setting.Password != oldPassword) ||
+			err == bcrypt.ErrMismatchedHashAndPassword {
 			message = "Incorrect password."
 			errorCode = 1
-		} else if password != oldPassword {
+		} else if setting.Password != oldPassword {
 			log.Print(err)
 			c.String(500, "")
 			return
 		}
-	case password1 != password2:
+	case setting.Password1 != setting.Password2:
 		message = "Confirm password doesn't match new password."
 		errorCode = 2
-	case password1 == password:
+	case setting.Password1 == setting.Password:
 		message = "New password cannot be the same as your current password."
 		errorCode = 2
-	case password1 == "":
+	case setting.Password1 == "":
 		message = "New password cannot be blank."
 	}
 
 	if message == "" {
-		newPassword, err := bcrypt.GenerateFromPassword([]byte(password1), bcrypt.MinCost)
+		newPassword, err := bcrypt.GenerateFromPassword([]byte(setting.Password1), bcrypt.MinCost)
 		if err != nil {
 			log.Print(err)
 			c.String(500, "")

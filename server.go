@@ -14,7 +14,7 @@ func run() {
 	if logPath != "" {
 		f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 		if err != nil {
-			log.Fatalf("Failed to open log file: %v", err)
+			log.Fatalln("Failed to open log file:", err)
 		}
 		gin.DefaultWriter = f
 		gin.DefaultErrorWriter = f
@@ -23,7 +23,7 @@ func run() {
 
 	secret := make([]byte, 16)
 	if _, err := rand.Read(secret); err != nil {
-		log.Fatalf("Failed to get secret: %v", err)
+		log.Fatalln("Failed to get secret:", err)
 	}
 
 	router := gin.Default()

@@ -14,14 +14,14 @@ func addUser(username string) {
 	log.Println("Start!")
 	db, err := getDB()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalln("Failed to connect to database:", err)
 	}
 	defer db.Close()
 	if _, err := db.Exec("INSERT INTO user(username) VALUES (?)", strings.ToLower(username)); err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			log.Fatalf("Username %s already exists.", strings.ToLower(username))
 		} else {
-			log.Fatalf("Failed to add user: %v", err)
+			log.Fatalln("Failed to add user:", err)
 		}
 	}
 	log.Println("Done!")
@@ -31,15 +31,15 @@ func deleteUser(username string) {
 	log.Println("Start!")
 	db, err := getDB()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalln("Failed to connect to database:", err)
 	}
 	defer db.Close()
 	res, err := db.Exec("DELETE FROM user WHERE username=?", strings.ToLower(username))
 	if err != nil {
-		log.Fatalf("Failed to delete user: %v", err)
+		log.Fatalln("Failed to delete user:", err)
 	}
 	if n, err := res.RowsAffected(); err != nil {
-		log.Fatalf("Failed to get affected rows: %v", err)
+		log.Fatalln("Failed to get affected rows:", err)
 	} else if n == 0 {
 		log.Fatalf("User %s does not exist.", strings.ToLower(username))
 	}
@@ -73,7 +73,7 @@ func backup() {
 			Attachments: []*mail.Attachment{{Path: file, Filename: "database"}},
 		},
 	); err != nil {
-		log.Fatalf("Failed to send mail: %v", err)
+		log.Fatalln("Failed to send mail:", err)
 	}
 	log.Println("Done!")
 }
@@ -84,7 +84,7 @@ func restore(file string) {
 		file = joinPath(dir(self), "scripts/schema.sql")
 	} else {
 		if _, err := os.Stat(file); err != nil {
-			log.Fatalf("File not found: %v", err)
+			log.Fatalln("File not found:", err)
 		}
 	}
 	dropAll := joinPath(dir(self), "scripts/drop_all.sql")

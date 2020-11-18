@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -28,12 +27,12 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 			if err == sql.ErrNoRows {
 				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
 				if err != nil {
-					log.Printf("Failed to add category: %v", err)
+					log.Println("Failed to add category:", err)
 					return 0, err
 				}
 				lastInsertID, err := res.LastInsertId()
 				if err != nil {
-					log.Printf("Failed to get last insert id: %v", err)
+					log.Println("Failed to get last insert id:", err)
 					return 0, err
 				}
 				return int(lastInsertID), nil
@@ -50,17 +49,18 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 func getCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
 	rows, err := db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
 	if err != nil {
-		log.Printf("Failed to get categories: %v", err)
+		log.Println("Failed to get categories:", err)
 		c.String(500, "")
 		return
 	}
@@ -69,7 +69,7 @@ func getCategory(c *gin.Context) {
 	for rows.Next() {
 		var category category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
-			log.Printf("Failed to scan category: %v", err)
+			log.Println("Failed to scan category:", err)
 			c.String(500, "")
 			return
 		}
@@ -79,7 +79,7 @@ func getCategory(c *gin.Context) {
 	var uncategorized int
 	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
 		userID).Scan(&uncategorized); err != nil {
-		log.Printf("Failed to scan uncategorized bookmark count: %v", err)
+		log.Println("Failed to scan uncategorized bookmark count:", err)
 		c.String(500, "")
 		return
 	}
@@ -93,38 +93,44 @@ func getCategory(c *gin.Context) {
 func addCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
+	var category category
+	if err := c.BindJSON(&category); err != nil {
+		c.String(400, "")
+		return
+	}
+
 	var message string
-	category := strings.TrimSpace(c.PostForm("category"))
 	switch {
-	case category == "":
+	case category.Name == "":
 		message = "Category name is empty."
-	case len(category) > 15:
+	case len(category.Name) > 15:
 		message = "Category name exceeded length limit."
 	default:
 		var exist string
-		err = db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&exist)
-		if err == nil {
-			message = fmt.Sprintf("Category %s is already existed.", category)
+		if err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?",
+			category.Name, userID).Scan(&exist); err == nil {
+			message = fmt.Sprintf("Category %s is already existed.", category.Name)
 		} else {
 			if err == sql.ErrNoRows {
-				_, err = db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
-				if err != nil {
-					log.Printf("Failed to add category: %v", err)
+				if _, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)",
+					category.Name, userID); err != nil {
+					log.Println("Failed to add category:", err)
 					c.String(500, "")
 					return
 				}
 				c.JSON(200, gin.H{"status": 1})
 				return
 			}
-			log.Printf("Failed to scan category: %v", err)
+			log.Println("Failed to scan category:", err)
 			c.String(500, "")
 			return
 		}
@@ -135,49 +141,56 @@ func addCategory(c *gin.Context) {
 func editCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
+		log.Println("Failed to get id param:", err)
 		c.String(400, "")
 		return
 	}
 
 	var oldCategory string
-	err = db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?", id, userID).Scan(&oldCategory)
-	if err != nil {
-		log.Printf("Failed to scan category: %v", err)
+	if err := db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
+		id, userID).Scan(&oldCategory); err != nil {
+		log.Println("Failed to scan category:", err)
 		c.String(500, "")
 		return
 	}
-	newCategory := strings.TrimSpace(c.PostForm("category"))
+
+	var category category
+	if err := c.BindJSON(&category); err != nil {
+		c.String(400, "")
+		return
+	}
+
 	var message string
 	var errorCode int
 	switch {
-	case newCategory == "":
+	case category.Name == "":
 		message = "New category name is empty."
 		errorCode = 1
-	case oldCategory == newCategory:
+	case oldCategory == category.Name:
 		message = "New category is same as old category."
-	case len(newCategory) > 15:
+	case len(category.Name) > 15:
 		message = "Category name exceeded length limit."
 		errorCode = 1
 	default:
 		var exist string
-		err = db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", newCategory, userID).Scan(&exist)
-		if err == nil {
-			message = fmt.Sprintf("Category %s is already existed.", newCategory)
+		if err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?",
+			category.Name, userID).Scan(&exist); err == nil {
+			message = fmt.Sprintf("Category %s is already existed.", category.Name)
 			errorCode = 1
 		} else {
-			_, err = db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?", newCategory, id, userID)
-			if err != nil {
-				log.Printf("Failed to edit category: %v", err)
+			if _, err := db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?",
+				category.Name, id, userID); err != nil {
+				log.Println("Failed to edit category:", err)
 				c.String(500, "")
 				return
 			}
@@ -191,7 +204,7 @@ func editCategory(c *gin.Context) {
 func deleteCategory(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
@@ -200,20 +213,20 @@ func deleteCategory(c *gin.Context) {
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
+		log.Println("Failed to get id param:", err)
 		c.String(400, "")
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM category WHERE id = ? and user_id = ?", id, userID)
-	if err != nil {
-		log.Printf("Failed to delete category: %v", err)
+	if _, err := db.Exec("DELETE FROM category WHERE id = ? and user_id = ?",
+		id, userID); err != nil {
+		log.Println("Failed to delete category:", err)
 		c.String(500, "")
 		return
 	}
-	_, err = db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?", id, userID)
-	if err != nil {
-		log.Printf("Failed to remove deleted category for bookmark: %v", err)
+	if _, err := db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?",
+		id, userID); err != nil {
+		log.Println("Failed to remove deleted category for bookmark:", err)
 		c.String(500, "")
 		return
 	}

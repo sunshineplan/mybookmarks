@@ -58,14 +58,14 @@ func execScript(file string) {
 
 	c := exec.Command(cmd, arg, strings.Join(args, " "))
 	if err := c.Run(); err != nil {
-		log.Fatalf("Failed to execute mysql script: %v", err)
+		log.Fatalln("Failed to execute mysql script:", err)
 	}
 }
 
 func dump() string {
 	tmpfile, err := ioutil.TempFile("", "tmp")
 	if err != nil {
-		log.Fatalf("Failed to create temporary file: %v", err)
+		log.Fatalln("Failed to create temporary file:", err)
 	}
 	tmpfile.Close()
 
@@ -95,7 +95,7 @@ func dump() string {
 
 	dump := exec.Command(cmd, arg, strings.Join(args, " "))
 	if err := dump.Run(); err != nil {
-		log.Fatalf("Failed to run backup command: %v", err)
+		log.Fatalln("Failed to run backup command:", err)
 	}
 	return tmpfile.Name()
 }

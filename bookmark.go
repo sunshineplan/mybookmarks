@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -18,41 +17,43 @@ type bookmark struct {
 }
 
 func getBookmark(c *gin.Context) {
+	var r struct{ Category, Start int }
+	if err := c.BindJSON(&r); err != nil {
+		c.String(400, "")
+		return
+	}
+
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
 	stmt := "SELECT %s FROM bookmarks WHERE"
 
 	var args []interface{}
-	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", c.PostForm("category")))
-	switch {
-	case err != nil, categoryID == -1:
+	switch r.Category {
+	case -1:
 		stmt += " user_id = ?"
 		args = append(args, userID)
-	case categoryID == 0:
+	case 0:
 		stmt += " category_id = 0 AND user_id = ?"
 		args = append(args, userID)
 	default:
 		stmt += " category_id = ? AND user_id = ?"
-		args = append(args, categoryID)
+		args = append(args, r.Category)
 		args = append(args, userID)
 	}
 
-	start := c.PostForm("start")
-	if start == "" {
-		start = "0"
-	}
-	limit := fmt.Sprintf(" LIMIT %v, 30", start)
+	limit := fmt.Sprintf(" LIMIT %d, 30", r.Start)
 	rows, err := db.Query(fmt.Sprintf(stmt+limit, "bookmark_id, bookmark, url, category"), args...)
 	if err != nil {
-		log.Printf("Failed to get bookmarks: %v", err)
+		log.Println("Failed to get bookmarks:", err)
 		c.String(500, "")
 		return
 	}
@@ -62,7 +63,7 @@ func getBookmark(c *gin.Context) {
 		var bookmark bookmark
 		var categoryByte []byte
 		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &categoryByte); err != nil {
-			log.Printf("Failed to scan bookmarks: %v", err)
+			log.Println("Failed to scan bookmarks:", err)
 			c.String(500, "")
 			return
 		}
@@ -75,43 +76,47 @@ func getBookmark(c *gin.Context) {
 func addBookmark(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
-	category := strings.TrimSpace(c.PostForm("category"))
-	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
-	url := strings.TrimSpace(c.PostForm("url"))
-	categoryID, err := getCategoryID(category, userID.(int), db)
+
+	var bookmark bookmark
+	if err := c.BindJSON(&bookmark); err != nil {
+		c.String(400, "")
+		return
+	}
+	categoryID, err := getCategoryID(bookmark.Category, userID.(int), db)
 	if err != nil {
-		log.Printf("Failed to get category id: %v", err)
+		log.Println("Failed to get category id:", err)
 		c.String(500, "")
 		return
 	}
 
 	var exist, message string
 	var errorCode int
-	if bookmark == "" {
+	if bookmark.Name == "" {
 		message = "Bookmark name is empty."
 		errorCode = 1
 	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?",
-		bookmark, userID).Scan(&exist); err == nil {
-		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
+		bookmark.Name, userID).Scan(&exist); err == nil {
+		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark.Name)
 		errorCode = 1
 	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?",
-		url, userID).Scan(&exist); err == nil {
-		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
+		bookmark.URL, userID).Scan(&exist); err == nil {
+		message = fmt.Sprintf("Bookmark url %s is already existed.", bookmark.URL)
 		errorCode = 2
 	} else if categoryID == -1 {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
 		if _, err := db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)",
-			bookmark, url, userID, categoryID); err != nil {
-			log.Printf("Failed to add bookmark: %v", err)
+			bookmark.Name, bookmark.URL, userID, categoryID); err != nil {
+			log.Println("Failed to add bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -124,16 +129,18 @@ func addBookmark(c *gin.Context) {
 func editBookmark(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
+		log.Println("Failed to get id param:", err)
 		c.String(400, "")
 		return
 	}
@@ -142,43 +149,47 @@ func editBookmark(c *gin.Context) {
 	var oldCategory []byte
 	if err := db.QueryRow("SELECT bookmark, url, category FROM bookmarks WHERE bookmark_id = ? AND user_id = ?",
 		id, userID).Scan(&old.Name, &old.URL, &oldCategory); err != nil {
-		log.Printf("Failed to scan bookmark: %v", err)
+		log.Println("Failed to scan bookmark:", err)
 		c.String(500, "")
 		return
 	}
 	old.Category = string(oldCategory)
-	bookmark := strings.TrimSpace(c.PostForm("bookmark"))
-	url := strings.TrimSpace(c.PostForm("url"))
-	category := strings.TrimSpace(c.PostForm("category"))
-	categoryID, err := getCategoryID(category, userID.(int), db)
+
+	var bookmark bookmark
+	if err := c.BindJSON(&bookmark); err != nil {
+		c.String(400, "")
+		return
+	}
+	categoryID, err := getCategoryID(bookmark.Category, userID.(int), db)
 	if err != nil {
-		log.Printf("Failed to get category id: %v", err)
+		log.Println("Failed to get category id:", err)
 		c.String(500, "")
 		return
 	}
 
 	var exist, message string
 	var errorCode int
-	if bookmark == "" {
+	if bookmark.Name == "" {
 		message = "Bookmark name is empty."
 		errorCode = 1
-	} else if old.Name == bookmark && old.URL == url && string(old.Category) == category {
+	} else if old.Name == bookmark.Name && old.URL == bookmark.URL &&
+		string(old.Category) == bookmark.Category {
 		message = "New bookmark is same as old bookmark."
 	} else if err := db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?",
-		bookmark, id, userID).Scan(&exist); err == nil {
-		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
+		bookmark.Name, id, userID).Scan(&exist); err == nil {
+		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark.Name)
 		errorCode = 1
 	} else if err := db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?",
-		url, id, userID).Scan(&exist); err == nil {
-		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
+		bookmark.URL, id, userID).Scan(&exist); err == nil {
+		message = fmt.Sprintf("Bookmark url %s is already existed.", bookmark.URL)
 		errorCode = 2
 	} else if categoryID == -1 {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	} else {
 		if _, err := db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?",
-			bookmark, url, categoryID, id, userID); err != nil {
-			log.Printf("Failed to edit bookmark: %v", err)
+			bookmark.Name, bookmark.URL, categoryID, id, userID); err != nil {
+			log.Println("Failed to edit bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -191,22 +202,24 @@ func editBookmark(c *gin.Context) {
 func deleteBookmark(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
 	defer db.Close()
+
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		log.Printf("Failed to get id param: %v", err)
+		log.Println("Failed to get id param:", err)
 		c.String(400, "")
 		return
 	}
 
 	if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID); err != nil {
-		log.Printf("Failed to delete bookmark: %v", err)
+		log.Println("Failed to delete bookmark:", err)
 		c.String(500, "")
 		return
 	}
@@ -216,7 +229,7 @@ func deleteBookmark(c *gin.Context) {
 func reorder(c *gin.Context) {
 	db, err := getDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Println("Failed to connect to database:", err)
 		c.String(503, "")
 		return
 	}
@@ -224,44 +237,49 @@ func reorder(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	orig := c.PostForm("orig")
-	dest := c.PostForm("dest")
-	next := c.PostForm("next")
+	var reorder struct{ Orig, Dest, Next int }
+	if err := c.BindJSON(&reorder); err != nil {
+		c.String(400, "")
+		return
+	}
 
 	var origSeq, destSeq int
-
 	if err := db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-		orig, userID).Scan(&origSeq); err != nil {
-		log.Printf("Failed to scan orig seq: %v", err)
+		reorder.Orig, userID).Scan(&origSeq); err != nil {
+		log.Println("Failed to scan orig seq:", err)
 		c.String(500, "")
 		return
 	}
-	if dest != "#TOP_POSITION#" {
-		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", dest, userID).Scan(&destSeq)
+	if reorder.Dest != -1 {
+		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
+			reorder.Dest, userID).Scan(&destSeq)
 	} else {
-		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?", next, userID).Scan(&destSeq)
+		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
+			reorder.Next, userID).Scan(&destSeq)
 		destSeq--
 	}
 	if err != nil {
-		log.Printf("Failed to scan dest seq: %v", err)
+		log.Println("Failed to scan dest seq:", err)
 		c.String(500, "")
 		return
 	}
 
 	if origSeq > destSeq {
 		destSeq++
-		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND user_id = ? AND seq < ?", destSeq, userID, origSeq)
+		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND user_id = ? AND seq < ?",
+			destSeq, userID, origSeq)
 	} else {
-		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?", destSeq, userID, origSeq)
+		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?",
+			destSeq, userID, origSeq)
 	}
 	if err != nil {
-		log.Printf("Failed to update other seq: %v", err)
+		log.Println("Failed to update other seq:", err)
 		c.String(500, "")
 		return
 	}
 	if _, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
-		destSeq, orig, userID); err != nil {
-		log.Printf("Failed to update orig seq: %v", err)
+		destSeq, reorder.Orig, userID); err != nil {
+		log.Println("Failed to update orig seq:", err)
 		c.String(500, "")
 		return
 	}

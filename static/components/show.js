@@ -163,10 +163,10 @@ const showBookmarks = {
 const sortable = {
   update: (event, ui) => {
     var orig = ui.item.data('id'), dest, next
-    if (ui.item.prev().length != 0) dest = ui.item.prev().data('id')
-    else dest = '#TOP_POSITION#'
-    if (ui.item.next().length != 0) next = ui.item.next().data('id')
-    else next = '#BOTTOM_POSITION#'
+    if (ui.item.prev().length == 0) dest = -1
+    else dest = ui.item.prev().data('id')
+    if (ui.item.next().length == 0) next = -1
+    else next = ui.item.next().data('id')
     post('/reorder', { orig, dest, next })
   }
 }
