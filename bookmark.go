@@ -28,37 +28,22 @@ func getBookmark(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	var category gin.H
-
 	stmt := "SELECT %s FROM bookmarks WHERE"
 
 	var args []interface{}
 	categoryID, err := strconv.Atoi(fmt.Sprintf("%v", c.PostForm("category")))
 	switch {
 	case err != nil, categoryID == -1:
-		category = gin.H{"id": -1, "name": "All Bookmarks"}
 		stmt += " user_id = ?"
 		args = append(args, userID)
 	case categoryID == 0:
-		category = gin.H{"id": 0, "name": "Uncategorized"}
 		stmt += " category_id = 0 AND user_id = ?"
 		args = append(args, userID)
 	default:
-		category = gin.H{"id": categoryID}
 		stmt += " category_id = ? AND user_id = ?"
 		args = append(args, categoryID)
 		args = append(args, userID)
 	}
-
-	var total int
-	bc := make(chan bool, 1)
-	go func() {
-		if err := db.QueryRow(fmt.Sprintf(stmt, "count(*)"), args...).Scan(&total); err != nil {
-			log.Printf("Failed to get total count: %v", err)
-			bc <- false
-		}
-		bc <- true
-	}()
 
 	start := c.PostForm("start")
 	if start == "" {
@@ -83,15 +68,8 @@ func getBookmark(c *gin.Context) {
 		}
 		bookmark.Category = string(categoryByte)
 		bookmarks = append(bookmarks, bookmark)
-		if category["id"].(int) > 0 {
-			category["name"] = string(categoryByte)
-		}
 	}
-	if v := <-bc; !v {
-		c.String(500, "")
-		return
-	}
-	c.JSON(200, gin.H{"category": category, "bookmarks": bookmarks, "total": total})
+	c.JSON(200, bookmarks)
 }
 
 func addBookmark(c *gin.Context) {
@@ -119,10 +97,12 @@ func addBookmark(c *gin.Context) {
 	if bookmark == "" {
 		message = "Bookmark name is empty."
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?", bookmark, userID).Scan(&exist); err == nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND user_id = ?",
+		bookmark, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark name %s is already existed.", bookmark)
 		errorCode = 1
-	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?", url, userID).Scan(&exist); err == nil {
+	} else if err = db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND user_id = ?",
+		url, userID).Scan(&exist); err == nil {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", url)
 		errorCode = 2
 	} else if categoryID == -1 {

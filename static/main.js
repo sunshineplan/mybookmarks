@@ -60,7 +60,7 @@ const store = Vuex.createStore({
       sidebar: false,
       loading: false,
       categories: [],
-      category: { id: -1, name: 'All Bookmarks' },
+      category: {},
       bookmark: {},
       editCategory: {}
     }
@@ -69,14 +69,20 @@ const store = Vuex.createStore({
     goto(state, component) { state.component = component },
     loading(state, status) { state.loading = status },
     ready(state) { state.sidebar = true },
-    categories(stat) {
-      stat.sidebar = false
+    categories(state) {
+      state.sidebar = false
       post('/category/get')
         .then(response => response.json())
-        .then(json => {
-          stat.categories = json
-          stat.sidebar = true
-          stat.loading = false
+        .then(categories => {
+          state.categories = categories
+          if (state.category.id == undefined)
+            state.category = {
+              id: -1,
+              name: 'All Bookmarks',
+              count: categories.reduce((total, i) => total + i.count, 0)
+            }
+          state.sidebar = true
+          state.loading = false
         })
     },
     category(state, category) { state.category = category },
@@ -86,7 +92,9 @@ const store = Vuex.createStore({
 })
 app.use(store)
 
-app.mixin({ methods: { goback: function () { this.$store.commit('goto', 'showBookmark') } } })
+app.mixin({
+  methods: { goback: function () { this.$store.commit('goto', 'showBookmark') } }
+})
 
 app.component('login', login)
 app.component('setting', setting)

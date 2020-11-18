@@ -16,7 +16,7 @@ const sidebar = {
       <a
         class='navbar-brand category'
         :class='{ active: active == -1 || active == undefined }'
-        @click="load(-1, 'All Bookmarks')"
+        @click="load(-1, 'All Bookmarks', total)"
       >
         All Bookmarks ({{ total }})
       </a>
@@ -24,7 +24,7 @@ const sidebar = {
         <a
           class='nav-link category'
           :class='{ active: active === c.id }'
-          @click='load(c.id, c.name)'
+          @click='load(c.id, c.name, c.count)'
         >
           {{ c.name }} ({{ c.count }})
         </a>
@@ -45,13 +45,13 @@ const sidebar = {
         var index = this.categories.findIndex(item => item.id == this.active)
         if (event.key == 'ArrowUp') {
           if (index > 0)
-            this.load(this.categories[index - 1].id, this.categories[index - 1].name)
-          else if (index == 0) this.load(-1, 'All Bookmarks')
+            this.load(this.categories[index - 1].id, this.categories[index - 1].name, this.categories[index - 1].count)
+          else if (index == 0) this.load(-1, 'All Bookmarks', this.total)
         } else if (event.key == 'ArrowDown')
           if (this.active == -1 && len > 0)
-            this.load(this.categories[0].id, this.categories[0].name)
+            this.load(this.categories[0].id, this.categories[0].name, this.categories[0].count)
           else if (index >= 0 && index < len - 1)
-            this.load(this.categories[index + 1].id, this.categories[index + 1].name)
+            this.load(this.categories[index + 1].id, this.categories[index + 1].name, this.categories[index + 1].count)
       }
     },
     add: function () {
@@ -59,10 +59,10 @@ const sidebar = {
       this.$store.commit('editCategory', {})
       this.$store.commit('goto', 'category')
     },
-    load: function (id, category) {
+    load: function (id, name, count) {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
       this.$store.commit('goto', 'showBookmark')
-      this.$store.commit('category', { id: id, name: category })
+      this.$store.commit('category', { id: id, name: name, count: count })
     }
   }
 }
@@ -70,10 +70,7 @@ const sidebar = {
 const showBookmarks = {
   data() {
     return {
-      bookmark: {
-        bookmarks: [],
-        category: { name: this.$store.state.category.name }
-      },
+      bookmarks: [],
       smallSize: window.innerWidth <= 700 ? true : false,
       start: 0
     }
@@ -103,7 +100,7 @@ const showBookmarks = {
           </tr>
         </thead>
         <tbody id='mybookmarks'>
-          <tr v-for='b in bookmark.bookmarks' :key='b.id' :data-id='b.id'>
+          <tr v-for='b in bookmarks' :key='b.id' :data-id='b.id'>
             <td>{{ b.name }}</td>
             <td><a :href='b.url' target='_blank' class='url' :data-url='b.url'>{{ b.url }}</a></td>
             <td>{{ b.category }}</td>
@@ -148,11 +145,11 @@ const showBookmarks = {
           if (!resp.ok) resp.text().then(err => {
             return BootstrapButtons.fire('Error', err, 'error')
           })
-          else resp.json().then(json => {
+          else resp.json().then(bookmarks => {
             if (more)
-              this.bookmark.bookmarks = this.bookmark.bookmarks.concat(json.bookmarks)
+              this.bookmarks = this.bookmarks.concat(bookmarks)
             else {
-              this.bookmark = json
+              this.bookmarks = bookmarks
               document.title = this.category.name + ' - My Bookmarks'
             }
           })
@@ -165,7 +162,7 @@ const showBookmarks = {
     checkScroll: function () {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
-        if (this.start + 30 < this.bookmark.total) {
+        if (this.start + 30 < this.category.count) {
           this.start += 30
           this.load(this.category.id, true)
         }
