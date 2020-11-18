@@ -60,8 +60,7 @@ const category = {
                 this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
                 this.$store.commit('bookmarks', { id: -1 })
               }
-              this.$store.commit('categories')
-              this.$store.commit('goto', 'showBookmark')
+              this.goback(true)
             }
             else BootstrapButtons.fire('Error', json.message, 'error')
           })
@@ -77,8 +76,7 @@ const category = {
               BootstrapButtons.fire('Error', err, 'error'))
             else {
               this.$store.commit('category', { id: -1, name: 'All Bookmarks', start: 0 })
-              this.$store.commit('categories')
-              this.$store.commit('goto', 'showBookmark')
+              this.goback(true)
               this.$store.commit('bookmarks', { id: -1 })
             }
           })
@@ -167,7 +165,7 @@ const bookmark = {
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
             if (json.status == 1) {
-              this.$store.commit('goto', 'showBookmark')
+              this.goback(true)
               this.$store.commit('bookmarks', { id: this.$store.state.category.id })
             }
             else BootstrapButtons.fire('Error', json.message, 'error')
@@ -187,8 +185,8 @@ const bookmark = {
             if (!resp.ok) resp.text().then(err =>
               BootstrapButtons.fire('Error', err, 'error'))
             else {
-              this.$store.commit('goto', 'showBookmark')
-              this.$store.commit('bookmarks', { id: this.$store.state.category.id })
+              this.goback()
+              this.$store.commit('delBookmarks', this.bookmark)
             }
           })
       })

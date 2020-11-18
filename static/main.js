@@ -111,13 +111,23 @@ const store = Vuex.createStore({
     category(state, category) { state.category = category },
     bookmark(state, bookmark) { state.bookmark = bookmark },
     editCategory(state, category) { state.editCategory = category },
-    renCategory(state, name) { state.bookmarks.forEach(i => i.category = name) }
+    renCategory(state, name) { state.bookmarks.forEach(i => i.category = name) },
+    delBookmarks(state, bookmark) {
+      state.categories.forEach(i => { if (i.name == bookmark.category) i.count-- })
+      state.bookmarks = state.bookmarks.filter(i => i.id != bookmark.id)
+    }
   }
 })
 app.use(store)
 
 app.mixin({
-  methods: { goback: function () { this.$store.commit('goto', 'showBookmark') } }
+  methods: {
+    goback: function (reload) {
+      if (reload)
+        this.$store.commit('categories')
+      this.$store.commit('goto', 'showBookmark')
+    }
+  }
 })
 
 app.component('login', login)
