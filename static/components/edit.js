@@ -55,10 +55,10 @@ const category = {
                   count: this.category.count,
                   start: 0
                 })
-                this.$store.commit('renCategory', this.name)
+                this.$store.dispatch('renCategory', this.name)
               } else {
                 this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
-                this.$store.commit('bookmarks', { id: -1 })
+                this.$store.dispatch('bookmarks', { id: -1 })
               }
               this.goback(true)
             }
@@ -77,7 +77,7 @@ const category = {
             else {
               this.$store.commit('category', { id: -1, name: 'All Bookmarks', start: 0 })
               this.goback(true)
-              this.$store.commit('bookmarks', { id: -1 })
+              this.$store.dispatch('bookmarks', { id: -1 })
             }
           })
       })
@@ -166,7 +166,7 @@ const bookmark = {
           else resp.json().then(json => {
             if (json.status == 1) {
               this.goback(true)
-              this.$store.commit('bookmarks', { id: this.$store.state.category.id })
+              this.$store.dispatch('bookmarks', { id: this.$store.state.category.id })
             }
             else BootstrapButtons.fire('Error', json.message, 'error')
               .then(() => {
@@ -186,7 +186,7 @@ const bookmark = {
               BootstrapButtons.fire('Error', err, 'error'))
             else {
               this.goback()
-              this.$store.commit('delBookmarks', this.bookmark)
+              this.$store.dispatch('delBookmarks', this.bookmark)
             }
           })
       })

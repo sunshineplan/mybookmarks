@@ -58,7 +58,7 @@ const store = Vuex.createStore({
     return {
       component: 'showBookmark',
       sidebar: false,
-      loading: false,
+      loading: 0,
       categories: [],
       bookmarks: [],
       category: {},
@@ -68,30 +68,39 @@ const store = Vuex.createStore({
   },
   mutations: {
     goto(state, component) { state.component = component },
-    loading(state, status) { state.loading = status },
-    ready(state) { state.sidebar = true },
-    categories(state) {
-      state.sidebar = false
-      state.loading = true
+    startLoading(state) { state.loading += 1 },
+    stopLoading(state) { state.loading -= 1 },
+    setSidebar(state, status) { state.sidebar = status },
+    categories(state, categories) { state.categories = categories },
+    bookmarks(state, bookmarks) { state.bookmarks = bookmarks },
+    category(state, category) { state.category = category },
+    more(state) { state.category.start += 30 },
+    bookmark(state, bookmark) { state.bookmark = bookmark },
+    editCategory(state, category) { state.editCategory = category },
+  },
+  actions: {
+    categories({ commit, state }) {
+      commit('setSidebar', false)
+      commit('startLoading')
       post('/category/get')
         .then(response => response.json())
         .then(categories => {
-          state.categories = categories
+          commit('categories', categories)
           if (state.category.count == undefined)
-            state.category = {
+            commit('category', {
               id: -1,
               name: 'All Bookmarks',
               count: categories.reduce((total, i) => total + i.count, 0),
               start: 0
-            }
-          state.loading = false
-          state.sidebar = true
+            })
+          commit('stopLoading')
+          commit('setSidebar', true)
         })
     },
-    bookmarks(state, payload) {
-      state.loading = true
+    bookmarks({ commit, state }, payload) {
+      commit('startLoading')
       if (payload.more) {
-        state.category.start += 30
+        commit('more')
         var params = { category: state.category.id, start: state.category.start }
       } else var params = { category: payload.id }
       post('/bookmark/get', params)
@@ -101,20 +110,21 @@ const store = Vuex.createStore({
           })
           else resp.json().then(bookmarks => {
             if (payload.more)
-              state.bookmarks = state.bookmarks.concat(bookmarks)
-            else {
-              state.bookmarks = bookmarks
-            }
+              commit('bookmarks', state.bookmarks.concat(bookmarks))
+            else commit('bookmarks', bookmarks)
           })
-        }).then(() => state.loading = false)
+        }).then(() => commit('stopLoading'))
     },
-    category(state, category) { state.category = category },
-    bookmark(state, bookmark) { state.bookmark = bookmark },
-    editCategory(state, category) { state.editCategory = category },
-    renCategory(state, name) { state.bookmarks.forEach(i => i.category = name) },
-    delBookmarks(state, bookmark) {
-      state.categories.forEach(i => { if (i.name == bookmark.category) i.count-- })
-      state.bookmarks = state.bookmarks.filter(i => i.id != bookmark.id)
+    renCategory({ commit, state }, name) {
+      var bookmarks = state.bookmarks
+      bookmarks.forEach(i => i.category = name)
+      commit('bookmarks', bookmarks)
+    },
+    delBookmarks({ commit, state }, bookmark) {
+      var categories = state.categories
+      categories.forEach(i => { if (i.name == bookmark.category) i.count-- })
+      commit('categories', categories)
+      commit('bookmarks', state.bookmarks.filter(i => i.id != bookmark.id))
     }
   }
 })
@@ -124,7 +134,7 @@ app.mixin({
   methods: {
     goback: function (reload) {
       if (reload)
-        this.$store.commit('categories')
+        this.$store.dispatch('categories')
       this.$store.commit('goto', 'showBookmark')
     }
   }

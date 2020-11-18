@@ -33,8 +33,8 @@ const sidebar = {
   </div>
 </nav>`,
   created() {
-    this.$store.commit('categories')
-    this.$store.commit('bookmarks', { id: -1 })
+    this.$store.dispatch('categories')
+    this.$store.dispatch('bookmarks', { id: -1 })
   },
   mounted() { window.addEventListener('keyup', this.arrow) },
   beforeUnmount: function () { window.removeEventListener('keyup', this.arrow) },
@@ -64,7 +64,7 @@ const sidebar = {
       this.$store.commit('goto', 'showBookmark')
       if (id != this.active) {
         this.$store.commit('category', { id, name, count, start: 0 })
-        this.$store.commit('bookmarks', { id })
+        this.$store.dispatch('bookmarks', { id })
       }
     }
   }
@@ -139,7 +139,7 @@ const showBookmarks = {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
         if (this.category.start + 30 < this.category.count)
-          this.$store.commit('bookmarks', { more: true })
+          this.$store.dispatch('bookmarks', { more: true })
       }
     },
     editCategory: function () {
