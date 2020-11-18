@@ -48,8 +48,18 @@ const category = {
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
             if (json.status == 1) {
-              if (this.category.id != undefined)
-                this.$store.commit('category', { id: this.category.id, name: this.name })
+              if (this.category.id != undefined) {
+                this.$store.commit('category', {
+                  id: this.category.id,
+                  name: this.name,
+                  count: this.category.count,
+                  start: 0
+                })
+                this.$store.commit('renCategory', this.name)
+              } else {
+                this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
+                this.$store.commit('bookmarks', { id: -1 })
+              }
               this.$store.commit('categories')
               this.$store.commit('goto', 'showBookmark')
             }
@@ -66,9 +76,10 @@ const category = {
             if (!resp.ok) resp.text().then(err =>
               BootstrapButtons.fire('Error', err, 'error'))
             else {
-              this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
+              this.$store.commit('category', { id: -1, name: 'All Bookmarks', start: 0 })
               this.$store.commit('categories')
               this.$store.commit('goto', 'showBookmark')
+              this.$store.commit('bookmarks', { id: -1 })
             }
           })
       })
@@ -155,7 +166,10 @@ const bookmark = {
           if (!resp.ok) resp.text().then(err =>
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
-            if (json.status == 1) this.$store.commit('goto', 'showBookmark')
+            if (json.status == 1) {
+              this.$store.commit('goto', 'showBookmark')
+              this.$store.commit('bookmarks', { id: this.$store.state.category.id })
+            }
             else BootstrapButtons.fire('Error', json.message, 'error')
               .then(() => {
                 if (json.error == 1) this.name = ''
@@ -172,7 +186,10 @@ const bookmark = {
           .then(resp => {
             if (!resp.ok) resp.text().then(err =>
               BootstrapButtons.fire('Error', err, 'error'))
-            else this.$store.commit('goto', 'showBookmark')
+            else {
+              this.$store.commit('goto', 'showBookmark')
+              this.$store.commit('bookmarks', { id: this.$store.state.category.id })
+            }
           })
       })
     }

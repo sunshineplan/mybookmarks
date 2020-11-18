@@ -33,8 +33,8 @@ const sidebar = {
   </div>
 </nav>`,
   created() {
-    this.$store.commit('loading', true)
     this.$store.commit('categories')
+    this.$store.commit('bookmarks', { id: -1 })
   },
   mounted() { window.addEventListener('keyup', this.arrow) },
   beforeUnmount: function () { window.removeEventListener('keyup', this.arrow) },
@@ -62,21 +62,21 @@ const sidebar = {
     load: function (id, name, count) {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
       this.$store.commit('goto', 'showBookmark')
-      this.$store.commit('category', { id: id, name: name, count: count })
+      if (id != this.active) {
+        this.$store.commit('category', { id: id, name: name, count: count, start: 0 })
+        this.$store.commit('bookmarks', { id: id })
+      }
     }
   }
 }
 
 const showBookmarks = {
   data() {
-    return {
-      bookmarks: [],
-      smallSize: window.innerWidth <= 700 ? true : false,
-      start: 0
-    }
+    return { smallSize: window.innerWidth <= 700 ? true : false }
   },
   computed: {
-    category() { return this.$store.state.category }
+    category() { return this.$store.state.category },
+    bookmarks() { return this.$store.state.bookmarks }
   },
   template: `
   <div style='height: 100%'>
@@ -113,7 +113,7 @@ const showBookmarks = {
     </div>
   </div>`,
   mounted() {
-    this.load(this.$store.state.category.id)
+    document.title = this.category.name + ' - My Bookmarks'
     $('#mybookmarks').sortable(sortable)
     window.addEventListener('resize', this.checkSize)
     window.addEventListener('scroll', this.checkScroll, true)
@@ -124,10 +124,6 @@ const showBookmarks = {
     window.removeEventListener('scroll', this.checkScroll, true)
   },
   watch: {
-    category(category) {
-      this.start = 0
-      this.load(category.id)
-    },
     smallSize(isSmall) {
       var arr = Array.from(document.getElementsByClassName('url'))
       if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
@@ -135,26 +131,6 @@ const showBookmarks = {
     }
   },
   methods: {
-    load: function (id, more) {
-      this.$store.commit('loading', true)
-      var params = { category: id }
-      if (this.start != 0)
-        params.start = this.start
-      post('/bookmark/get', params)
-        .then(resp => {
-          if (!resp.ok) resp.text().then(err => {
-            return BootstrapButtons.fire('Error', err, 'error')
-          })
-          else resp.json().then(bookmarks => {
-            if (more)
-              this.bookmarks = this.bookmarks.concat(bookmarks)
-            else {
-              this.bookmarks = bookmarks
-              document.title = this.category.name + ' - My Bookmarks'
-            }
-          })
-        }).then(() => this.$store.commit('loading', false))
-    },
     checkSize: function () {
       if (window.innerWidth <= 700) this.smallSize = true
       else this.smallSize = false
@@ -162,10 +138,8 @@ const showBookmarks = {
     checkScroll: function () {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
-        if (this.start + 30 < this.category.count) {
-          this.start += 30
-          this.load(this.category.id, true)
-        }
+        if (this.category.start + 30 < this.category.count)
+          this.$store.commit('bookmarks', { more: true })
       }
     },
     editCategory: function () {

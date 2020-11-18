@@ -60,6 +60,7 @@ const store = Vuex.createStore({
       sidebar: false,
       loading: false,
       categories: [],
+      bookmarks: [],
       category: {},
       bookmark: {},
       editCategory: {}
@@ -71,23 +72,46 @@ const store = Vuex.createStore({
     ready(state) { state.sidebar = true },
     categories(state) {
       state.sidebar = false
+      state.loading = true
       post('/category/get')
         .then(response => response.json())
         .then(categories => {
           state.categories = categories
-          if (state.category.id == undefined)
+          if (state.category.count == undefined)
             state.category = {
               id: -1,
               name: 'All Bookmarks',
-              count: categories.reduce((total, i) => total + i.count, 0)
+              count: categories.reduce((total, i) => total + i.count, 0),
+              start: 0
             }
-          state.sidebar = true
           state.loading = false
+          state.sidebar = true
         })
+    },
+    bookmarks(state, payload) {
+      state.loading = true
+      if (payload.more) {
+        state.category.start += 30
+        var params = { category: state.category.id, start: state.category.start }
+      } else var params = { category: payload.id }
+      post('/bookmark/get', params)
+        .then(resp => {
+          if (!resp.ok) resp.text().then(err => {
+            return BootstrapButtons.fire('Error', err, 'error')
+          })
+          else resp.json().then(bookmarks => {
+            if (payload.more)
+              state.bookmarks = state.bookmarks.concat(bookmarks)
+            else {
+              state.bookmarks = bookmarks
+            }
+          })
+        }).then(() => state.loading = false)
     },
     category(state, category) { state.category = category },
     bookmark(state, bookmark) { state.bookmark = bookmark },
-    editCategory(state, category) { state.editCategory = category }
+    editCategory(state, category) { state.editCategory = category },
+    renCategory(state, name) { state.bookmarks.forEach(i => i.category = name) }
   }
 })
 app.use(store)
