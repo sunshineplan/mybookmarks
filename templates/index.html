@@ -7,6 +7,7 @@
 <script src='https://cdn.jsdelivr.net/npm/sweetalert2@9'></script>
 <script src='https://cdn.jsdelivr.net/npm/vue@next'></script>
 <script src='https://cdn.jsdelivr.net/npm/vuex@next'></script>
+<script src='https://cdn.jsdelivr.net/npm/vue-router@next'></script>
 <script src='/static/script.js'></script>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@4/dist/css/bootstrap.min.css'>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/spinkit@2/spinkit.min.css'>
@@ -16,11 +17,11 @@
   <nav class='navbar navbar-light topbar'>
     <div class='d-flex' style='height: 100%'>
       <a class='toggle' v-if='user'><i class='material-icons menu'>menu</i></a>
-      <a class='brand' href='/'>My Bookmarks</a>
+      <router-link class='brand' to='/'>My Bookmarks</router-link>
     </div>
     <div class='navbar-nav flex-row' v-if='user'>
       <a class='nav-link' v-text='user'></a>
-      <a class='nav-link link' @click='setting'>Setting</a>
+      <router-link class='nav-link link' to='/setting'>Setting</router-link>
       <a class='nav-link link' href='/logout'>Log Out</a>
     </div>
     <div class='navbar-nav flex-row' v-else>
@@ -31,7 +32,7 @@
   <div v-else>
     <sidebar></sidebar>
     <div class='content' style='padding-left: 250px' :style='{opacity: loading ? 0.5 : 1}' v-if='sidebar'>
-      <component :is='component'></component>
+      <router-view></router-view>
     </div>
   </div>
   <div class='loading' v-show='loading'>

@@ -57,6 +57,10 @@ func run() {
 	base.POST("/category/delete/:id", deleteCategory)
 	base.POST("/reorder", reorder)
 
+	router.NoRoute(func(c *gin.Context) {
+		c.Redirect(302, "/")
+	})
+
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}

@@ -1,7 +1,7 @@
 const sidebar = {
   computed: {
     active() {
-      if (this.$store.state.component != 'showBookmark')
+      if (this.$router.currentRoute.value.path != '/')
         return false
       return this.$store.state.category.id
     },
@@ -56,12 +56,11 @@ const sidebar = {
     },
     add: function () {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
-      this.$store.commit('editCategory', {})
-      this.$store.commit('goto', 'category')
+      this.$router.push('/category/add')
     },
     load: function (id, name, count) {
       if ($(window).width() <= 900) $('.sidebar').toggle('slide')
-      this.$store.commit('goto', 'showBookmark')
+      this.$router.push('/')
       if (id != this.active) {
         this.$store.commit('category', { id, name, count, start: 0 })
         this.$store.dispatch('bookmarks', { id })
@@ -142,20 +141,11 @@ const showBookmarks = {
           this.$store.dispatch('bookmarks', { more: true })
       }
     },
-    editCategory: function () {
-      this.$store.commit('editCategory', this.category)
-      this.$store.commit('goto', 'category')
-    },
-    add: function () {
-      if (this.category.id > 0)
-        this.$store.commit('bookmark', { category: this.category.name })
-      else
-        this.$store.commit('bookmark', {})
-      this.$store.commit('goto', 'bookmark')
-    },
+    editCategory: function () { this.$router.push('/category/edit') },
+    add: function () { this.$router.push('/bookmark/add') },
     edit: function (bookmark) {
       this.$store.commit('bookmark', bookmark)
-      this.$store.commit('goto', 'bookmark')
+      this.$router.push('/bookmark/edit')
     }
   }
 }

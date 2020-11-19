@@ -6,9 +6,13 @@ const category = {
     }
   },
   computed: {
-    category() { return this.$store.state.editCategory },
+    category() {
+      if (this.$route.params.mode == 'edit')
+        return this.$store.state.category
+      return {}
+    },
     mode() {
-      if (this.category.id == undefined) return 'Add'
+      if (this.$route.params.mode == 'add') return 'Add'
       return 'Edit'
     }
   },
@@ -28,19 +32,24 @@ const category = {
     <button class='btn btn-primary' @click='save'>{{ mode }}</button>
     <button class='btn btn-primary' @click='goback()'>Cancel</button>
   </div>
-  <div class='form' v-if='category.id != undefined'>
+  <div class='form' v-if="mode == 'Edit'">
     <button class='btn btn-danger delete' @click='del'>Delete</button>
   </div>
 </div>`,
   created() { this.name = this.category.name },
   mounted() { document.title = this.mode + ' Category - My Bookmarks' },
-  watch: { category(category) { this.name = category.name } },
+  watch: {
+    category(category) {
+      this.name = category.name
+      document.title = this.mode + ' Category - My Bookmarks'
+    }
+  },
   methods: {
     save: function () {
       if (valid()) {
         this.validated = false
         var r
-        if (this.category.id == undefined)
+        if (this.mode == 'Add')
           r = post('/category/add', { name: this.name })
         else
           r = post('/category/edit/' + this.category.id, { name: this.name })
@@ -49,7 +58,7 @@ const category = {
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
             if (json.status == 1) {
-              if (this.category.id == undefined)
+              if (this.mode == 'Add')
                 this.$store.dispatch('addCategory', this.name)
               else this.$store.dispatch('editCategory', this.name)
               this.goback()
@@ -90,7 +99,7 @@ const bookmark = {
   },
   computed: {
     mode() {
-      if (this.bookmark.id == undefined) return 'Add'
+      if (this.$route.params.mode == 'add') return 'Add'
       return 'Edit'
     }
   },
@@ -123,7 +132,7 @@ const bookmark = {
       <button class='btn btn-primary' @click='save'>{{ mode }}</button>
       <button class='btn btn-primary' @click='goback()'>Cancel</button>
     </div>
-    <div class='form' v-if='bookmark.id != undefined'>
+    <div class='form' v-if="mode == 'Edit'">
       <button class='btn btn-danger delete' @click='del'>Delete</button>
     </div>
   </div>`,
@@ -142,7 +151,7 @@ const bookmark = {
       if (valid()) {
         this.validated = false
         var r
-        if (this.bookmark.id == undefined)
+        if (this.mode == 'Add')
           r = post('/bookmark/add', {
             name: this.name,
             url: this.url,

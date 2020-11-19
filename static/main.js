@@ -48,26 +48,22 @@ const app = Vue.createApp({
   computed: {
     loading() { return this.$store.state.loading },
     sidebar() { return this.$store.state.sidebar },
-    component() { return this.$store.state.component }
   },
-  methods: { setting: function () { this.$store.commit('goto', 'setting') } }
+  methods: { setting: function () { this.$router.push('/setting') } }
 })
 
 const store = Vuex.createStore({
   state() {
     return {
-      component: 'showBookmark',
       sidebar: false,
       loading: 0,
       categories: [],
       bookmarks: [],
       category: {},
-      bookmark: {},
-      editCategory: {}
+      bookmark: {}
     }
   },
   mutations: {
-    goto(state, component) { state.component = component },
     startLoading(state) { state.loading += 1 },
     stopLoading(state) { state.loading -= 1 },
     setSidebar(state, status) { state.sidebar = status },
@@ -75,8 +71,7 @@ const store = Vuex.createStore({
     bookmarks(state, bookmarks) { state.bookmarks = bookmarks },
     category(state, category) { state.category = category },
     more(state) { state.category.start += 30 },
-    bookmark(state, bookmark) { state.bookmark = bookmark },
-    editCategory(state, category) { state.editCategory = category },
+    bookmark(state, bookmark) { state.bookmark = bookmark }
   },
   actions: {
     categories({ commit, state }) {
@@ -149,21 +144,30 @@ const store = Vuex.createStore({
 })
 app.use(store)
 
+const routes = [
+  { path: '/', component: showBookmarks },
+  { path: '/setting', component: setting },
+  { path: '/category/:mode', component: category },
+  { path: '/bookmark/:mode', component: bookmark }
+]
+
+const router = VueRouter.createRouter({
+  history: VueRouter.createWebHistory(),
+  routes
+})
+app.use(router)
+
 app.mixin({
   methods: {
     goback: function (reload) {
       if (reload)
         this.$store.dispatch('categories')
-      this.$store.commit('goto', 'showBookmark')
+      this.$router.go(-1)
     }
   }
 })
 
 app.component('login', login)
-app.component('setting', setting)
 app.component('sidebar', sidebar)
-app.component('showBookmark', showBookmarks)
-app.component('category', category)
-app.component('bookmark', bookmark)
 
 app.mount('#app')
