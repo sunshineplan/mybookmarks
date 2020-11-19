@@ -1,12 +1,12 @@
 const category = {
   data() {
     return {
-      category: this.$store.state.editCategory,
       name: '',
       validated: false
     }
   },
   computed: {
+    category() { return this.$store.state.editCategory },
     mode() {
       if (this.category.id == undefined) return 'Add'
       return 'Edit'
@@ -34,6 +34,7 @@ const category = {
 </div>`,
   created() { this.name = this.category.name },
   mounted() { document.title = this.mode + ' Category - My Bookmarks' },
+  watch: { category(category) { this.name = category.name } },
   methods: {
     save: function () {
       if (valid()) {
@@ -48,17 +49,9 @@ const category = {
             BootstrapButtons.fire('Error', err, 'error'))
           else resp.json().then(json => {
             if (json.status == 1) {
-              if (this.category.id != undefined) {
-                this.$store.commit('category', {
-                  id: this.category.id,
-                  name: this.name,
-                  count: this.category.count,
-                  start: this.category.start
-                })
-                this.$store.dispatch('editCategory', this.name)
-              } else {
+              if (this.category.id == undefined)
                 this.$store.dispatch('addCategory', this.name)
-              }
+              else this.$store.dispatch('editCategory', this.name)
               this.goback()
             }
             else BootstrapButtons.fire('Error', json.message, 'error')

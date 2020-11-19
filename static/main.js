@@ -125,10 +125,19 @@ const store = Vuex.createStore({
           }
         })
     },
-    editCategory({ commit, state }, name) {
-      var bookmarks = state.bookmarks
-      bookmarks.forEach(i => i.category = name)
-      commit('bookmarks', bookmarks)
+    editCategory({ dispatch, commit, state }, name) {
+      return dispatch('categories').then(() => {
+        commit('category', {
+          id: state.category.id,
+          name,
+          count: state.category.count,
+          start: state.category.start
+        })
+        var bookmarks = state.bookmarks
+        if (bookmarks)
+          bookmarks.forEach(i => i.category = name)
+        commit('bookmarks', bookmarks)
+      })
     },
     delBookmarks({ commit, state }, bookmark) {
       var categories = state.categories
