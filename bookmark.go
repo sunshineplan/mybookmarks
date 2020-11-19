@@ -58,7 +58,7 @@ func getBookmark(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var bookmarks []bookmark
+	bookmarks := []bookmark{}
 	for rows.Next() {
 		var bookmark bookmark
 		var categoryByte []byte

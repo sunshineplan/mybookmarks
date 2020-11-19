@@ -65,7 +65,7 @@ func getCategory(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var categories []category
+	categories := []category{}
 	for rows.Next() {
 		var category category
 		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
