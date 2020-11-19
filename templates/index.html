@@ -16,7 +16,7 @@
 <div id='app' data-user='{{ .user }}'>
   <nav class='navbar navbar-light topbar'>
     <div class='d-flex' style='height: 100%'>
-      <a class='toggle' v-if='user'><i class='material-icons menu'>menu</i></a>
+      <a class='toggle' v-if='user && smallSize' @click='toggle'><i class='material-icons menu'>menu</i></a>
       <router-link class='brand' to='/'>My Bookmarks</router-link>
     </div>
     <div class='navbar-nav flex-row' v-if='user'>
@@ -30,7 +30,7 @@
   </nav>
   <login v-if='!user'></login>
   <div v-else>
-    <sidebar></sidebar>
+    <sidebar v-show='showSidebar || !smallSize'></sidebar>
     <div class='content' style='padding-left: 250px' :style='{opacity: loading ? 0.5 : 1}' v-if='sidebar'>
       <router-view></router-view>
     </div>

@@ -55,11 +55,11 @@ const sidebar = {
       }
     },
     add: function () {
-      if ($(window).width() <= 900) $('.sidebar').toggle('slide')
+      if (window.innerWidth <= 700) this.$store.commit('closeSidebar')
       this.$router.push('/category/add')
     },
     load: function (id, name, count) {
-      if ($(window).width() <= 900) $('.sidebar').toggle('slide')
+      if (window.innerWidth <= 700) this.$store.commit('closeSidebar')
       this.$router.push('/')
       if (id != this.active) {
         this.$store.commit('category', { id, name, count, start: 0 })
@@ -70,12 +70,10 @@ const sidebar = {
 }
 
 const showBookmarks = {
-  data() {
-    return { smallSize: window.innerWidth <= 700 ? true : false }
-  },
   computed: {
     category() { return this.$store.state.category },
-    bookmarks() { return this.$store.state.bookmarks }
+    bookmarks() { return this.$store.state.bookmarks },
+    smallSize() { return this.$store.state.smallSize }
   },
   template: `
   <div style='height: 100%'>
@@ -114,12 +112,10 @@ const showBookmarks = {
   mounted() {
     document.title = this.category.name + ' - My Bookmarks'
     $('#mybookmarks').sortable(sortable)
-    window.addEventListener('resize', this.checkSize)
     window.addEventListener('scroll', this.checkScroll, true)
   },
   beforeUnmount: function () {
     $('#mybookmarks').sortable('destroy')
-    window.removeEventListener('resize', this.checkSize)
     window.removeEventListener('scroll', this.checkScroll, true)
   },
   watch: {
@@ -130,10 +126,6 @@ const showBookmarks = {
     }
   },
   methods: {
-    checkSize: function () {
-      if (window.innerWidth <= 700) this.smallSize = true
-      else this.smallSize = false
-    },
     checkScroll: function () {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {

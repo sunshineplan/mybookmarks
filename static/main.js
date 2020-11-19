@@ -48,14 +48,27 @@ const app = Vue.createApp({
   computed: {
     loading() { return this.$store.state.loading },
     sidebar() { return this.$store.state.sidebar },
+    showSidebar() { return this.$store.state.showSidebar },
+    smallSize() { return this.$store.state.smallSize }
   },
-  methods: { setting: function () { this.$router.push('/setting') } }
+  mounted() { window.addEventListener('resize', this.checkSize) },
+  beforeUnmount() { window.removeEventListener('resize', this.checkSize) },
+  methods: {
+    checkSize: function () {
+      if (this.smallSize != window.innerWidth <= 700)
+        this.$store.commit('smallSize')
+    },
+    toggle: function () { this.$store.commit('toggleSidebar') },
+    setting: function () { this.$router.push('/setting') }
+  }
 })
 
 const store = Vuex.createStore({
   state() {
     return {
       sidebar: false,
+      showSidebar: false,
+      smallSize: window.innerWidth <= 700 ? true : false,
       loading: 0,
       categories: [],
       bookmarks: [],
@@ -66,7 +79,10 @@ const store = Vuex.createStore({
   mutations: {
     startLoading(state) { state.loading += 1 },
     stopLoading(state) { state.loading -= 1 },
-    setSidebar(state, status) { state.sidebar = status },
+    sidebar(state, status) { state.sidebar = status },
+    closeSidebar(state) { state.showSidebar = false },
+    toggleSidebar(state) { state.showSidebar = !state.showSidebar },
+    smallSize(state) { state.smallSize = !state.smallSize },
     categories(state, categories) { state.categories = categories },
     bookmarks(state, bookmarks) { state.bookmarks = bookmarks },
     category(state, category) { state.category = category },
@@ -75,7 +91,7 @@ const store = Vuex.createStore({
   },
   actions: {
     categories({ commit, state }) {
-      commit('setSidebar', false)
+      commit('sidebar', false)
       commit('startLoading')
       return post('/category/get')
         .then(response => response.json())
@@ -89,7 +105,7 @@ const store = Vuex.createStore({
               start: 0
             })
           commit('stopLoading')
-          commit('setSidebar', true)
+          commit('sidebar', true)
         })
     },
     bookmarks({ commit, state }, payload) {
