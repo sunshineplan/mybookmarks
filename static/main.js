@@ -1,17 +1,21 @@
 const app = Vue.createApp({
-  data() { return { user: document.getElementById('app').dataset.user } },
+  data() {
+    return {
+      user: document.getElementById('app').dataset.user,
+      smallSize: window.innerWidth <= 900
+    }
+  },
   computed: {
     loading() { return this.$store.state.loading },
     sidebar() { return this.$store.state.sidebar },
-    showSidebar() { return this.$store.state.showSidebar },
-    smallSize() { return this.$store.state.smallSize }
+    showSidebar() { return this.$store.state.showSidebar }
   },
   mounted() { window.addEventListener('resize', this.checkSize) },
   beforeUnmount() { window.removeEventListener('resize', this.checkSize) },
   methods: {
     checkSize: function () {
-      if (this.smallSize != window.innerWidth <= 700)
-        this.$store.commit('smallSize')
+      if (this.smallSize != window.innerWidth <= 900)
+        this.smallSize = !this.smallSize
     },
     toggle: function () { this.$store.commit('toggleSidebar') },
     closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') },
@@ -24,7 +28,6 @@ const store = Vuex.createStore({
     return {
       sidebar: false,
       showSidebar: false,
-      smallSize: window.innerWidth <= 700 ? true : false,
       loading: 0,
       categories: [],
       bookmarks: [],
@@ -38,7 +41,6 @@ const store = Vuex.createStore({
     sidebar(state, status) { state.sidebar = status },
     closeSidebar(state) { state.showSidebar = false },
     toggleSidebar(state) { state.showSidebar = !state.showSidebar },
-    smallSize(state) { state.smallSize = !state.smallSize },
     categories(state, categories) { state.categories = categories },
     bookmarks(state, bookmarks) { state.bookmarks = bookmarks },
     category(state, category) { state.category = category },

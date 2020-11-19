@@ -70,10 +70,10 @@ const sidebar = {
 }
 
 const showBookmarks = {
+  data() { return { smallSize: window.innerWidth <= 700 } },
   computed: {
     category() { return this.$store.state.category },
-    bookmarks() { return this.$store.state.bookmarks },
-    smallSize() { return this.$store.state.smallSize }
+    bookmarks() { return this.$store.state.bookmarks }
   },
   template: `
   <div style='height: 100%'>
@@ -112,26 +112,32 @@ const showBookmarks = {
   mounted() {
     document.title = this.category.name + ' - My Bookmarks'
     $('#mybookmarks').sortable(sortable)
+    window.addEventListener('resize', this.checkSize)
     window.addEventListener('scroll', this.checkScroll, true)
+    if (this.smallSize) this.formatURL(true)
   },
   beforeUnmount: function () {
     $('#mybookmarks').sortable('destroy')
+    window.removeEventListener('resize', this.checkSize)
     window.removeEventListener('scroll', this.checkScroll, true)
   },
-  watch: {
-    smallSize(isSmall) {
-      var arr = Array.from(document.getElementsByClassName('url'))
-      if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
-      else arr.forEach(i => i.text = i.dataset.url)
-    }
-  },
+  watch: { smallSize(isSmall) { this.formatURL(isSmall) } },
   methods: {
+    checkSize: function () {
+      if (this.smallSize != window.innerWidth <= 700)
+        this.smallSize = !this.smallSize
+    },
     checkScroll: function () {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
         if (this.category.start + 30 < this.category.count)
           this.$store.dispatch('bookmarks', { more: true })
       }
+    },
+    formatURL: function (isSmall) {
+      var arr = Array.from(document.getElementsByClassName('url'))
+      if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
+      else arr.forEach(i => i.text = i.dataset.url)
     },
     editCategory: function () { this.$router.push('/category/edit') },
     add: function () { this.$router.push('/bookmark/add') },
