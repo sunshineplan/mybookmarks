@@ -221,6 +221,16 @@ td {
     font-size: 18px;
 }
 
+.slide-leave-active,
+.slide-enter-active {
+    transition: .5s;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+    transform: translate(-100%, 0);
+}
+
 @media (min-width: 901px) {
     .sidebar {
         display: block !important;

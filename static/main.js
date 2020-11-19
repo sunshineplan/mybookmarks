@@ -59,6 +59,7 @@ const app = Vue.createApp({
         this.$store.commit('smallSize')
     },
     toggle: function () { this.$store.commit('toggleSidebar') },
+    closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') },
     setting: function () { this.$router.push('/setting') }
   }
 })

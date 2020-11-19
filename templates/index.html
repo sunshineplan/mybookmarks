@@ -11,7 +11,8 @@
 <script src='/static/script.js'></script>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@4/dist/css/bootstrap.min.css'>
 <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/spinkit@2/spinkit.min.css'>
-<link rel='stylesheet' href='https://cdn.jsdelivr.net/gh/google/material-design-icons@3/iconfont/material-icons.min.css'>
+<link rel='stylesheet'
+  href='https://cdn.jsdelivr.net/gh/google/material-design-icons@3/iconfont/material-icons.min.css'>
 <link rel='stylesheet' href='/static/style.css'>
 <div id='app' data-user='{{ .user }}'>
   <nav class='navbar navbar-light topbar'>
@@ -30,8 +31,11 @@
   </nav>
   <login v-if='!user'></login>
   <div v-else>
-    <sidebar v-show='showSidebar || !smallSize'></sidebar>
-    <div class='content' style='padding-left: 250px' :style='{opacity: loading ? 0.5 : 1}' v-if='sidebar'>
+    <transition name='slide'>
+      <sidebar v-show='showSidebar || !smallSize'></sidebar>
+    </transition>
+    <div class='content' style='padding-left: 250px' :style='{opacity: loading ? 0.5 : 1}' @mousedown='closeSidebar'
+      v-if='sidebar'>
       <router-view></router-view>
     </div>
   </div>
