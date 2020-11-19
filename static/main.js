@@ -82,7 +82,7 @@ const store = Vuex.createStore({
     categories({ commit, state }) {
       commit('setSidebar', false)
       commit('startLoading')
-      post('/category/get')
+      return post('/category/get')
         .then(response => response.json())
         .then(categories => {
           commit('categories', categories)
@@ -103,7 +103,7 @@ const store = Vuex.createStore({
         commit('more')
         var params = { category: state.category.id, start: state.category.start }
       } else var params = { category: payload.id }
-      post('/bookmark/get', params)
+      return post('/bookmark/get', params)
         .then(resp => {
           if (!resp.ok) resp.text().then(err => {
             return BootstrapButtons.fire('Error', err, 'error')
@@ -115,7 +115,17 @@ const store = Vuex.createStore({
           })
         }).then(() => commit('stopLoading'))
     },
-    renCategory({ commit, state }, name) {
+    addCategory({ dispatch, commit, state }, name) {
+      return dispatch('categories')
+        .then(() => { return state.categories.filter(i => i.name == name) })
+        .then(category => {
+          if (category.length) {
+            commit('category', category[0])
+            commit('bookmarks', [])
+          }
+        })
+    },
+    editCategory({ commit, state }, name) {
       var bookmarks = state.bookmarks
       bookmarks.forEach(i => i.category = name)
       commit('bookmarks', bookmarks)

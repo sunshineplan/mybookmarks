@@ -53,14 +53,13 @@ const category = {
                   id: this.category.id,
                   name: this.name,
                   count: this.category.count,
-                  start: 0
+                  start: this.category.start
                 })
-                this.$store.dispatch('renCategory', this.name)
+                this.$store.dispatch('editCategory', this.name)
               } else {
-                this.$store.commit('category', { id: -1, name: 'All Bookmarks' })
-                this.$store.dispatch('bookmarks', { id: -1 })
+                this.$store.dispatch('addCategory', this.name)
               }
-              this.goback(true)
+              this.goback()
             }
             else BootstrapButtons.fire('Error', json.message, 'error')
           })
