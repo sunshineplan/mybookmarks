@@ -142,20 +142,15 @@ const showBookmarks = {
       }
     },
     onUpdate: function (evt) {
-      console.log(this.bookmarks)
-      var orig = this.bookmarks[evt.oldIndex].id, dest, next
-      if (evt.newIndex == 0) dest = -1
-      else dest = this.bookmarks[evt.newIndex - 1].id
-      if (evt.newIndex < this.bookmarks.length - 1)
-        next = this.bookmarks[evt.newIndex + 1].id
-      console.log(this.bookmarks)
-      console.log({ orig, dest, next })
-      //post('/reorder', { orig, dest, next })
-      //  .then(resp => resp.text()).then(text => {
-      //    if (text == '1')
-      //      this.$store.dispatch('reorder', { old: evt.oldIndex, new: evt.newIndex })
-      //    else BootstrapButtons.fire('Error', text, 'error')
-      //  })
+      post('/reorder', {
+        old: this.bookmarks[evt.oldIndex].id,
+        new: this.bookmarks[evt.newIndex].id
+      })
+        .then(resp => resp.text()).then(text => {
+          if (text == '1')
+            this.$store.dispatch('reorder', { old: evt.oldIndex, new: evt.newIndex })
+          else BootstrapButtons.fire('Error', text, 'error')
+        })
     },
     formatURL: function (isSmall) {
       var arr = Array.from(document.getElementsByClassName('url'))

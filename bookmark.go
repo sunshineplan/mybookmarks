@@ -237,40 +237,32 @@ func reorder(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
-	var reorder struct{ Orig, Dest, Next int }
+	var reorder struct{ Old, New int }
 	if err := c.BindJSON(&reorder); err != nil {
 		c.String(400, "")
 		return
 	}
 
-	var origSeq, destSeq int
+	var oldSeq, newSeq int
 	if err := db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-		reorder.Orig, userID).Scan(&origSeq); err != nil {
-		log.Println("Failed to scan orig seq:", err)
+		reorder.Old, userID).Scan(&oldSeq); err != nil {
+		log.Println("Failed to scan old seq:", err)
 		c.String(500, "")
 		return
 	}
-	if reorder.Dest != -1 {
-		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-			reorder.Dest, userID).Scan(&destSeq)
-	} else {
-		err = db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-			reorder.Next, userID).Scan(&destSeq)
-		destSeq--
-	}
-	if err != nil {
-		log.Println("Failed to scan dest seq:", err)
+	if err := db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
+		reorder.New, userID).Scan(&newSeq); err != nil {
+		log.Println("Failed to scan new seq:", err)
 		c.String(500, "")
 		return
 	}
 
-	if origSeq > destSeq {
-		destSeq++
-		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND user_id = ? AND seq < ?",
-			destSeq, userID, origSeq)
+	if oldSeq > newSeq {
+		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND seq < ? AND user_id = ?",
+			newSeq, oldSeq, userID)
 	} else {
-		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq <= ? AND user_id = ? AND seq > ?",
-			destSeq, userID, origSeq)
+		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq > ? AND seq <= ? AND user_id = ?",
+			oldSeq, newSeq, userID)
 	}
 	if err != nil {
 		log.Println("Failed to update other seq:", err)
@@ -278,8 +270,8 @@ func reorder(c *gin.Context) {
 		return
 	}
 	if _, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
-		destSeq, reorder.Orig, userID); err != nil {
-		log.Println("Failed to update orig seq:", err)
+		newSeq, reorder.Old, userID); err != nil {
+		log.Println("Failed to update seq:", err)
 		c.String(500, "")
 		return
 	}
