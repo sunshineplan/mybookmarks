@@ -112,21 +112,18 @@ const showBookmarks = {
   mounted() {
     document.title = this.category.name + ' - My Bookmarks'
     $('#mybookmarks').sortable(sortable)
-    window.addEventListener('resize', this.checkSize)
+    window.addEventListener('resize', this.checkSize700)
     window.addEventListener('scroll', this.checkScroll, true)
     if (this.smallSize) this.formatURL(true)
   },
   beforeUnmount: function () {
     $('#mybookmarks').sortable('destroy')
-    window.removeEventListener('resize', this.checkSize)
+    window.removeEventListener('resize', this.checkSize700)
     window.removeEventListener('scroll', this.checkScroll, true)
   },
   watch: { smallSize(isSmall) { this.formatURL(isSmall) } },
   methods: {
-    checkSize: function () {
-      if (this.smallSize != window.innerWidth <= 700)
-        this.smallSize = !this.smallSize
-    },
+    checkSize700: function () { this.checkSize(700) },
     checkScroll: function () {
       var table = document.getElementsByClassName('table-responsive')[0]
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {

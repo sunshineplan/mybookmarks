@@ -10,13 +10,10 @@ const app = Vue.createApp({
     sidebar() { return this.$store.state.sidebar },
     showSidebar() { return this.$store.state.showSidebar }
   },
-  mounted() { window.addEventListener('resize', this.checkSize) },
-  beforeUnmount() { window.removeEventListener('resize', this.checkSize) },
+  mounted() { window.addEventListener('resize', this.checkSize900) },
+  beforeUnmount() { window.removeEventListener('resize', this.checkSize900) },
   methods: {
-    checkSize: function () {
-      if (this.smallSize != window.innerWidth <= 900)
-        this.smallSize = !this.smallSize
-    },
+    checkSize900: function () { this.checkSize(900) },
     toggle: function () { this.$store.commit('toggleSidebar') },
     closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') },
     setting: function () { this.$router.push('/setting') }
@@ -133,11 +130,16 @@ app.use(router)
 
 app.mixin({
   methods: {
+    checkSize: function (size) {
+      if (this.smallSize != window.innerWidth <= size)
+        this.smallSize = !this.smallSize
+    },
     goback: function (reload) {
       if (reload)
         this.$store.dispatch('categories')
       this.$router.go(-1)
-    }
+    },
+    cancel: function (event) { if (event.key == 'Escape') this.goback() }
   }
 })
 

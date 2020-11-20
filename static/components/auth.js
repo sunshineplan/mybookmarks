@@ -84,7 +84,11 @@ const setting = {
     <button class='btn btn-primary' @click='goback()'>Cancel</button>
   </div>
 </div>`,
-  mounted() { document.title = 'Setting - My Bookmarks' },
+  mounted() {
+    document.title = 'Setting - My Bookmarks'
+    window.addEventListener('keyup', this.cancel)
+  },
+  beforeUnmount: function () { window.removeEventListener('keyup', this.cancel) },
   methods: {
     setting: function () {
       if (valid()) {

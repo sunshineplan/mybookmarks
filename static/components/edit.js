@@ -37,7 +37,11 @@ const category = {
   </div>
 </div>`,
   created() { this.name = this.category.name },
-  mounted() { document.title = this.mode + ' Category - My Bookmarks' },
+  mounted() {
+    document.title = this.mode + ' Category - My Bookmarks'
+    window.addEventListener('keyup', this.cancel)
+  },
+  beforeUnmount: function () { window.removeEventListener('keyup', this.cancel) },
   watch: {
     category(category) {
       this.name = category.name
@@ -141,7 +145,11 @@ const bookmark = {
     this.url = this.bookmark.url
     this.category = this.bookmark.category
   },
-  mounted() { document.title = this.mode + ' Bookmark - My Bookmarks' },
+  mounted() {
+    document.title = this.mode + ' Bookmark - My Bookmarks'
+    window.addEventListener('keyup', this.cancel)
+  },
+  beforeUnmount: function () { window.removeEventListener('keyup', this.cancel) },
   methods: {
     chkURL: function () {
       if (this.url && !this.url.match(/^https?:/) && this.url.length)
