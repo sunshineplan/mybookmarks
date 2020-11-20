@@ -231,6 +231,10 @@ td {
     transform: translate(-100%, 0);
 }
 
+.sortable-ghost {
+    opacity: 0;
+}
+
 @media (min-width: 901px) {
     .sidebar {
         display: block !important;

@@ -70,7 +70,12 @@ const sidebar = {
 }
 
 const showBookmarks = {
-  data() { return { smallSize: window.innerWidth <= 700 } },
+  data() {
+    return {
+      smallSize: window.innerWidth <= 700,
+      sortable: ''
+    }
+  },
   computed: {
     category() { return this.$store.state.category },
     bookmarks() { return this.$store.state.bookmarks }
@@ -97,7 +102,7 @@ const showBookmarks = {
           </tr>
         </thead>
         <tbody id='mybookmarks'>
-          <tr v-for='b in bookmarks' :key='b.id' :data-id='b.id'>
+          <tr v-for='b in bookmarks' :key='b.id'>
             <td>{{ b.name }}</td>
             <td><a :href='b.url' target='_blank' class='url' :data-url='b.url'>{{ b.url }}</a></td>
             <td>{{ b.category }}</td>
@@ -111,13 +116,18 @@ const showBookmarks = {
   </div>`,
   mounted() {
     document.title = this.category.name + ' - My Bookmarks'
-    $('#mybookmarks').sortable(sortable)
+    this.sortable = new Sortable(mybookmarks, {
+      animation: 150,
+      delay: 500,
+      swapThreshold: 0.5,
+      onUpdate: this.onUpdate
+    })
     window.addEventListener('resize', this.checkSize700)
     window.addEventListener('scroll', this.checkScroll, true)
     if (this.smallSize) this.formatURL(true)
   },
   beforeUnmount: function () {
-    $('#mybookmarks').sortable('destroy')
+    this.sortable.destroy()
     window.removeEventListener('resize', this.checkSize700)
     window.removeEventListener('scroll', this.checkScroll, true)
   },
@@ -131,6 +141,22 @@ const showBookmarks = {
           this.$store.dispatch('bookmarks', { more: true })
       }
     },
+    onUpdate: function (evt) {
+      console.log(this.bookmarks)
+      var orig = this.bookmarks[evt.oldIndex].id, dest, next
+      if (evt.newIndex == 0) dest = -1
+      else dest = this.bookmarks[evt.newIndex - 1].id
+      if (evt.newIndex < this.bookmarks.length - 1)
+        next = this.bookmarks[evt.newIndex + 1].id
+      console.log(this.bookmarks)
+      console.log({ orig, dest, next })
+      //post('/reorder', { orig, dest, next })
+      //  .then(resp => resp.text()).then(text => {
+      //    if (text == '1')
+      //      this.$store.dispatch('reorder', { old: evt.oldIndex, new: evt.newIndex })
+      //    else BootstrapButtons.fire('Error', text, 'error')
+      //  })
+    },
     formatURL: function (isSmall) {
       var arr = Array.from(document.getElementsByClassName('url'))
       if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
@@ -142,16 +168,5 @@ const showBookmarks = {
       this.$store.commit('bookmark', bookmark)
       this.$router.push('/bookmark/edit')
     }
-  }
-}
-
-const sortable = {
-  update: (event, ui) => {
-    var orig = ui.item.data('id'), dest, next
-    if (ui.item.prev().length == 0) dest = -1
-    else dest = ui.item.prev().data('id')
-    if (ui.item.next().length == 0) next = -1
-    else next = ui.item.next().data('id')
-    post('/reorder', { orig, dest, next })
   }
 }

@@ -81,6 +81,13 @@ const store = Vuex.createStore({
           })
         }).then(() => commit('stopLoading'))
     },
+    reorder({ commit, state }, payload) {
+      var bookmarks = state.bookmarks
+      var bookmark = bookmarks[payload.old]
+      bookmarks.splice(payload.old, 1)
+      bookmarks.splice(payload.new, 0, bookmark)
+      commit('bookmarks', bookmarks)
+    },
     addCategory({ dispatch, commit, state }, name) {
       return dispatch('categories')
         .then(() => { return state.categories.filter(i => i.name == name) })
