@@ -58,6 +58,13 @@ func getCategory(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
+	ec := make(chan error, 1)
+	var uncategorized int
+	go func() {
+		ec <- db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
+			userID).Scan(&uncategorized)
+	}()
+
 	rows, err := db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
 	if err != nil {
 		log.Println("Failed to get categories:", err)
@@ -76,10 +83,8 @@ func getCategory(c *gin.Context) {
 		categories = append(categories, category)
 	}
 
-	var uncategorized int
-	if err := db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
-		userID).Scan(&uncategorized); err != nil {
-		log.Println("Failed to scan uncategorized bookmark count:", err)
+	if err := <-ec; err != nil {
+		log.Println("Failed to scan uncategorized:", err)
 		c.String(500, "")
 		return
 	}
@@ -156,6 +161,18 @@ func editCategory(c *gin.Context) {
 		return
 	}
 
+	var category category
+	if err := c.BindJSON(&category); err != nil {
+		c.String(400, "")
+		return
+	}
+
+	ec := make(chan error, 1)
+	var exist string
+	go func() {
+		ec <- db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?",
+			category.Name, userID).Scan(&exist)
+	}()
 	var oldCategory string
 	if err := db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
 		id, userID).Scan(&oldCategory); err != nil {
@@ -163,12 +180,7 @@ func editCategory(c *gin.Context) {
 		c.String(500, "")
 		return
 	}
-
-	var category category
-	if err := c.BindJSON(&category); err != nil {
-		c.String(400, "")
-		return
-	}
+	err = <-ec
 
 	var message string
 	var errorCode int
@@ -181,22 +193,18 @@ func editCategory(c *gin.Context) {
 	case len(category.Name) > 15:
 		message = "Category name exceeded length limit."
 		errorCode = 1
+	case err == nil:
+		message = fmt.Sprintf("Category %s is already existed.", category.Name)
+		errorCode = 1
 	default:
-		var exist string
-		if err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?",
-			category.Name, userID).Scan(&exist); err == nil {
-			message = fmt.Sprintf("Category %s is already existed.", category.Name)
-			errorCode = 1
-		} else {
-			if _, err := db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?",
-				category.Name, id, userID); err != nil {
-				log.Println("Failed to edit category:", err)
-				c.String(500, "")
-				return
-			}
-			c.JSON(200, gin.H{"status": 1})
+		if _, err := db.Exec("UPDATE category SET category = ? WHERE id = ? AND user_id = ?",
+			category.Name, id, userID); err != nil {
+			log.Println("Failed to edit category:", err)
+			c.String(500, "")
 			return
 		}
+		c.JSON(200, gin.H{"status": 1})
+		return
 	}
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
 }
