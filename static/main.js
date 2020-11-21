@@ -1,7 +1,7 @@
-const app = Vue.createApp({
+const App = Vue.createApp({
   data() {
     return {
-      user: document.getElementById('app').dataset.user,
+      user: app.dataset.user,
       smallSize: window.innerWidth <= 900
     }
   },
@@ -120,7 +120,7 @@ const store = Vuex.createStore({
     }
   }
 })
-app.use(store)
+App.use(store)
 
 const routes = [
   { path: '/', component: showBookmarks },
@@ -133,9 +133,9 @@ const router = VueRouter.createRouter({
   history: VueRouter.createWebHistory(),
   routes
 })
-app.use(router)
+App.use(router)
 
-app.mixin({
+App.mixin({
   methods: {
     checkSize: function (size) {
       if (this.smallSize != window.innerWidth <= size)
@@ -150,7 +150,7 @@ app.mixin({
   }
 })
 
-app.component('login', login)
-app.component('sidebar', sidebar)
+App.component('login', login)
+App.component('sidebar', sidebar)
 
-app.mount('#app')
+App.mount('#app')

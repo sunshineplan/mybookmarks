@@ -5,7 +5,7 @@ BootstrapButtons = Swal.mixin({
 
 valid = () => {
   var result = true
-  Array.from(document.getElementsByTagName('input'))
+  Array.from(document.querySelectorAll('input'))
     .forEach(i => { if (!i.checkValidity()) result = false })
   return result
 }

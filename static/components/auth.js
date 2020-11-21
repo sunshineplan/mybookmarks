@@ -31,9 +31,9 @@ const login = {
   mounted() { document.title = 'Log In - My Bookmarks' },
   methods: {
     login: function () {
-      if (!document.getElementById('username').checkValidity())
+      if (!username.checkValidity())
         BootstrapButtons.fire('Error', 'Username cannot be empty.', 'error')
-      else if (!document.getElementById('password').checkValidity())
+      else if (!password.checkValidity())
         BootstrapButtons.fire('Error', 'Password cannot be empty.', 'error')
       else post('/login', {
         username: this.username,

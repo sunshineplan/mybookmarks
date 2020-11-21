@@ -135,7 +135,7 @@ const showBookmarks = {
   methods: {
     checkSize700: function () { this.checkSize(700) },
     checkScroll: function () {
-      var table = document.getElementsByClassName('table-responsive')[0]
+      var table = document.querySelector('.table-responsive')
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
         if (this.category.start + 30 < this.category.count)
           this.$store.dispatch('bookmarks', { more: true })
@@ -153,9 +153,9 @@ const showBookmarks = {
         })
     },
     formatURL: function (isSmall) {
-      var arr = Array.from(document.getElementsByClassName('url'))
-      if (isSmall) arr.forEach(i => i.text = i.text.replace(/https?:\/\/(www\.)?/i, ''))
-      else arr.forEach(i => i.text = i.dataset.url)
+      var urls = Array.from(document.querySelectorAll('.url'))
+      if (isSmall) urls.forEach(url => url.text = url.text.replace(/https?:\/\/(www\.)?/i, ''))
+      else urls.forEach(url => url.text = url.dataset.url)
     },
     editCategory: function () { this.$router.push('/category/edit') },
     add: function () { this.$router.push('/bookmark/add') },
