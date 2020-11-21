@@ -15,8 +15,7 @@ const App = Vue.createApp({
   methods: {
     checkSize900: function () { this.checkSize(900) },
     toggle: function () { this.$store.commit('toggleSidebar') },
-    closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') },
-    setting: function () { this.$router.push('/setting') }
+    closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') }
   }
 })
 
