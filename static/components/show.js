@@ -158,7 +158,11 @@ const showBookmarks = {
       else urls.forEach(url => url.text = url.dataset.url)
     },
     editCategory: function () { this.$router.push('/category/edit') },
-    add: function () { this.$router.push('/bookmark/add') },
+    add: function () {
+      if (this.category.id <= 0) this.$store.commit('bookmark', {})
+      else this.$store.commit('bookmark', { category: this.category.name })
+      this.$router.push('/bookmark/add')
+    },
     edit: function (bookmark) {
       this.$store.commit('bookmark', bookmark)
       this.$router.push('/bookmark/edit')
