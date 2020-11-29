@@ -32,7 +32,18 @@ func run() {
 	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
 	router.LoadHTMLFiles(joinPath(dir(self), "templates/index.html"))
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.html", gin.H{"user": sessions.Default(c).Get("username")})
+		userID := sessions.Default(c).Get("user_id")
+		if userID != nil && userID != 0 {
+			if _, err := c.Cookie("Username"); err != nil {
+				username, err := getUser(c)
+				if err != nil {
+					c.String(500, "")
+					return
+				}
+				c.SetCookie("Username", username, 0, "", "", false, false)
+			}
+		}
+		c.HTML(200, "index.html", nil)
 	})
 
 	auth := router.Group("/")
@@ -40,6 +51,7 @@ func run() {
 	auth.GET("/logout", authRequired, func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Clear()
+		c.SetCookie("Username", "", -1, "", "", false, false)
 		session.Save()
 		c.Redirect(302, "/")
 	})

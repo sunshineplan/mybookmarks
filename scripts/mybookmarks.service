@@ -5,7 +5,7 @@ After=network-online.target
 
 [Service]
 Environment=GIN_MODE=release
-ExecStart=/var/www/mybookmarks-go/mybookmarks-go
+ExecStart=/var/www/mybookmarks/mybookmarks
 
 [Install]
 WantedBy=multi-user.target

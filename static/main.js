@@ -1,11 +1,7 @@
 const App = Vue.createApp({
-  data() {
-    return {
-      user: app.dataset.user,
-      smallSize: window.innerWidth <= 900
-    }
-  },
+  data() { return { smallSize: window.innerWidth <= 900 } },
   computed: {
+    user() { return this.$store.state.username },
     loading() { return this.$store.state.loading },
     sidebar() { return this.$store.state.sidebar },
     showSidebar() { return this.$store.state.showSidebar }
@@ -22,6 +18,7 @@ const App = Vue.createApp({
 const store = Vuex.createStore({
   state() {
     return {
+      username: Cookies.get("Username"),
       sidebar: false,
       showSidebar: false,
       loading: 0,
@@ -32,6 +29,7 @@ const store = Vuex.createStore({
     }
   },
   mutations: {
+    username(state, username) { state.username = username },
     startLoading(state) { state.loading += 1 },
     stopLoading(state) { state.loading -= 1 },
     sidebar(state, status) { state.sidebar = status },

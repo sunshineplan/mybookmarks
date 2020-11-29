@@ -4,6 +4,7 @@
 <link rel='icon' href='/static/favicon.ico'>
 <script src='https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/sweetalert2@9'></script>
+<script src='https://cdn.jsdelivr.net/npm/js-cookie@2'></script>
 <script src='https://cdn.jsdelivr.net/npm/vue@next'></script>
 <script src='https://cdn.jsdelivr.net/npm/vuex@next'></script>
 <script src='https://cdn.jsdelivr.net/npm/vue-router@next'></script>
@@ -13,7 +14,7 @@
 <link rel='stylesheet'
   href='https://cdn.jsdelivr.net/gh/google/material-design-icons@3/iconfont/material-icons.min.css'>
 <link rel='stylesheet' href='/static/style.css'>
-<div id='app' data-user='{{ .user }}'>
+<div id='app'>
   <nav class='navbar navbar-light topbar'>
     <div class='d-flex' style='height: 100%'>
       <a class='toggle' v-if='user && smallSize' @click='toggle'><i class='material-icons menu'>menu</i></a>

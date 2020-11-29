@@ -42,7 +42,10 @@ const login = {
       }).then(resp => {
         if (!resp.ok) resp.text().then(err =>
           BootstrapButtons.fire('Error', err, 'error'))
-        else window.location = '/'
+        else {
+          this.$store.commit('username', this.username)
+          this.$router.push('/')
+        }
       })
     }
   }
@@ -103,7 +106,10 @@ const setting = {
           else resp.json().then(json => {
             if (json.status == 1)
               BootstrapButtons.fire('Success', 'Your password has changed. Please Re-login!', 'success')
-                .then(() => window.location = '/')
+                .then(() => {
+                  this.$store.commit('username', undefined)
+                  this.$router.push('/')
+                })
             else
               BootstrapButtons.fire('Error', json.message, 'error')
                 .then(() => {
