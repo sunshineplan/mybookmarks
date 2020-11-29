@@ -1,4 +1,4 @@
-module mybookmarks-go
+module mybookmarks
 
 go 1.15
 
