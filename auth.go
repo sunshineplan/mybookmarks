@@ -73,7 +73,8 @@ func login(c *gin.Context) {
 				statusCode = 500
 				message = "Critical Error! Please contact your system administrator."
 			}
-		} else if message == "" {
+		}
+		if message == "" {
 			session := sessions.Default(c)
 			session.Clear()
 			session.Set("user_id", user.ID)
@@ -82,7 +83,7 @@ func login(c *gin.Context) {
 			if login.Rememberme {
 				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
 			} else {
-				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 0})
+				session.Options(sessions.Options{Path: "/", HttpOnly: true})
 			}
 
 			if err := session.Save(); err != nil {
