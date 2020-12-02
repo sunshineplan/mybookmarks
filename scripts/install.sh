@@ -1,8 +1,8 @@
 #! /bin/bash
 
 installSoftware() {
-    apt -qq -y install nginx default-mysql-client npm
-    apt -qq -y -t $(lsb_release -sc)-backports install golang-go
+    apt -qq -y install nginx default-mysql-client
+    apt -qq -y -t $(lsb_release -sc)-backports install golang-go npm
 }
 
 installMyBookmarks() {

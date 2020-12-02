@@ -26,7 +26,6 @@ jobs:
 
       - name: Test Vue Code
         run: |
-          npm i -g @vue/cli-service
           npm i --no-package-lock
           npm run build
 
