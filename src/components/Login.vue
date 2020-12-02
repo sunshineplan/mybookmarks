@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import { BootstrapButtons, post } from "../utils.js";
+import { BootstrapButtons, post } from "../misc.js";
 
 export default {
   name: "Login",
@@ -64,27 +64,40 @@ export default {
     document.title = "Log In - My Bookmarks";
   },
   methods: {
-    login: function () {
+    async login() {
       if (!document.querySelector("#username").checkValidity())
-        BootstrapButtons.fire("Error", "Username cannot be empty.", "error");
+        await BootstrapButtons.fire(
+          "Error",
+          "Username cannot be empty.",
+          "error"
+        );
       else if (!document.querySelector("#password").checkValidity())
-        BootstrapButtons.fire("Error", "Password cannot be empty.", "error");
-      else
-        post("/login", {
+        await BootstrapButtons.fire(
+          "Error",
+          "Password cannot be empty.",
+          "error"
+        );
+      else {
+        const resp = await post("/login", {
           username: this.username,
           password: this.password,
           rememberme: this.rememberme,
-        }).then((resp) => {
-          if (!resp.ok)
-            resp
-              .text()
-              .then((err) => BootstrapButtons.fire("Error", err, "error"));
-          else {
-            this.$store.commit("username", this.username);
-            this.$router.push("/");
-          }
         });
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          this.$store.commit("username", this.username);
+          this.$router.push("/");
+        }
+      }
     },
   },
 };
 </script>
+
+<style scoped>
+.login {
+  width: 250px;
+  margin: 0 auto 20px;
+}
+</style>

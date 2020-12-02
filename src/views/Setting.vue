@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { BootstrapButtons, post, valid } from "../utils.js";
+import { BootstrapButtons, post, valid } from "../misc.js";
 
 export default {
   name: "Setting",
@@ -71,41 +71,35 @@ export default {
     window.removeEventListener("keyup", this.cancel);
   },
   methods: {
-    setting() {
+    async setting() {
       if (valid()) {
         this.validated = false;
-        post("/setting", {
+        const resp = await post("/setting", {
           password: this.password,
           password1: this.password1,
           password2: this.password2,
-        }).then((resp) => {
-          if (!resp.ok)
-            resp
-              .text()
-              .then((err) => BootstrapButtons.fire("Error", err, "error"));
-          else
-            resp.json().then((json) => {
-              if (json.status == 1)
-                BootstrapButtons.fire(
-                  "Success",
-                  "Your password has changed. Please Re-login!",
-                  "success"
-                ).then(() => {
-                  this.$store.commit("username", undefined);
-                  this.$router.push("/");
-                });
-              else
-                BootstrapButtons.fire("Error", json.message, "error").then(
-                  () => {
-                    if (json.error == 1) this.password = "";
-                    else {
-                      this.password1 = "";
-                      this.password2 = "";
-                    }
-                  }
-                );
-            });
         });
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          const json = await resp.json();
+          if (json.status == 1) {
+            await BootstrapButtons.fire(
+              "Success",
+              "Your password has changed. Please Re-login!",
+              "success"
+            );
+            this.$store.commit("username", undefined);
+            this.$router.push("/");
+          } else {
+            await BootstrapButtons.fire("Error", json.message, "error");
+            if (json.error == 1) this.password = "";
+            else {
+              this.password1 = "";
+              this.password2 = "";
+            }
+          }
+        }
       } else this.validated = true;
     },
   },

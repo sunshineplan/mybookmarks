@@ -42,7 +42,7 @@
 
 <script>
 import Sortable from "sortablejs";
-import { BootstrapButtons, post } from "../utils.js";
+import { BootstrapButtons, post } from "../misc.js";
 
 export default {
   name: "ShowBookmarks",
@@ -86,27 +86,24 @@ export default {
     checkSize700() {
       this.checkSize(700);
     },
-    checkScroll() {
+    async checkScroll() {
       var table = document.querySelector(".table-responsive");
       if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
         if (this.category.start + 30 < this.category.count)
-          this.$store.dispatch("bookmarks", { more: true });
+          await this.$store.dispatch("bookmarks", { more: true });
       }
     },
-    onUpdate(evt) {
-      post("/reorder", {
+    async onUpdate(evt) {
+      const resp = await post("/reorder", {
         old: this.bookmarks[evt.oldIndex].id,
         new: this.bookmarks[evt.newIndex].id,
-      })
-        .then((resp) => resp.text())
-        .then((text) => {
-          if (text == "1")
-            this.$store.dispatch("reorder", {
-              old: evt.oldIndex,
-              new: evt.newIndex,
-            });
-          else BootstrapButtons.fire("Error", text, "error");
+      });
+      if ((await resp.text()) == "1")
+        this.$store.dispatch("reorder", {
+          old: evt.oldIndex,
+          new: evt.newIndex,
         });
+      else await BootstrapButtons.fire("Error", "Failed to reorder.", "error");
     },
     formatURL(isSmall) {
       var urls = Array.from(document.querySelectorAll(".url"));
@@ -116,18 +113,83 @@ export default {
         );
       else urls.forEach((url) => (url.text = url.dataset.url));
     },
-    editCategory: function () {
+    editCategory() {
       this.$router.push("/category/edit");
     },
-    add: function () {
+    add() {
       if (this.category.id <= 0) this.$store.commit("bookmark", {});
       else this.$store.commit("bookmark", { category: this.category.name });
       this.$router.push("/bookmark/add");
     },
-    edit: function (bookmark) {
+    edit(bookmark) {
       this.$store.commit("bookmark", bookmark);
       this.$router.push("/bookmark/edit");
     },
   },
 };
 </script>
+
+<style scoped>
+.icon {
+  color: #007bff !important;
+  cursor: pointer;
+}
+
+.icon:hover {
+  color: #0056b3 !important;
+}
+
+.h3 {
+  cursor: default;
+}
+
+.edit {
+  font-size: 18px;
+}
+
+.table-responsive {
+  height: calc(100% - 100px);
+  padding: 0 10px;
+  cursor: default;
+}
+
+table {
+  table-layout: fixed;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  border-top: 0 !important;
+  border-bottom: 1px solid #dee2e6 !important;
+  background-color: white;
+}
+
+th:nth-of-type(1) {
+  width: 200px;
+}
+th:nth-of-type(3) {
+  width: 200px;
+}
+th:nth-of-type(4) {
+  width: 80px;
+}
+
+td {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  th:nth-of-type(1) {
+    width: 120px;
+  }
+  th:nth-of-type(3) {
+    width: 120px;
+  }
+  th:nth-of-type(4) {
+    width: 40px;
+  }
+}
+</style>

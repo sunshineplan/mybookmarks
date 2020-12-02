@@ -21,7 +21,7 @@ export const post = async (url, data) => {
       body: JSON.stringify(data)
     })
   } catch (e) {
-    return Promise.reject(BootstrapButtons.fire('Error', e, 'error'))
+    return Promise.reject(await BootstrapButtons.fire('Error', e, 'error'))
   }
   if (resp.status != 401) return resp
   await BootstrapButtons.fire('Error', 'Login status has changed. Please Re-login!', 'error')

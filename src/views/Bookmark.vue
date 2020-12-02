@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { BootstrapButtons, post, valid, confirm } from "../utils.js";
+import { BootstrapButtons, post, valid, confirm } from "../misc.js";
 
 export default {
   name: "Bookmark",
@@ -92,59 +92,49 @@ export default {
       if (this.url && !this.url.match(/^https?:/) && this.url.length)
         this.url = "http://" + this.url;
     },
-    save() {
+    async save() {
       if (valid()) {
         this.validated = false;
-        var r;
+        let resp;
         if (this.mode == "Add")
-          r = post("/bookmark/add", {
+          resp = await post("/bookmark/add", {
             name: this.name,
             url: this.url,
             category: this.category,
           });
         else
-          r = post("/bookmark/edit/" + this.bookmark.id, {
+          resp = await post("/bookmark/edit/" + this.bookmark.id, {
             name: this.name,
             url: this.url,
             category: this.category,
           });
-        r.then((resp) => {
-          if (!resp.ok)
-            resp
-              .text()
-              .then((err) => BootstrapButtons.fire("Error", err, "error"));
-          else
-            resp.json().then((json) => {
-              if (json.status == 1) {
-                this.goback(true);
-                this.$store.dispatch("bookmarks", {
-                  id: this.$store.state.category.id,
-                });
-              } else
-                BootstrapButtons.fire("Error", json.message, "error").then(
-                  () => {
-                    if (json.error == 1) this.name = "";
-                    else if (json.error == 2) this.url = "";
-                  }
-                );
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          const json = await resp.json();
+          if (json.status == 1) {
+            await this.goback(true);
+            await this.$store.dispatch("bookmarks", {
+              id: this.$store.state.category.id,
             });
-        });
+          } else {
+            await BootstrapButtons.fire("Error", json.message, "error");
+            if (json.error == 1) this.name = "";
+            else if (json.error == 2) this.url = "";
+          }
+        }
       } else this.validated = true;
     },
-    del() {
-      confirm("bookmark").then((confirm) => {
-        if (confirm)
-          post("/bookmark/delete/" + this.bookmark.id).then((resp) => {
-            if (!resp.ok)
-              resp
-                .text()
-                .then((err) => BootstrapButtons.fire("Error", err, "error"));
-            else {
-              this.goback();
-              this.$store.dispatch("delBookmarks", this.bookmark);
-            }
-          });
-      });
+    async del() {
+      if (await confirm("bookmark")) {
+        const resp = await post("/bookmark/delete/" + this.bookmark.id);
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          await this.$store.dispatch("delBookmarks", this.bookmark);
+          this.goback();
+        }
+      }
     },
   },
 };

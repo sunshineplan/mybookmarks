@@ -20,6 +20,7 @@ func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	if userID == nil {
+		c.SetCookie("Username", "", -1, "", "", false, false)
 		c.AbortWithStatus(401)
 	}
 }

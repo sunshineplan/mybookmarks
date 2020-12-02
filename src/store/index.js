@@ -1,6 +1,6 @@
 import { createStore } from 'vuex'
 import Cookies from 'js-cookie'
-import { BootstrapButtons, post } from '../utils.js'
+import { BootstrapButtons, post } from '../misc.js'
 
 export default createStore({
   state() {
@@ -29,42 +29,35 @@ export default createStore({
     bookmark(state, bookmark) { state.bookmark = bookmark }
   },
   actions: {
-    categories({ commit, state }) {
+    async categories({ commit, state }) {
       commit('sidebar', false)
       commit('startLoading')
-      return post('/category/get')
-        .then(response => response.json())
-        .then(categories => {
-          commit('categories', categories)
-          if (state.category.count == undefined)
-            commit('category', {
-              id: -1,
-              name: 'All Bookmarks',
-              count: categories.reduce((total, i) => total + i.count, 0),
-              start: 0
-            })
-          commit('stopLoading')
-          commit('sidebar', true)
+      const resp = await post('/category/get')
+      commit('categories', await resp.json())
+      if (state.category.count == undefined)
+        commit('category', {
+          id: -1,
+          name: 'All Bookmarks',
+          count: state.categories.reduce((total, i) => total + i.count, 0),
+          start: 0
         })
+      commit('stopLoading')
+      commit('sidebar', true)
     },
-    bookmarks({ commit, state }, payload) {
+    async bookmarks({ commit, state }, payload) {
       commit('startLoading')
       let params
       if (payload.more) {
         commit('more')
         params = { category: state.category.id, start: state.category.start }
       } else params = { category: payload.id }
-      return post('/bookmark/get', params)
-        .then(resp => {
-          if (!resp.ok) resp.text().then(err => {
-            return BootstrapButtons.fire('Error', err, 'error')
-          })
-          else resp.json().then(bookmarks => {
-            if (payload.more)
-              commit('bookmarks', state.bookmarks.concat(bookmarks))
-            else commit('bookmarks', bookmarks)
-          })
-        }).then(() => commit('stopLoading'))
+      const resp = await post('/bookmark/get', params)
+      if (!resp.ok)
+        await BootstrapButtons.fire('Error', await resp.text(), 'error')
+      else
+        if (!payload.more) commit('bookmarks', await resp.json())
+        else commit('bookmarks', state.bookmarks.concat(await resp.json()))
+      commit('stopLoading')
     },
     reorder({ commit, state }, payload) {
       var bookmarks = state.bookmarks
@@ -73,29 +66,26 @@ export default createStore({
       bookmarks.splice(payload.new, 0, bookmark)
       commit('bookmarks', bookmarks)
     },
-    addCategory({ dispatch, commit, state }, name) {
-      return dispatch('categories')
-        .then(() => { return state.categories.filter(i => i.name == name) })
-        .then(category => {
-          if (category.length) {
-            commit('category', category[0])
-            commit('bookmarks', [])
-          }
-        })
+    async addCategory({ dispatch, commit, state }, name) {
+      await dispatch('categories')
+      const category = state.categories.filter(i => i.name == name)
+      if (category.length) {
+        commit('category', category[0])
+        commit('bookmarks', [])
+      }
     },
-    editCategory({ dispatch, commit, state }, name) {
-      return dispatch('categories').then(() => {
-        commit('category', {
-          id: state.category.id,
-          name,
-          count: state.category.count,
-          start: state.category.start
-        })
-        var bookmarks = state.bookmarks
-        if (bookmarks)
-          bookmarks.forEach(i => i.category = name)
-        commit('bookmarks', bookmarks)
+    async editCategory({ dispatch, commit, state }, name) {
+      await dispatch('categories')
+      commit('category', {
+        id: state.category.id,
+        name,
+        count: state.category.count,
+        start: state.category.start
       })
+      let bookmarks = state.bookmarks
+      if (bookmarks)
+        bookmarks.forEach(i => i.category = name)
+      commit('bookmarks', bookmarks)
     },
     delBookmarks({ commit, state }, bookmark) {
       var categories = state.categories

@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import { BootstrapButtons, post, valid, confirm } from "../utils.js";
+import { BootstrapButtons, post, valid, confirm } from "../misc.js";
 
 export default {
   name: "Category",
@@ -67,49 +67,44 @@ export default {
     },
   },
   methods: {
-    save() {
+    async save() {
       if (valid()) {
         this.validated = false;
-        var r;
-        if (this.mode == "Add") r = post("/category/add", { name: this.name });
+        let resp;
+        if (this.mode == "Add")
+          resp = await post("/category/add", { name: this.name });
         else
-          r = post("/category/edit/" + this.category.id, { name: this.name });
-        r.then((resp) => {
-          if (!resp.ok)
-            resp
-              .text()
-              .then((err) => BootstrapButtons.fire("Error", err, "error"));
-          else
-            resp.json().then((json) => {
-              if (json.status == 1) {
-                if (this.mode == "Add")
-                  this.$store.dispatch("addCategory", this.name);
-                else this.$store.dispatch("editCategory", this.name);
-                this.goback();
-              } else BootstrapButtons.fire("Error", json.message, "error");
-            });
-        });
+          resp = await post("/category/edit/" + this.category.id, {
+            name: this.name,
+          });
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          const json = await resp.json();
+          if (json.status == 1) {
+            if (this.mode == "Add")
+              await this.$store.dispatch("addCategory", this.name);
+            else await this.$store.dispatch("editCategory", this.name);
+            this.goback();
+          } else await BootstrapButtons.fire("Error", json.message, "error");
+        }
       } else this.validated = true;
     },
-    del() {
-      confirm("category").then((confirm) => {
-        if (confirm)
-          post("/category/delete/" + this.category.id).then((resp) => {
-            if (!resp.ok)
-              resp
-                .text()
-                .then((err) => BootstrapButtons.fire("Error", err, "error"));
-            else {
-              this.$store.commit("category", {
-                id: -1,
-                name: "All Bookmarks",
-                start: 0,
-              });
-              this.goback(true);
-              this.$store.dispatch("bookmarks", { id: -1 });
-            }
+    async del() {
+      if (await confirm("category")) {
+        const resp = await post("/category/delete/" + this.category.id);
+        if (!resp.ok)
+          await BootstrapButtons.fire("Error", await resp.text(), "error");
+        else {
+          this.$store.commit("category", {
+            id: -1,
+            name: "All Bookmarks",
+            start: 0,
           });
-      });
+          await this.goback(true);
+          await this.$store.dispatch("bookmarks", { id: -1 });
+        }
+      }
     },
   },
 };

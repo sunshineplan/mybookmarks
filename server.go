@@ -29,8 +29,10 @@ func run() {
 	router := gin.Default()
 	server.Handler = router
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
-	router.StaticFS("/static", http.Dir(joinPath(dir(self), "static")))
-	router.LoadHTMLFiles(joinPath(dir(self), "templates/index.html"))
+	router.StaticFS("/js", http.Dir(joinPath(dir(self), "dist/js")))
+	router.StaticFS("/css", http.Dir(joinPath(dir(self), "dist/css")))
+	router.StaticFile("favicon.ico", joinPath(dir(self), "dist/favicon.ico"))
+	router.LoadHTMLFiles(joinPath(dir(self), "dist/index.html"))
 	router.GET("/", func(c *gin.Context) {
 		userID := sessions.Default(c).Get("user_id")
 		if userID != nil && userID != 0 {
@@ -42,6 +44,8 @@ func run() {
 				}
 				c.SetCookie("Username", username, 0, "", "", false, false)
 			}
+		} else {
+			c.SetCookie("Username", "", -1, "", "", false, false)
 		}
 		c.HTML(200, "index.html", nil)
 	})

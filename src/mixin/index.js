@@ -4,9 +4,9 @@ export default {
       if (this.smallSize != window.innerWidth <= size)
         this.smallSize = !this.smallSize
     },
-    goback(reload) {
+    async goback(reload) {
       if (reload)
-        this.$store.dispatch('categories')
+        await this.$store.dispatch('categories')
       this.$router.go(-1)
     },
     cancel(event) { if (event.key == 'Escape') this.goback() }
