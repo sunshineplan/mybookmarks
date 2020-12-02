@@ -1,24 +1,11 @@
-const App = Vue.createApp({
-  data() { return { smallSize: window.innerWidth <= 900 } },
-  computed: {
-    user() { return this.$store.state.username },
-    loading() { return this.$store.state.loading },
-    sidebar() { return this.$store.state.sidebar },
-    showSidebar() { return this.$store.state.showSidebar }
-  },
-  mounted() { window.addEventListener('resize', this.checkSize900) },
-  beforeUnmount() { window.removeEventListener('resize', this.checkSize900) },
-  methods: {
-    checkSize900: function () { this.checkSize(900) },
-    toggle: function () { this.$store.commit('toggleSidebar') },
-    closeSidebar: function () { if (this.smallSize) this.$store.commit('closeSidebar') }
-  }
-})
+import { createStore } from 'vuex'
+import Cookies from 'js-cookie'
+import { BootstrapButtons, post } from '../utils.js'
 
-const store = Vuex.createStore({
+export default createStore({
   state() {
     return {
-      username: Cookies.get("Username"),
+      username: Cookies.get('Username'),
       sidebar: false,
       showSidebar: false,
       loading: 0,
@@ -62,10 +49,11 @@ const store = Vuex.createStore({
     },
     bookmarks({ commit, state }, payload) {
       commit('startLoading')
+      let params
       if (payload.more) {
         commit('more')
-        var params = { category: state.category.id, start: state.category.start }
-      } else var params = { category: payload.id }
+        params = { category: state.category.id, start: state.category.start }
+      } else params = { category: payload.id }
       return post('/bookmark/get', params)
         .then(resp => {
           if (!resp.ok) resp.text().then(err => {
@@ -117,37 +105,3 @@ const store = Vuex.createStore({
     }
   }
 })
-App.use(store)
-
-const routes = [
-  { path: '/', component: showBookmarks },
-  { path: '/setting', component: setting },
-  { path: '/category/:mode', component: category },
-  { path: '/bookmark/:mode', component: bookmark }
-]
-
-const router = VueRouter.createRouter({
-  history: VueRouter.createWebHistory(),
-  routes
-})
-App.use(router)
-
-App.mixin({
-  methods: {
-    checkSize: function (size) {
-      if (this.smallSize != window.innerWidth <= size)
-        this.smallSize = !this.smallSize
-    },
-    goback: function (reload) {
-      if (reload)
-        this.$store.dispatch('categories')
-      this.$router.go(-1)
-    },
-    cancel: function (event) { if (event.key == 'Escape') this.goback() }
-  }
-})
-
-App.component('login', login)
-App.component('sidebar', sidebar)
-
-App.mount('#app')

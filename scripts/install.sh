@@ -1,7 +1,7 @@
 #! /bin/bash
 
 installSoftware() {
-    apt -qq -y install nginx default-mysql-client
+    apt -qq -y install nginx default-mysql-client npm
     apt -qq -y -t $(lsb_release -sc)-backports install golang-go
 }
 
@@ -9,7 +9,7 @@ installMyBookmarks() {
     curl -Lo- https://github.com/sunshineplan/mybookmarks/archive/v1.0.tar.gz | tar zxC /var/www
     mv /var/www/mybookmarks* /var/www/mybookmarks
     cd /var/www/mybookmarks
-    go build
+    bash build.sh
 }
 
 configMyBookmarks() {
