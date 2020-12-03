@@ -1,5 +1,5 @@
 #! /bin/bash
 
-go build -ldflags "-s -w"
 npm i
+go build -ldflags "-s -w"
 npm run build
