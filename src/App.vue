@@ -8,7 +8,7 @@
     </div>
     <div class="navbar-nav flex-row" v-if="user">
       <a class="nav-link" v-text="user"></a>
-      <router-link class="nav-link link" to="/setting">Setting</router-link>
+      <a class="nav-link link" @click="setting()">Setting</a>
       <a class="nav-link link" href="/logout">Log Out</a>
     </div>
     <div class="navbar-nav flex-row" v-else>
@@ -74,6 +74,10 @@ export default {
   methods: {
     checkSize900() {
       this.checkSize(900);
+    },
+    setting() {
+      this.closeSidebar();
+      this.$router.push("/setting");
     },
     toggle() {
       this.$store.commit("toggleSidebar");

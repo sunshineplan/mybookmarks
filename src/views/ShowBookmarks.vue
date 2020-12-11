@@ -84,7 +84,7 @@ export default {
   },
   methods: {
     checkSize700() {
-      this.checkSize(700);
+      return this.checkSize(700);
     },
     async checkScroll() {
       var table = document.querySelector(".table-responsive");

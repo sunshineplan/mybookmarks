@@ -81,11 +81,11 @@ export default {
       }
     },
     add() {
-      if (window.innerWidth <= 700) this.$store.commit("closeSidebar");
+      if (window.innerWidth <= 900) this.$store.commit("closeSidebar");
       this.$router.push("/category/add");
     },
     load(id, name, count) {
-      if (window.innerWidth <= 700) this.$store.commit("closeSidebar");
+      if (window.innerWidth <= 900) this.$store.commit("closeSidebar");
       this.$router.push("/");
       if (id != this.active) {
         this.$store.commit("category", { id, name, count, start: 0 });
