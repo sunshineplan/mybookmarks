@@ -9,6 +9,7 @@ import (
 
 	"github.com/sunshineplan/utils/httpsvr"
 	"github.com/sunshineplan/utils/metadata"
+	"github.com/sunshineplan/utils/service"
 	"github.com/vharitonsky/iniflags"
 )
 
@@ -16,6 +17,16 @@ var self string
 var logPath string
 var server httpsvr.Server
 var meta metadata.Server
+
+var svc = service.Service{
+	Name: "MyBookmarks",
+	Desc: "Instance to serve My Bookmarks",
+	Exec: run,
+	Options: service.Options{
+		Dependencies: []string{"Wants=network-online.target", "After=network.target"},
+		Others:       []string{"Environment=GIN_MODE=release"},
+	},
+}
 
 var (
 	joinPath = filepath.Join
@@ -45,13 +56,26 @@ func main() {
 	}
 	getDB()
 
+	if service.IsWindowsService() {
+		svc.Run(false)
+		return
+	}
+
 	switch flag.NArg() {
 	case 0:
 		run()
 	case 1:
 		switch flag.Arg(0) {
-		case "run":
+		case "run", "debug":
 			run()
+		case "install":
+			err = svc.Install()
+		case "remove":
+			err = svc.Remove()
+		case "start":
+			err = svc.Start()
+		case "stop":
+			err = svc.Stop()
 		case "backup":
 			backup()
 		case "init":

@@ -10,6 +10,7 @@ installMyBookmarks() {
     mv /var/www/mybookmarks* /var/www/mybookmarks
     cd /var/www/mybookmarks
     bash build.sh
+    ./mybookmarks install
 }
 
 configMyBookmarks() {
@@ -32,11 +33,6 @@ configMyBookmarks() {
     sed -i "s,\$log,$log," /var/www/mybookmarks/config.ini
     sed -i "s/\$host/$host/" /var/www/mybookmarks/config.ini
     sed -i "s/\$port/$port/" /var/www/mybookmarks/config.ini
-}
-
-setupsystemd() {
-    cp -s /var/www/mybookmarks/scripts/mybookmarks.service /etc/systemd/system
-    systemctl enable mybookmarks
     service mybookmarks start
 }
 
@@ -72,7 +68,6 @@ main() {
     installSoftware
     installMyBookmarks
     configMyBookmarks
-    setupsystemd
     writeLogrotateScrip
     createCronTask
     setupNGINX
