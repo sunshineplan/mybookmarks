@@ -256,11 +256,6 @@ func reorder(c *gin.Context) {
 		return
 	}
 
-	go func() {
-		_, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
-			newSeq, reorder.Old, userID)
-		ec <- err
-	}()
 	var err error
 	if oldSeq > newSeq {
 		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND seq < ? AND user_id = ?",
@@ -274,7 +269,8 @@ func reorder(c *gin.Context) {
 		c.String(500, "")
 		return
 	}
-	if err := <-ec; err != nil {
+	if _, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
+		newSeq, reorder.Old, userID); err != nil {
 		log.Println("Failed to update seq:", err)
 		c.String(500, "")
 		return
