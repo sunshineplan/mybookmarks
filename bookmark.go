@@ -23,14 +23,6 @@ func getBookmark(c *gin.Context) {
 		return
 	}
 
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -74,14 +66,6 @@ func getBookmark(c *gin.Context) {
 }
 
 func addBookmark(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -146,14 +130,6 @@ func addBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -234,14 +210,6 @@ func editBookmark(c *gin.Context) {
 }
 
 func deleteBookmark(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -261,13 +229,6 @@ func deleteBookmark(c *gin.Context) {
 }
 
 func reorder(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -300,6 +261,7 @@ func reorder(c *gin.Context) {
 			newSeq, reorder.Old, userID)
 		ec <- err
 	}()
+	var err error
 	if oldSeq > newSeq {
 		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND seq < ? AND user_id = ?",
 			newSeq, oldSeq, userID)

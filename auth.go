@@ -26,14 +26,6 @@ func authRequired(c *gin.Context) {
 }
 
 func getUser(c *gin.Context) (username string, err error) {
-	var db *sql.DB
-	db, err = getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		return
-	}
-	defer db.Close()
-
 	userID := sessions.Default(c).Get("user_id")
 	err = db.QueryRow("SELECT username FROM user WHERE id = ?", userID).Scan(&username)
 	return
@@ -49,14 +41,6 @@ func login(c *gin.Context) {
 		return
 	}
 	login.Username = strings.ToLower(login.Username)
-
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(500, "Failed to connect to database.")
-		return
-	}
-	defer db.Close()
 
 	var user user
 	statusCode := 200
@@ -118,19 +102,11 @@ func setting(c *gin.Context) {
 		return
 	}
 
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
 	var oldPassword string
-	if err = db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword); err != nil {
+	if err := db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword); err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
@@ -138,7 +114,7 @@ func setting(c *gin.Context) {
 
 	var message string
 	var errorCode int
-	err = bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(setting.Password))
+	err := bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(setting.Password))
 	switch {
 	case err != nil:
 		if (err == bcrypt.ErrHashTooShort && setting.Password != oldPassword) ||

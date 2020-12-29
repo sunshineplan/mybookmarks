@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/sunshineplan/utils/httpsvr"
 	"github.com/sunshineplan/utils/metadata"
 	"github.com/vharitonsky/iniflags"
@@ -44,6 +43,7 @@ func main() {
 	if err := initDB(); err != nil {
 		log.Fatalln("Failed to load database config:", err)
 	}
+	getDB()
 
 	switch flag.NArg() {
 	case 0:

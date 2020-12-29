@@ -47,14 +47,6 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 }
 
 func getCategory(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -96,14 +88,6 @@ func getCategory(c *gin.Context) {
 }
 
 func addCategory(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 
@@ -144,14 +128,6 @@ func addCategory(c *gin.Context) {
 }
 
 func editCategory(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
-
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
@@ -210,13 +186,6 @@ func editCategory(c *gin.Context) {
 }
 
 func deleteCategory(c *gin.Context) {
-	db, err := getDB()
-	if err != nil {
-		log.Println("Failed to connect to database:", err)
-		c.String(503, "")
-		return
-	}
-	defer db.Close()
 	session := sessions.Default(c)
 	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
