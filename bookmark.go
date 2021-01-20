@@ -16,6 +16,15 @@ type bookmark struct {
 	Category string `json:"category"`
 }
 
+func checkBookmark(bookmarkID, userID interface{}) bool {
+	var exist string
+	if err := db.QueryRow("SELECT bookmark FROM bookmarks WHERE bookmark_id = ? AND user_id = ?",
+		bookmarkID, userID).Scan(&exist); err == nil {
+		return true
+	}
+	return false
+}
+
 func getBookmark(c *gin.Context) {
 	var r struct{ Category, Start int }
 	if err := c.BindJSON(&r); err != nil {
@@ -23,9 +32,7 @@ func getBookmark(c *gin.Context) {
 		return
 	}
 
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
+	userID := sessions.Default(c).Get("userID")
 	stmt := "SELECT %s FROM bookmarks WHERE"
 
 	var args []interface{}
@@ -66,15 +73,13 @@ func getBookmark(c *gin.Context) {
 }
 
 func addBookmark(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
 	var bookmark bookmark
 	if err := c.BindJSON(&bookmark); err != nil {
 		c.String(400, "")
 		return
 	}
 
+	userID := sessions.Default(c).Get("userID")
 	bc := make(chan error, 3)
 	var categoryID int
 	var exist1, exist2 string
@@ -130,21 +135,20 @@ func addBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		log.Println("Failed to get id param:", err)
 		c.String(400, "")
 		return
 	}
+
 	var new bookmark
 	if err := c.BindJSON(&new); err != nil {
 		c.String(400, "")
 		return
 	}
 
+	userID := sessions.Default(c).Get("userID")
 	bc := make(chan error, 4)
 	var old bookmark
 	var categoryID int
@@ -210,9 +214,6 @@ func editBookmark(c *gin.Context) {
 }
 
 func deleteBookmark(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		log.Println("Failed to get id param:", err)
@@ -220,58 +221,35 @@ func deleteBookmark(c *gin.Context) {
 		return
 	}
 
-	if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?", id, userID); err != nil {
-		log.Println("Failed to delete bookmark:", err)
-		c.String(500, "")
+	if checkBookmark(id, sessions.Default(c).Get("userID")) {
+		if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?",
+			id, sessions.Default(c).Get("userID")); err != nil {
+			log.Println("Failed to delete bookmark:", err)
+			c.String(500, "")
+			return
+		}
+		c.JSON(200, gin.H{"status": 1})
 		return
 	}
-	c.JSON(200, gin.H{"status": 1})
+	c.String(403, "")
 }
 
 func reorder(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
 	var reorder struct{ Old, New int }
 	if err := c.BindJSON(&reorder); err != nil {
 		c.String(400, "")
 		return
 	}
 
-	ec := make(chan error, 1)
-	var oldSeq, newSeq int
-	go func() {
-		ec <- db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-			reorder.Old, userID).Scan(&oldSeq)
-	}()
-	if err := db.QueryRow("SELECT seq FROM seq WHERE bookmark_id = ? AND user_id = ?",
-		reorder.New, userID).Scan(&newSeq); err != nil {
-		log.Println("Failed to scan new seq:", err)
-		c.String(500, "")
-		return
-	}
-	if err := <-ec; err != nil {
-		log.Println("Failed to scan old seq:", err)
-		c.String(500, "")
+	userID := sessions.Default(c).Get("userID")
+	if !checkBookmark(reorder.Old, userID) || !checkBookmark(reorder.New, userID) {
+		c.String(403, "")
 		return
 	}
 
-	var err error
-	if oldSeq > newSeq {
-		_, err = db.Exec("UPDATE seq SET seq = seq+1 WHERE seq >= ? AND seq < ? AND user_id = ?",
-			newSeq, oldSeq, userID)
-	} else {
-		_, err = db.Exec("UPDATE seq SET seq = seq-1 WHERE seq > ? AND seq <= ? AND user_id = ?",
-			oldSeq, newSeq, userID)
-	}
-	if err != nil {
-		log.Println("Failed to update other seq:", err)
-		c.String(500, "")
-		return
-	}
-	if _, err := db.Exec("UPDATE seq SET seq = ? WHERE bookmark_id = ? AND user_id = ?",
-		newSeq, reorder.Old, userID); err != nil {
-		log.Println("Failed to update seq:", err)
+	if _, err := db.Exec("CALL reorder(?, ?, ?)",
+		userID, reorder.New, reorder.Old); err != nil {
+		log.Println("Failed to reorder bookmark:", err)
 		c.String(500, "")
 		return
 	}

@@ -29,25 +29,15 @@ func run() {
 	router := gin.Default()
 	server.Handler = router
 	router.Use(sessions.Sessions("session", sessions.NewCookieStore(secret)))
-	router.StaticFS("/js", http.Dir(joinPath(dir(self), "dist/js")))
-	router.StaticFS("/css", http.Dir(joinPath(dir(self), "dist/css")))
-	router.StaticFile("favicon.ico", joinPath(dir(self), "dist/favicon.ico"))
-	router.LoadHTMLFiles(joinPath(dir(self), "dist/index.html"))
+	router.StaticFS("/build", http.Dir(joinPath(dir(self), "public/build")))
+	router.StaticFile("favicon.ico", joinPath(dir(self), "public/favicon.ico"))
+	router.LoadHTMLFiles(joinPath(dir(self), "public/index.html"))
 	router.GET("/", func(c *gin.Context) {
-		userID := sessions.Default(c).Get("user_id")
-		if userID != nil && userID != 0 {
-			if _, err := c.Cookie("Username"); err != nil {
-				username, err := getUser(c)
-				if err != nil {
-					c.String(500, "")
-					return
-				}
-				c.SetCookie("Username", username, 0, "", "", false, false)
-			}
-		} else {
-			c.SetCookie("Username", "", -1, "", "", false, false)
-		}
 		c.HTML(200, "index.html", nil)
+	})
+	router.GET("/info", func(c *gin.Context) {
+		username, _ := getUser(c)
+		c.JSON(200, gin.H{"username": username})
 	})
 
 	auth := router.Group("/")
@@ -55,7 +45,6 @@ func run() {
 	auth.GET("/logout", authRequired, func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Clear()
-		c.SetCookie("Username", "", -1, "", "", false, false)
 		session.Save()
 		c.Redirect(302, "/")
 	})

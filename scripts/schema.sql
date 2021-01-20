@@ -41,6 +41,31 @@ CREATE VIEW categories AS
   GROUP BY category ORDER BY category;
 
 DELIMITER ;;
+CREATE PROCEDURE delete_category (cid INT)
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN ROLLBACK; RESIGNAL; END;
+  START TRANSACTION;
+  DELETE FROM category WHERE id = cid;
+  UPDATE bookmark SET category_id = 0 WHERE category_id = cid;
+  COMMIT;
+END;;
+
+CREATE PROCEDURE reorder (uid INT, new_id INT, old_id INT)
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN ROLLBACK; RESIGNAL; END;
+  START TRANSACTION;
+  SET @new_seq := (SELECT seq FROM seq WHERE bookmark_id = new_id);
+  SET @old_seq := (SELECT seq FROM seq WHERE bookmark_id = old_id);
+  IF @old_seq > @new_seq
+  THEN UPDATE seq SET seq = seq + 1 WHERE seq >= @new_seq AND seq < @old_seq AND user_id = uid;
+  ELSE UPDATE seq SET seq = seq - 1 WHERE seq > @old_seq AND seq <= @new_seq AND user_id = uid;
+  END IF;
+  UPDATE seq SET seq = @new_seq WHERE bookmark_id = old_id;
+  COMMIT;
+END;;
+
 CREATE TRIGGER add_user AFTER INSERT ON user
 FOR EACH ROW BEGIN
     INSERT INTO bookmark

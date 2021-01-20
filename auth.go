@@ -18,15 +18,14 @@ type user struct {
 
 func authRequired(c *gin.Context) {
 	session := sessions.Default(c)
-	userID := session.Get("user_id")
+	userID := session.Get("userID")
 	if userID == nil {
-		c.SetCookie("Username", "", -1, "", "", false, false)
 		c.AbortWithStatus(401)
 	}
 }
 
 func getUser(c *gin.Context) (username string, err error) {
-	userID := sessions.Default(c).Get("user_id")
+	userID := sessions.Default(c).Get("userID")
 	err = db.QueryRow("SELECT username FROM user WHERE id = ?", userID).Scan(&username)
 	return
 }
@@ -76,8 +75,7 @@ func login(c *gin.Context) {
 		if message == "" {
 			session := sessions.Default(c)
 			session.Clear()
-			session.Set("user_id", user.ID)
-			c.SetCookie("Username", user.Username, 0, "", "", false, false)
+			session.Set("userID", user.ID)
 
 			if login.Rememberme {
 				session.Options(sessions.Options{Path: "/", HttpOnly: true, MaxAge: 856400 * 365})
@@ -103,7 +101,7 @@ func setting(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	userID := session.Get("user_id")
+	userID := session.Get("userID")
 
 	var oldPassword string
 	if err := db.QueryRow("SELECT password FROM user WHERE id = ?", userID).Scan(&oldPassword); err != nil {
@@ -149,7 +147,6 @@ func setting(c *gin.Context) {
 			return
 		}
 		session.Clear()
-		c.SetCookie("Username", "", -1, "", "", false, false)
 		if err := session.Save(); err != nil {
 			log.Print(err)
 			c.String(500, "")

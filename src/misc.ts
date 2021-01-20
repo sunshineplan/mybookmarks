@@ -1,18 +1,25 @@
 import Swal from 'sweetalert2'
 
-export const BootstrapButtons = Swal.mixin({
-  customClass: { confirmButton: 'swal btn btn-primary' },
-  buttonsStyling: false
-});
+export const fire = (
+  title?: string | undefined,
+  html?: string | undefined,
+  icon?: 'success' | 'error' | 'warning' | 'info' | 'question' | undefined
+) => {
+  const swal = Swal.mixin({
+    customClass: { confirmButton: 'swal btn btn-primary' },
+    buttonsStyling: false
+  })
+  return swal.fire(title, html, icon)
+}
 
 export const valid = () => {
-  var result = true
+  let result = true
   Array.from(document.querySelectorAll('input'))
     .forEach(i => { if (!i.checkValidity()) result = false })
   return result
 }
 
-export const post = async (url, data) => {
+export const post = async (url: string, data?: any) => {
   let resp
   try {
     resp = await fetch(url, {
@@ -21,14 +28,15 @@ export const post = async (url, data) => {
       body: JSON.stringify(data)
     })
   } catch (e) {
-    return Promise.reject(await BootstrapButtons.fire('Error', e, 'error'))
+    return Promise.reject(await fire('Error', e, 'error'))
   }
   if (resp.status != 401) return resp
-  await BootstrapButtons.fire('Error', 'Login status has changed. Please Re-login!', 'error')
-  window.location = '/'
+  await fire('Error', 'Login status has changed. Please Re-login!', 'error')
+  window.location.href = '/'
+  return Promise.reject()
 }
 
-export const confirm = async type => {
+export const confirm = async (type: string) => {
   const confirm = await Swal.fire({
     title: 'Are you sure?',
     text: 'This ' + type + ' will be deleted permanently.',

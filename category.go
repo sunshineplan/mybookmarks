@@ -16,6 +16,15 @@ type category struct {
 	Count int    `json:"count"`
 }
 
+func checkCategory(categoryID, userID interface{}) bool {
+	var exist string
+	if err := db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
+		categoryID, userID).Scan(&exist); err == nil {
+		return true
+	}
+	return false
+}
+
 func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 	if category != "" {
 		var categoryID int
@@ -47,9 +56,7 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 }
 
 func getCategory(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
+	userID := sessions.Default(c).Get("userID")
 	ec := make(chan error, 1)
 	var uncategorized int
 	go func() {
@@ -88,15 +95,13 @@ func getCategory(c *gin.Context) {
 }
 
 func addCategory(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
-
 	var category category
 	if err := c.BindJSON(&category); err != nil {
 		c.String(400, "")
 		return
 	}
 
+	userID := sessions.Default(c).Get("userID")
 	var message string
 	switch {
 	case category.Name == "":
@@ -128,12 +133,16 @@ func addCategory(c *gin.Context) {
 }
 
 func editCategory(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		log.Println("Failed to get id param:", err)
 		c.String(400, "")
+		return
+	}
+
+	userID := sessions.Default(c).Get("userID")
+	if !checkCategory(id, userID) {
+		c.String(403, "")
 		return
 	}
 
@@ -186,8 +195,6 @@ func editCategory(c *gin.Context) {
 }
 
 func deleteCategory(c *gin.Context) {
-	session := sessions.Default(c)
-	userID := session.Get("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		log.Println("Failed to get id param:", err)
@@ -195,17 +202,14 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	if _, err := db.Exec("DELETE FROM category WHERE id = ? and user_id = ?",
-		id, userID); err != nil {
-		log.Println("Failed to delete category:", err)
-		c.String(500, "")
+	if checkCategory(id, sessions.Default(c).Get("userID")) {
+		if _, err := db.Exec("CALL delete_category(?)", id); err != nil {
+			log.Println("Failed to deleted category:", err)
+			c.String(500, "")
+			return
+		}
+		c.JSON(200, gin.H{"status": 1})
 		return
 	}
-	if _, err := db.Exec("UPDATE bookmark SET category_id = 0 WHERE category_id = ? and user_id = ?",
-		id, userID); err != nil {
-		log.Println("Failed to remove deleted category for bookmark:", err)
-		c.String(500, "")
-		return
-	}
-	c.JSON(200, gin.H{"status": 1})
+	c.String(403, "")
 }
