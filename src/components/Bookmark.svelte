@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fire, post, valid, confirm } from "../misc";
-  import { component, bookmark, categories } from "../stores";
+  import { component, bookmark, categories, bookmarks } from "../stores";
 
   let name = $bookmark ? $bookmark.bookmark : "";
   let url = $bookmark ? $bookmark.url : "";
@@ -16,13 +16,9 @@
   const save = async () => {
     if (valid()) {
       validated = false;
-      let resp;
+      let resp: Response;
       if (mode == "Add")
-        resp = await post("/bookmark/add", {
-          name,
-          url,
-          category,
-        });
+        resp = await post("/bookmark/add", { name, url, category });
       else
         resp = await post("/bookmark/edit/" + $bookmark.id, {
           name,
@@ -33,8 +29,25 @@
       else {
         const json = await resp.json();
         if (json.status == 1) {
-          //store
-          //back
+          if (mode == "Add") {
+            $bookmarks.push({
+              id: json.id,
+              bookmark: name,
+              url,
+              category,
+              seq: $bookmarks.length + 1,
+            });
+            const index = $categories.findIndex(
+              (c) => c.category === $bookmark.category
+            );
+            $categories[index].count++;
+          } else {
+            const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
+            $bookmarks[index].bookmark = name;
+            $bookmarks[index].url = url;
+            $bookmarks[index].category = category;
+          }
+          goback();
         } else {
           await fire("Error", json.message, "error");
           if (json.error == 1) name = "";
@@ -49,13 +62,19 @@
       const resp = await post("/bookmark/delete/" + $bookmark.id);
       if (!resp.ok) await fire("Error", await resp.text(), "error");
       else {
-        //delete
-        //back
+        let index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
+        $bookmarks.splice(index, 1);
+        $bookmarks.forEach((b) => {
+          if (b.seq > $bookmark.seq) b.seq++;
+        });
+        index = $categories.findIndex((c) => c.category === $bookmark.category);
+        $categories[index].count--;
+        goback();
       }
     }
   };
 
-  const cancel = async () => {
+  const goback = () => {
     window.history.pushState({}, "", "/");
     $component = "show";
   };
@@ -63,7 +82,7 @@
 
 <svelte:window
   on:keydown={(e) => {
-    if (e.key === "Escape") cancel();
+    if (e.key === "Escape") goback();
   }}
 />
 
@@ -120,7 +139,7 @@
       </small>
     </div>
     <button class="btn btn-primary" on:click={save}>{mode}</button>
-    <button class="btn btn-primary" on:click={cancel}>Cancel</button>
+    <button class="btn btn-primary" on:click={goback}>Cancel</button>
   </div>
   {#if mode == "Edit"}
     <div class="form">

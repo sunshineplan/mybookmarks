@@ -36,8 +36,11 @@ func run() {
 		c.HTML(200, "index.html", nil)
 	})
 	router.GET("/info", func(c *gin.Context) {
-		username, _ := getUser(c)
-		c.JSON(200, gin.H{"username": username})
+		userID := sessions.Default(c).Get("userID")
+		username, _ := getUser(userID)
+		categories, _ := getCategory(userID)
+		bookmarks, _ := getBookmark(userID)
+		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks})
 	})
 
 	auth := router.Group("/")
@@ -52,11 +55,10 @@ func run() {
 
 	base := router.Group("/")
 	base.Use(authRequired)
-	base.POST("/bookmark/get", getBookmark)
+	base.POST("/bookmark/get", moreBookmark)
 	base.POST("/bookmark/add", addBookmark)
 	base.POST("/bookmark/edit/:id", editBookmark)
 	base.POST("/bookmark/delete/:id", deleteBookmark)
-	base.POST("/category/get", getCategory)
 	base.POST("/category/add", addCategory)
 	base.POST("/category/edit/:id", editCategory)
 	base.POST("/category/delete/:id", deleteCategory)

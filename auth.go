@@ -24,8 +24,7 @@ func authRequired(c *gin.Context) {
 	}
 }
 
-func getUser(c *gin.Context) (username string, err error) {
-	userID := sessions.Default(c).Get("userID")
+func getUser(userID interface{}) (username string, err error) {
 	err = db.QueryRow("SELECT username FROM user WHERE id = ?", userID).Scan(&username)
 	return
 }

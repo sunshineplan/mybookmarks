@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 
 type bookmark struct {
 	ID       int    `json:"id"`
-	Name     string `json:"name"`
+	Name     string `json:"bookmark"`
 	URL      string `json:"url"`
 	Category string `json:"category"`
 }
@@ -25,7 +26,35 @@ func checkBookmark(bookmarkID, userID interface{}) bool {
 	return false
 }
 
-func getBookmark(c *gin.Context) {
+func getBookmark(userID interface{}) (bookmarks []bookmark, err error) {
+	bookmarks = []bookmark{}
+	if userID == nil {
+		return
+	}
+
+	var rows *sql.Rows
+	rows, err = db.Query("SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT 30", userID)
+	if err != nil {
+		log.Println("Failed to get bookmarks:", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var bookmark bookmark
+		var categoryByte []byte
+		if err = rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &categoryByte); err != nil {
+			log.Println("Failed to scan bookmark:", err)
+			return
+		}
+		bookmark.Category = string(categoryByte)
+		bookmarks = append(bookmarks, bookmark)
+	}
+
+	return
+}
+
+func moreBookmark(c *gin.Context) {
 	var r struct{ Category, Start int }
 	if err := c.BindJSON(&r); err != nil {
 		c.String(400, "")
@@ -62,7 +91,7 @@ func getBookmark(c *gin.Context) {
 		var bookmark bookmark
 		var categoryByte []byte
 		if err := rows.Scan(&bookmark.ID, &bookmark.Name, &bookmark.URL, &categoryByte); err != nil {
-			log.Println("Failed to scan bookmarks:", err)
+			log.Println("Failed to scan bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -85,7 +114,7 @@ func addBookmark(c *gin.Context) {
 	var exist1, exist2 string
 	go func() {
 		var err error
-		categoryID, err = getCategoryID(bookmark.Category, userID.(int), db)
+		categoryID, err = getCategoryID(bookmark.Category, userID.(int))
 		bc <- err
 	}()
 	go func() {
@@ -122,13 +151,20 @@ func addBookmark(c *gin.Context) {
 		message = "Category name exceeded length limit."
 		errorCode = 3
 	default:
-		if _, err := db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)",
-			bookmark.Name, bookmark.URL, userID, categoryID); err != nil {
+		res, err := db.Exec("INSERT INTO bookmark (bookmark, url, user_id, category_id) VALUES (?, ?, ?, ?)",
+			bookmark.Name, bookmark.URL, userID, categoryID)
+		if err != nil {
 			log.Println("Failed to add bookmark:", err)
 			c.String(500, "")
 			return
 		}
-		c.JSON(200, gin.H{"status": 1})
+		id, err := res.LastInsertId()
+		if err != nil {
+			log.Println("Failed to get last insert id:", err)
+			c.String(500, "")
+			return
+		}
+		c.JSON(200, gin.H{"status": 1, "id": id})
 		return
 	}
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
@@ -162,7 +198,7 @@ func editBookmark(c *gin.Context) {
 	}()
 	go func() {
 		var err error
-		categoryID, err = getCategoryID(new.Category, userID.(int), db)
+		categoryID, err = getCategoryID(new.Category, userID.(int))
 		bc <- err
 	}()
 	go func() {

@@ -12,7 +12,7 @@ import (
 
 type category struct {
 	ID    int    `json:"id"`
-	Name  string `json:"name"`
+	Name  string `json:"category"`
 	Count int    `json:"count"`
 }
 
@@ -25,7 +25,7 @@ func checkCategory(categoryID, userID interface{}) bool {
 	return false
 }
 
-func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
+func getCategoryID(category string, userID int) (int, error) {
 	if category != "" {
 		var categoryID int
 		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
@@ -55,8 +55,12 @@ func getCategoryID(category string, userID int, db *sql.DB) (int, error) {
 	}
 }
 
-func getCategory(c *gin.Context) {
-	userID := sessions.Default(c).Get("userID")
+func getCategory(userID interface{}) (categories []category, err error) {
+	categories = []category{}
+	if userID == nil {
+		return
+	}
+
 	ec := make(chan error, 1)
 	var uncategorized int
 	go func() {
@@ -64,34 +68,30 @@ func getCategory(c *gin.Context) {
 			userID).Scan(&uncategorized)
 	}()
 
-	rows, err := db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
+	var rows *sql.Rows
+	rows, err = db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
 	if err != nil {
 		log.Println("Failed to get categories:", err)
-		c.String(500, "")
 		return
 	}
 	defer rows.Close()
-	categories := []category{}
+
 	for rows.Next() {
 		var category category
-		if err := rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
+		if err = rows.Scan(&category.ID, &category.Name, &category.Count); err != nil {
 			log.Println("Failed to scan category:", err)
-			c.String(500, "")
 			return
 		}
 		categories = append(categories, category)
 	}
 
-	if err := <-ec; err != nil {
+	if err = <-ec; err != nil {
 		log.Println("Failed to scan uncategorized:", err)
-		c.String(500, "")
 		return
 	}
-	if uncategorized != 0 {
-		categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
-	}
+	categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
 
-	c.JSON(200, categories)
+	return
 }
 
 func addCategory(c *gin.Context) {
@@ -115,13 +115,20 @@ func addCategory(c *gin.Context) {
 			message = fmt.Sprintf("Category %s is already existed.", category.Name)
 		} else {
 			if err == sql.ErrNoRows {
-				if _, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)",
-					category.Name, userID); err != nil {
+				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)",
+					category.Name, userID)
+				if err != nil {
 					log.Println("Failed to add category:", err)
 					c.String(500, "")
 					return
 				}
-				c.JSON(200, gin.H{"status": 1})
+				id, err := res.LastInsertId()
+				if err != nil {
+					log.Println("Failed to get last insert id:", err)
+					c.String(500, "")
+					return
+				}
+				c.JSON(200, gin.H{"status": 1, "id": id})
 				return
 			}
 			log.Println("Failed to scan category:", err)

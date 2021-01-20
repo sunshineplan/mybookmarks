@@ -2,7 +2,7 @@
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
   import { fire, post } from "../misc";
-  import { bookmark, bookmarks, category } from "../stores";
+  import { component, bookmark, bookmarks, category } from "../stores";
   import type { Bookmark } from "../stores";
 
   const isSmall = 700;
@@ -31,17 +31,6 @@
     return () => sortable.destroy();
   });
 
-  const checkSize = () => {
-    if (smallSize != window.innerWidth <= isSmall)
-      smallSize = window.innerWidth <= isSmall;
-  };
-  const checkScroll = async () => {
-    const table = document.querySelector(".table-responsive") as Element;
-    if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
-      if (($category.start as number) + 30 < ($category.count as number))
-        console.log("more");
-    }
-  };
   const onUpdate = async (evt: Sortable.SortableEvent) => {
     const resp = await post("/reorder", {
       old: currentBookmarks[evt.oldIndex as number].id,
@@ -66,11 +55,25 @@
   const add = () => {
     if ($category.id <= 0) $bookmark = {} as Bookmark;
     else $bookmark = { category: $category.category } as Bookmark;
-    console.log("/bookmark/add");
+    window.history.pushState({}, "", "/bookmark/add");
+    $component = "bookmark";
   };
   const edit = (b: Bookmark) => {
     $bookmark = b;
-    console.log("/bookmark/edit");
+    window.history.pushState({}, "", "/bookmark/edit");
+    $component = "bookmark";
+  };
+
+  const checkSize = () => {
+    if (smallSize != window.innerWidth <= isSmall)
+      smallSize = window.innerWidth <= isSmall;
+  };
+  const checkScroll = async () => {
+    const table = document.querySelector(".table-responsive") as Element;
+    if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
+      if (($category.start as number) + 30 < ($category.count as number))
+        console.log("more");
+    }
   };
 </script>
 

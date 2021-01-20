@@ -11,6 +11,7 @@
     component,
     loading,
     categories,
+    bookmarks,
   } from "./stores";
 
   const getInfo = async () => {
@@ -19,6 +20,7 @@
     if (Object.keys(info).length) {
       $username = info.username;
       $categories = info.categories;
+      $bookmarks = info.bookmarks;
     }
   };
   const promise = getInfo();
