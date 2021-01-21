@@ -60,6 +60,14 @@
 </div>
 
 <style>
+  .content {
+    position: fixed;
+    top: 0;
+    padding-top: 90px;
+    height: 100%;
+    width: 100%;
+  }
+
   .loading {
     position: fixed;
     z-index: 2;
@@ -70,10 +78,22 @@
     display: flex;
   }
 
+  :global(.form) {
+    padding: 0 20px;
+  }
+
+  :global(.form-control) {
+    width: 250px;
+  }
+
   @media (max-width: 900px) {
     .loading {
       left: 0;
       width: 100%;
+    }
+
+    .content {
+      padding-left: 0 !important;
     }
   }
 </style>

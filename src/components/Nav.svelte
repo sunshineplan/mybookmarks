@@ -5,12 +5,14 @@
 </script>
 
 <nav class="navbar navbar-light topbar">
-  <span
-    class="brand"
-    on:click={() => {
-      window.history.pushState({}, "", "/");
-      $component = "show";
-    }}> My Bookmarks </span>
+  <div class="d-flex" style="height:100%">
+    <span
+      class="brand"
+      on:click={() => {
+        window.history.pushState({}, "", "/");
+        $component = "show";
+      }}> My Bookmarks </span>
+  </div>
   <div class="navbar-nav flex-row">
     {#if username}
       <span class="nav-link">{username}</span>
@@ -31,15 +33,18 @@
 <style>
   .topbar {
     position: fixed;
-    top: 0;
+    top: 0px;
     z-index: 2;
     width: 100%;
-    height: 60px;
+    height: 70px;
+    padding: 0 10px 0 0;
     background-color: #1a73e8;
+    user-select: none;
   }
 
   .brand {
     padding-left: 20px;
+    margin: auto;
     font-size: 25px;
     letter-spacing: 0.3px;
     color: white;
@@ -64,5 +69,11 @@
 
   span {
     cursor: default;
+  }
+
+  @media (max-width: 900px) {
+    .brand {
+      padding-left: 90px;
+    }
   }
 </style>

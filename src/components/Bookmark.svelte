@@ -7,7 +7,7 @@
   let category = $bookmark ? $bookmark.category : "";
   let validated = false;
 
-  $: mode = window.location.pathname == "/" ? "Add" : "Edit";
+  $: mode = window.location.pathname == "/bookmark/add" ? "Add" : "Edit";
 
   const chkURL = () => {
     if (url && !url.match(/^https?:/) && url.length) url = "http://" + url;
@@ -147,3 +147,9 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .delete {
+    margin-top: 8px;
+  }
+</style>

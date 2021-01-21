@@ -25,36 +25,6 @@ func checkCategory(categoryID, userID interface{}) bool {
 	return false
 }
 
-func getCategoryID(category string, userID int) (int, error) {
-	if category != "" {
-		var categoryID int
-		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
-		switch {
-		case len(category) > 15:
-			return -1, nil
-		case err != nil:
-			if err == sql.ErrNoRows {
-				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
-				if err != nil {
-					log.Println("Failed to add category:", err)
-					return 0, err
-				}
-				lastInsertID, err := res.LastInsertId()
-				if err != nil {
-					log.Println("Failed to get last insert id:", err)
-					return 0, err
-				}
-				return int(lastInsertID), nil
-			}
-			return 0, err
-		default:
-			return categoryID, nil
-		}
-	} else {
-		return 0, nil
-	}
-}
-
 func getCategory(userID interface{}) (categories []category, err error) {
 	categories = []category{}
 	if userID == nil {
@@ -92,6 +62,36 @@ func getCategory(userID interface{}) (categories []category, err error) {
 	categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
 
 	return
+}
+
+func getCategoryID(category string, userID int) (int, error) {
+	if category != "" {
+		var categoryID int
+		err := db.QueryRow("SELECT id FROM category WHERE category = ? AND user_id = ?", category, userID).Scan(&categoryID)
+		switch {
+		case len(category) > 15:
+			return -1, nil
+		case err != nil:
+			if err == sql.ErrNoRows {
+				res, err := db.Exec("INSERT INTO category (category, user_id) VALUES (?, ?)", category, userID)
+				if err != nil {
+					log.Println("Failed to add category:", err)
+					return 0, err
+				}
+				lastInsertID, err := res.LastInsertId()
+				if err != nil {
+					log.Println("Failed to get last insert id:", err)
+					return 0, err
+				}
+				return int(lastInsertID), nil
+			}
+			return 0, err
+		default:
+			return categoryID, nil
+		}
+	} else {
+		return 0, nil
+	}
 }
 
 func addCategory(c *gin.Context) {
