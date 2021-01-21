@@ -1,13 +1,21 @@
 <script lang="ts">
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
-  import { fire, post } from "../misc";
-  import { component, bookmark, bookmarks, category } from "../stores";
+  import { fire, post, confirm } from "../misc";
+  import {
+    component,
+    loading,
+    bookmark,
+    bookmarks,
+    category,
+    categories,
+  } from "../stores";
   import type { Bookmark } from "../stores";
 
   const isSmall = 700;
 
   let smallSize = window.innerWidth <= isSmall;
+  let editable = false;
 
   $: currentBookmarks =
     $category.id === -1
@@ -36,8 +44,22 @@
       old: currentBookmarks[evt.oldIndex as number].id,
       new: currentBookmarks[evt.newIndex as number].id,
     });
-    if ((await resp.text()) == "1") console.log("reorder");
-    else await fire("Error", "Failed to reorder.", "error");
+    if ((await resp.text()) == "1") {
+      const current = currentBookmarks[evt.oldIndex as number].id;
+      const oldSeq = currentBookmarks[evt.oldIndex as number].seq;
+      const newSeq = currentBookmarks[evt.newIndex as number].seq;
+      if (oldSeq > newSeq)
+        $bookmarks.forEach((b) => {
+          if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
+        });
+      else
+        $bookmarks.forEach((b) => {
+          if (b.seq > oldSeq && b.seq <= newSeq) b.seq--;
+        });
+      $bookmarks.forEach((b) => {
+        if (b.id === current) b.seq = newSeq;
+      });
+    } else await fire("Error", "Failed to reorder.", "error");
   };
   const formatURL = (isSmall: boolean) => {
     const urls = Array.from(
@@ -49,8 +71,31 @@
       );
     else urls.forEach((url) => (url.text = url.dataset.url as string));
   };
-  const editCategory = () => {
-    console.log("/category/edit");
+
+  const editCategory = async (c: string) => {
+    c = c.trim();
+    if ($category.category != c) {
+      $loading++;
+      const resp = await post("/list/edit/" + $category.id, { category });
+      $loading--;
+      let json: any = {};
+      if (resp.ok) {
+        json = await resp.json();
+        if (json.status) {
+          const index = $categories.findIndex((c) => c.id === $category.id);
+          $categories[index].category = c;
+          $bookmarks.forEach((bookmark) => {
+            if (bookmark.category === $category.category) bookmark.category = c;
+          });
+          $category = $categories[index];
+          return true;
+        }
+      }
+      await fire("Error", json.message ? json.message : "Error", "error");
+      console.log("reload");
+      return false;
+    }
+    return true;
   };
   const add = () => {
     if ($category.id <= 0) $bookmark = {} as Bookmark;
@@ -71,25 +116,118 @@
   const checkScroll = async () => {
     const table = document.querySelector(".table-responsive") as Element;
     if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
-      if (($category.start as number) + 30 < ($category.count as number))
-        console.log("more");
+      if (currentBookmarks.length < $category.count) {
+        $loading++;
+        const resp = await post("/bookmark/get", {
+          category: $category.id,
+          start: currentBookmarks.length,
+        });
+        $loading--;
+        if (!resp.ok) await fire("Error", await resp.text(), "error");
+        else $bookmarks.concat(await resp.json());
+      }
+    }
+  };
+
+  const categoryKeydown = async (event: KeyboardEvent) => {
+    const target = event.target as Element;
+    target.textContent = (target.textContent as string).trim();
+    if (event.key == "Enter") {
+      event.preventDefault();
+      if (target.textContent)
+        editable = !(await editCategory(target.textContent));
+      else {
+        target.textContent = $category.category;
+        editable = false;
+      }
+    } else if (event.key == "Escape") {
+      if (target.textContent) target.textContent = "";
+      else {
+        target.textContent = $category.category;
+        editable = false;
+      }
+    }
+  };
+  const categoryClick = async () => {
+    if (editable) {
+      if (await confirm("category")) {
+        $loading++;
+        const resp = await post("/category/delete/" + $category.id);
+        $loading--;
+        if (resp.ok) {
+          const index = $categories.findIndex((c) => c.id === $category.id);
+          $categories.splice(index, 1);
+          $bookmarks.forEach((bookmark) => {
+            if (bookmark.category === $category.category)
+              bookmark.category = "";
+          });
+          $category = { id: -1, category: "All Bookmarks", count: 0 };
+        } else {
+          await fire("Error", await resp.text(), "error");
+          console.log("reload");
+        }
+      }
+    } else {
+      editable = true;
+      const target = document.querySelector("#category") as HTMLElement;
+      target.setAttribute("contenteditable", "true");
+      target.focus();
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      range.collapse(false);
+      const sel = window.getSelection() as Selection;
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  };
+
+  const handleWindowClick = async (event: MouseEvent) => {
+    const target = event.target as Element;
+    if (
+      target.id !== "category" &&
+      !target.classList.contains("edit") &&
+      !target.classList.contains("swal2-confirm") &&
+      editable
+    ) {
+      const element = document.querySelector("#category") as Element;
+      element.textContent = (element.textContent as string).trim();
+      if (element.textContent)
+        editable = !(await editCategory(element.textContent));
+      else {
+        target.textContent = $category.category;
+        editable = false;
+      }
     }
   };
 </script>
-
-<svelte:window on:resize={checkSize} on:scroll={checkScroll} />
 
 <svelte:head>
   <title>{$category.category} - My Bookmarks</title>
 </svelte:head>
 
+<svelte:window
+  on:resize={checkSize}
+  on:scroll={checkScroll}
+  on:click={handleWindowClick}
+/>
+
 <div style="height: 100%">
   <header style="padding-left: 20px">
     <div style="height: 50px">
-      <span class="h3">{$category.category}</span>
+      <span
+        class="h3"
+        id="category"
+        class:editable
+        contenteditable={editable}
+        on:keydown={categoryKeydown}>{$category.category}</span
+      >
       {#if $category.id > 0}
-        <span class="btn icon" on:click={editCategory}>
-          <i class="material-icons edit">edit</i>
+        <span class="btn icon" on:click={categoryClick}>
+          {#if !editable}
+            <i class="material-icons edit">edit</i>
+          {:else}
+            <i class="material-icons edit">delete</i>
+          {/if}
         </span>
       {/if}
     </div>

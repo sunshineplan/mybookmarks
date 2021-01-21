@@ -47,15 +47,15 @@
       }
     }
     await fire("Error", json.message ? json.message : "Error", "error");
-    dispatch("reload");
+    console.log("reload");
     return false;
   };
 
   const addCategory = async () => {
     if (window.innerWidth <= isSmall) $showSidebar = false;
-    const newList = document.querySelector(".new");
+    const newCategory = document.querySelector(".new");
     let ok = true;
-    if (newList) ok = await add((newList as HTMLElement).innerText);
+    if (newCategory) ok = await add((newCategory as HTMLElement).innerText);
     if (ok) {
       const ul = document.querySelector("ul.navbar-nav") as Element;
       const li = document.createElement("li");
@@ -63,13 +63,13 @@
       ul.appendChild(li);
       li.addEventListener("keydown", async (event) => {
         const target = event.target as Element;
-        const list = (target.textContent as string).trim();
+        const category = (target.textContent as string).trim();
         if (event.key == "Enter") {
           event.preventDefault();
-          if (list) await add(list);
+          if (category) await add(category);
           else target.remove();
         } else if (event.key == "Escape") {
-          if (list) target.textContent = "";
+          if (category) target.textContent = "";
           else target.remove();
         }
       });
@@ -110,8 +110,8 @@
     ) {
       const newCategory = document.querySelector(".new");
       if (newCategory) {
-        const list = (newCategory.textContent as string).trim();
-        if (list) await add(list);
+        const category = (newCategory.textContent as string).trim();
+        if (category) await add(category);
         else newCategory.remove();
       }
     }

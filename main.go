@@ -51,10 +51,10 @@ func main() {
 	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.Parse()
+
 	if err := initDB(); err != nil {
 		log.Fatalln("Failed to load database config:", err)
 	}
-	getDB()
 
 	if service.IsWindowsService() {
 		svc.Run(false)
