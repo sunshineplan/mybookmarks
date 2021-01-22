@@ -53,13 +53,20 @@
             $bookmarks[index].bookmark = name;
             $bookmarks[index].url = url;
             $bookmarks[index].category = category;
-            if (json.cid) {
-              // check category count change
-            } else {
-              // old category count - 1
-              $categories.push({ id: json.cid, category, count: 1 });
+            if (category) {
+              const index = $categories.findIndex(
+                (c) => c.category === category
+              );
+              if (index !== -1) $categories[index].count++;
+              else $categories.push({ id: json.cid, category, count: 1 });
             }
+            if ($bookmark.category)
+              $categories[
+                $categories.findIndex((c) => c.category === $bookmark.category)
+              ].count--;
           }
+          $categories = $categories;
+          $bookmarks = $bookmarks;
           goback();
         } else {
           await fire("Error", json.message, "error");
@@ -75,13 +82,17 @@
       const resp = await post("/bookmark/delete/" + $bookmark.id);
       if (!resp.ok) await fire("Error", await resp.text(), "error");
       else {
-        let index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
+        const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
         $bookmarks.splice(index, 1);
         $bookmarks.forEach((b) => {
           if (b.seq > $bookmark.seq) b.seq++;
         });
-        index = $categories.findIndex((c) => c.category === $bookmark.category);
-        $categories[index].count--;
+        if ($bookmark.category)
+          $categories[
+            $categories.findIndex((c) => c.category === $bookmark.category)
+          ].count--;
+        $total--;
+        $bookmarks = $bookmarks;
         goback();
       }
     }

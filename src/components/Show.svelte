@@ -90,6 +90,7 @@
             if (bookmark.category === $category.category) bookmark.category = c;
           });
           $category = $categories[index];
+          $bookmarks = $bookmarks;
           return true;
         }
       }
@@ -164,6 +165,7 @@
               bookmark.category = "";
           });
           $category = { id: -1, category: "All Bookmarks", count: 0 };
+          $bookmarks = $bookmarks;
         } else {
           await fire("Error", await resp.text(), "error");
           console.log("reload");
@@ -204,7 +206,9 @@
 </script>
 
 <svelte:head>
-  <title>{$category.category} - My Bookmarks</title>
+  <title>
+    {$category.category ? $category.category : "Uncategorized"} - My Bookmarks
+  </title>
 </svelte:head>
 
 <svelte:window

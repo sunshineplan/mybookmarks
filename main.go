@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sunshineplan/utils"
 	"github.com/sunshineplan/utils/httpsvr"
 	"github.com/sunshineplan/utils/metadata"
 	"github.com/sunshineplan/utils/service"
@@ -79,7 +80,9 @@ func main() {
 		case "backup":
 			backup()
 		case "init":
-			restore("")
+			if utils.Confirm("Do you want to initialize database?", 3) {
+				restore("")
+			}
 		default:
 			log.Fatalln("Unknown argument:", flag.Arg(0))
 		}
@@ -88,9 +91,13 @@ func main() {
 		case "add":
 			addUser(flag.Arg(1))
 		case "delete":
-			deleteUser(flag.Arg(1))
+			if utils.Confirm("Do you want to initialize database?", 3) {
+				deleteUser(flag.Arg(1))
+			}
 		case "restore":
-			restore(flag.Arg(1))
+			if utils.Confirm("Do you want to initialize database?", 3) {
+				restore(flag.Arg(1))
+			}
 		default:
 			log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
 		}
