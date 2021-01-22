@@ -76,7 +76,9 @@
     c = c.trim();
     if ($category.category != c) {
       $loading++;
-      const resp = await post("/list/edit/" + $category.id, { category });
+      const resp = await post("/category/edit/" + $category.id, {
+        category: c,
+      });
       $loading--;
       let json: any = {};
       if (resp.ok) {
@@ -219,8 +221,9 @@
         id="category"
         class:editable
         contenteditable={editable}
-        on:keydown={categoryKeydown}>{$category.category}</span
-      >
+        on:keydown={categoryKeydown}>
+        {$category.category ? $category.category : "Uncategorized"}
+      </span>
       {#if $category.id > 0}
         <span class="btn icon" on:click={categoryClick}>
           {#if !editable}
@@ -285,6 +288,13 @@
 
   .edit {
     font-size: 18px;
+  }
+
+  #category {
+    outline: 0;
+    display: inline-block;
+    min-width: 10px;
+    padding-right: 1rem;
   }
 
   .table-responsive {

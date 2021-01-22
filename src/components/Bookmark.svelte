@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fire, post, valid, confirm } from "../misc";
-  import { component, bookmark, categories, bookmarks } from "../stores";
+  import { component, bookmark, categories, bookmarks, total } from "../stores";
 
   let name = $bookmark ? $bookmark.bookmark : "";
   let url = $bookmark ? $bookmark.url : "";
@@ -16,12 +16,13 @@
   const save = async () => {
     if (valid()) {
       validated = false;
+      if (!category) category = "";
       let resp: Response;
       if (mode == "Add")
-        resp = await post("/bookmark/add", { name, url, category });
+        resp = await post("/bookmark/add", { bookmark: name, url, category });
       else
         resp = await post("/bookmark/edit/" + $bookmark.id, {
-          name,
+          bookmark: name,
           url,
           category,
         });
@@ -30,22 +31,34 @@
         const json = await resp.json();
         if (json.status == 1) {
           if (mode == "Add") {
-            $bookmarks.push({
-              id: json.id,
-              bookmark: name,
-              url,
-              category,
-              seq: $bookmarks.length + 1,
-            });
+            $bookmarks = [
+              ...$bookmarks,
+              {
+                id: json.id,
+                bookmark: name,
+                url,
+                category,
+                seq: $bookmarks.length + 1,
+              },
+            ];
             const index = $categories.findIndex(
               (c) => c.category === $bookmark.category
             );
-            $categories[index].count++;
+            if (index !== -1) $categories[index].count++;
+            else if (json.cid)
+              $categories.push({ id: json.cid, category, count: 1 });
+            $total++;
           } else {
             const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
             $bookmarks[index].bookmark = name;
             $bookmarks[index].url = url;
             $bookmarks[index].category = category;
+            if (json.cid) {
+              // check category count change
+            } else {
+              // old category count - 1
+              $categories.push({ id: json.cid, category, count: 1 });
+            }
           }
           goback();
         } else {
@@ -90,7 +103,11 @@
   <title>{mode} Bookmark - My Bookmarks</title>
 </svelte:head>
 
-<div on:keydown={save}>
+<div
+  on:keydown={async (e) => {
+    if (e.key == "Enter") await save();
+  }}
+>
   <header style="padding-left: 20px">
     <h3>{mode} Bookmark</h3>
     <hr />

@@ -7,6 +7,7 @@
   import Bookmark from "./components/Bookmark.svelte";
   import {
     username,
+    total,
     showSidebar,
     component,
     loading,
@@ -21,6 +22,7 @@
       $username = info.username;
       $categories = info.categories;
       $bookmarks = info.bookmarks;
+      $total = info.total;
     }
   };
   const promise = getInfo();
@@ -60,14 +62,6 @@
 </div>
 
 <style>
-  .content {
-    position: fixed;
-    top: 0;
-    padding-top: 90px;
-    height: 100%;
-    width: 100%;
-  }
-
   .loading {
     position: fixed;
     z-index: 2;
@@ -78,12 +72,24 @@
     display: flex;
   }
 
+  :global(.content) {
+    position: fixed;
+    top: 0;
+    padding-top: 90px;
+    height: 100%;
+    width: 100%;
+  }
+
   :global(.form) {
     padding: 0 20px;
   }
 
   :global(.form-control) {
     width: 250px;
+  }
+
+  :global(button + button) {
+    margin-left: 0.3em;
   }
 
   @media (max-width: 900px) {

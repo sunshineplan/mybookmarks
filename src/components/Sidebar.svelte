@@ -2,11 +2,13 @@
   import { createEventDispatcher } from "svelte";
   import { fire, post } from "../misc";
   import {
+    total,
     category,
     component,
     showSidebar,
     loading,
     categories,
+    bookmarks,
   } from "../stores";
   import type { Category } from "../stores";
 
@@ -15,6 +17,8 @@
 
   let hover = false;
   let smallSize = window.innerWidth <= isSmall;
+
+  $: uncategorized = $bookmarks.filter((b) => b.category === "").length;
 
   const toggle = () => {
     $showSidebar = !$showSidebar;
@@ -60,7 +64,9 @@
       const ul = document.querySelector("ul.navbar-nav") as Element;
       const li = document.createElement("li");
       li.classList.add("nav-link", "new");
-      ul.appendChild(li);
+      const uncategorized = ul.querySelector("#uncategorized");
+      if (uncategorized) ul.insertBefore(li, uncategorized);
+      else ul.appendChild(li);
       li.addEventListener("keydown", async (event) => {
         const target = event.target as Element;
         const category = (target.textContent as string).trim();
@@ -150,7 +156,7 @@
         class="navbar-brand category"
         class:active={$category.id === -1 && $component === "show"}
         on:click={() => goto({ id: -1, category: "All Bookmarks", count: 0 })}
-      >All Bookmarks ()</li>
+      >All Bookmarks ({$total})</li>
       {#each $categories as c (c.id)}
         <li
           class="nav-link category"
@@ -160,6 +166,16 @@
           {c.category} ({c.count})
         </li>
       {/each}
+      {#if $bookmarks.filter((b) => b.category == "").length}
+        <li
+          class="nav-link category"
+          id="uncategorized"
+          class:active={$category.id === 0 && $component === "show"}
+          on:click={() => goto({ id: 0, category: "", count: 0 })}
+        >
+          Uncategorized ({uncategorized})
+        </li>
+      {/if}
     </ul>
   </div>
 </nav>
@@ -232,6 +248,12 @@
   }
 
   .nav-link.active {
+    background-color: #eaf5fd;
+  }
+
+  :global(.new) {
+    outline: 0;
+    border-left: 5px solid transparent;
     background-color: #eaf5fd;
   }
 

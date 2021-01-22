@@ -31,13 +31,6 @@ func getCategory(userID interface{}) (categories []category, err error) {
 		return
 	}
 
-	ec := make(chan error, 1)
-	var uncategorized int
-	go func() {
-		ec <- db.QueryRow("SELECT count(bookmark) num FROM bookmark WHERE category_id = 0 AND user_id = ?",
-			userID).Scan(&uncategorized)
-	}()
-
 	var rows *sql.Rows
 	rows, err = db.Query("SELECT id, category, count FROM categories WHERE user_id = ?", userID)
 	if err != nil {
@@ -54,12 +47,6 @@ func getCategory(userID interface{}) (categories []category, err error) {
 		}
 		categories = append(categories, category)
 	}
-
-	if err = <-ec; err != nil {
-		log.Println("Failed to scan uncategorized:", err)
-		return
-	}
-	categories = append(categories, category{ID: 0, Name: "Uncategorized", Count: uncategorized})
 
 	return
 }

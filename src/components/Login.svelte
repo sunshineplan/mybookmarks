@@ -43,54 +43,56 @@
   <title>Log In - My Bookmarks</title>
 </svelte:head>
 
-<header>
-  <h3
-    class="d-flex justify-content-center align-items-center"
-    style="height: 100%"
-  >Log In</h3>
-</header>
-<div
-  class="login"
-  on:keydown={async (e) => {
-    if (e.key == "Enter") await login();
-  }}
->
-  <div class="form-group">
-    <label for="username">Username</label>
-    <!-- svelte-ignore a11y-autofocus -->
-    <input
-      class="form-control"
-      bind:value={username}
-      id="username"
-      maxlength="20"
-      placeholder="Username"
-      autofocus
-      required
-    />
+<div class="content">
+  <header>
+    <h3
+      class="d-flex justify-content-center align-items-center"
+      style="height: 100%"
+    >Log In</h3>
+  </header>
+  <div
+    class="login"
+    on:keydown={async (e) => {
+      if (e.key == "Enter") await login();
+    }}
+  >
+    <div class="form-group">
+      <label for="username">Username</label>
+      <!-- svelte-ignore a11y-autofocus -->
+      <input
+        class="form-control"
+        bind:value={username}
+        id="username"
+        maxlength="20"
+        placeholder="Username"
+        autofocus
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        class="form-control"
+        type="password"
+        bind:value={password}
+        id="password"
+        maxlength="20"
+        placeholder="Password"
+        required
+      />
+    </div>
+    <div class="form-group form-check">
+      <input
+        type="checkbox"
+        class="form-check-input"
+        bind:checked={rememberme}
+        id="rememberme"
+      />
+      <label class="form-check-label" for="rememberme">Remember Me</label>
+    </div>
+    <hr />
+    <button class="btn btn-primary login" on:click={login}>Log In</button>
   </div>
-  <div class="form-group">
-    <label for="password">Password</label>
-    <input
-      class="form-control"
-      type="password"
-      bind:value={password}
-      id="password"
-      maxlength="20"
-      placeholder="Password"
-      required
-    />
-  </div>
-  <div class="form-group form-check">
-    <input
-      type="checkbox"
-      class="form-check-input"
-      bind:checked={rememberme}
-      id="rememberme"
-    />
-    <label class="form-check-label" for="rememberme">Remember Me</label>
-  </div>
-  <hr />
-  <button class="btn btn-primary login" on:click={login}>Log In</button>
 </div>
 
 <style>

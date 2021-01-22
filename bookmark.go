@@ -26,7 +26,12 @@ func checkBookmark(bookmarkID, userID interface{}) bool {
 	return false
 }
 
-func getBookmark(userID interface{}) (bookmarks []bookmark, err error) {
+func getBookmark(userID interface{}) (bookmarks []bookmark, total int, err error) {
+	ec := make(chan error, 1)
+	go func() {
+		ec <- db.QueryRow("SELECT count(bookmark) FROM bookmark WHERE user_id = ?", userID).Scan(&total)
+	}()
+
 	bookmarks = []bookmark{}
 	if userID == nil {
 		return
@@ -50,6 +55,7 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, err error) {
 		bookmark.Category = string(categoryByte)
 		bookmarks = append(bookmarks, bookmark)
 	}
+	err = <-ec
 
 	return
 }
@@ -164,7 +170,7 @@ func addBookmark(c *gin.Context) {
 			c.String(500, "")
 			return
 		}
-		c.JSON(200, gin.H{"status": 1, "id": id})
+		c.JSON(200, gin.H{"status": 1, "id": id, "cid": categoryID})
 		return
 	}
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
@@ -243,7 +249,7 @@ func editBookmark(c *gin.Context) {
 			c.String(500, "")
 			return
 		}
-		c.JSON(200, gin.H{"status": 1})
+		c.JSON(200, gin.H{"status": 1, "cid": categoryID})
 		return
 	}
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -37,10 +38,21 @@ func run() {
 	})
 	router.GET("/info", func(c *gin.Context) {
 		userID := sessions.Default(c).Get("userID")
-		username, _ := getUser(userID)
-		categories, _ := getCategory(userID)
-		bookmarks, _ := getBookmark(userID)
-		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks})
+		if userID == nil {
+			c.JSON(200, gin.H{})
+			return
+		}
+		var username string
+		var categories []category
+		var bookmarks []bookmark
+		var total int
+		var wg sync.WaitGroup
+		wg.Add(3)
+		go func() { defer wg.Done(); username, _ = getUser(userID) }()
+		go func() { defer wg.Done(); categories, _ = getCategory(userID) }()
+		go func() { defer wg.Done(); bookmarks, total, _ = getBookmark(userID) }()
+		wg.Wait()
+		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks, "total": total})
 	})
 
 	auth := router.Group("/")

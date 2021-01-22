@@ -16,6 +16,7 @@ export interface Bookmark {
 }
 
 export const username = writable('')
+export const total = writable(0)
 export const component = writable('show')
 export const category: Writable<Category> = writable({ id: -1, category: 'All Bookmarks', count: 0 })
 export const bookmark: Writable<Bookmark> = writable({} as Bookmark)
