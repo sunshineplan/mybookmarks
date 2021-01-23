@@ -23,7 +23,6 @@
       : $bookmarks.filter(
           (bookmark) => bookmark.category === $category.category
         );
-  $: smallSize && formatURL(smallSize);
 
   onMount(() => {
     const sortable = new Sortable(
@@ -84,13 +83,12 @@
       if (resp.ok) {
         json = await resp.json();
         if (json.status) {
-          const index = $categories.findIndex((c) => c.id === $category.id);
-          $categories[index].category = c;
           $bookmarks.forEach((bookmark) => {
             if (bookmark.category === $category.category) bookmark.category = c;
           });
-          $category = $categories[index];
-          $bookmarks = $bookmarks;
+          const index = $categories.findIndex((c) => c.id === $category.id);
+          $categories[index].category = c;
+          currentBookmarks = currentBookmarks;
           return true;
         }
       }
@@ -113,8 +111,10 @@
   };
 
   const checkSize = () => {
-    if (smallSize != window.innerWidth <= isSmall)
+    if (smallSize != window.innerWidth <= isSmall) {
       smallSize = window.innerWidth <= isSmall;
+      formatURL(smallSize);
+    }
   };
   const checkScroll = async () => {
     const table = document.querySelector(".table-responsive") as Element;
@@ -166,6 +166,7 @@
           });
           $category = { id: -1, category: "All Bookmarks", count: 0 };
           $bookmarks = $bookmarks;
+          editable = false;
         } else {
           await fire("Error", await resp.text(), "error");
           console.log("reload");

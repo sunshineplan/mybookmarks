@@ -49,10 +49,6 @@
               $categories.push({ id: json.cid, category, count: 1 });
             $total++;
           } else {
-            const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
-            $bookmarks[index].bookmark = name;
-            $bookmarks[index].url = url;
-            $bookmarks[index].category = category;
             if (category) {
               const index = $categories.findIndex(
                 (c) => c.category === category
@@ -64,9 +60,11 @@
               $categories[
                 $categories.findIndex((c) => c.category === $bookmark.category)
               ].count--;
+            const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
+            $bookmarks[index].bookmark = name;
+            $bookmarks[index].url = url;
+            $bookmarks[index].category = category;
           }
-          $categories = $categories;
-          $bookmarks = $bookmarks;
           goback();
         } else {
           await fire("Error", json.message, "error");
@@ -92,7 +90,6 @@
             $categories.findIndex((c) => c.category === $bookmark.category)
           ].count--;
         $total--;
-        $bookmarks = $bookmarks;
         goback();
       }
     }
