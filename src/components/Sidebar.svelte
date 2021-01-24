@@ -27,6 +27,7 @@
   const goto = (c: Category) => {
     if (window.innerWidth <= isSmall) $showSidebar = false;
     $category = c;
+    window.history.pushState({}, "", "/");
     $component = "show";
   };
 
@@ -40,13 +41,13 @@
       json = await resp.json();
       if (json.id && json.status) {
         (document.querySelector(".new") as Element).remove();
-        const newList: Category = {
+        const newCategory: Category = {
           id: json.id,
           category,
           count: 0,
         };
-        $categories = [...$categories, newList];
-        goto(newList);
+        $categories = [...$categories, newCategory];
+        goto(newCategory);
         return true;
       }
     }

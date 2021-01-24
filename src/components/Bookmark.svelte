@@ -123,11 +123,13 @@
   <div class="form" class:was-validated={validated}>
     <div class="form-group">
       <label for="bookmark">Bookmark</label>
+      <!-- svelte-ignore a11y-autofocus -->
       <input
         class="form-control"
         id="bookmark"
         bind:value={name}
         maxlength="40"
+        autofocus
         required
       />
       <div class="invalid-feedback">This field is required.</div>
