@@ -74,11 +74,11 @@
   const editCategory = async (c: string) => {
     c = c.trim();
     if ($category.category != c) {
-      $loading++;
+      loading.start();
       const resp = await post("/category/edit/" + $category.id, {
         category: c,
       });
-      $loading--;
+      loading.end();
       let json: any = {};
       if (resp.ok) {
         json = await resp.json();
@@ -144,9 +144,9 @@
   const categoryClick = async () => {
     if (editable) {
       if (await confirm("category")) {
-        $loading++;
+        loading.start();
         const resp = await post("/category/delete/" + $category.id);
-        $loading--;
+        loading.end();
         if (resp.ok) {
           const index = $categories.findIndex((c) => c.id === $category.id);
           $categories.splice(index, 1);

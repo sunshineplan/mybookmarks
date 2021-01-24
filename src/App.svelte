@@ -45,7 +45,7 @@
     <div
       class="content"
       style="padding-left: 250px; opacity: {$loading ? 0.5 : 1}"
-      on:mousedown={() => ($showSidebar = false)}
+      on:mousedown={showSidebar.close}
     >
       <svelte:component this={components[$component]} />
     </div>

@@ -21,8 +21,26 @@ export const component = writable('show')
 export const category: Writable<Category> = writable({ id: -1, category: 'All Bookmarks', count: 0 })
 export const bookmark: Writable<Bookmark> = writable({} as Bookmark)
 export const categories: Writable<Category[]> = writable([])
-export const showSidebar = writable(false)
-export const loading = writable(0)
+
+const createShowSidebar = () => {
+  const { subscribe, set, update } = writable(false)
+  return {
+    subscribe,
+    toggle: () => update(status => !status),
+    close: () => set(false)
+  }
+}
+export const showSidebar = createShowSidebar()
+
+const createLoading = () => {
+  const { subscribe, update } = writable(0)
+  return {
+    subscribe,
+    start: () => update(n => n + 1),
+    end: () => update(n => n - 1)
+  }
+}
+export const loading = createLoading()
 
 const createBookmarks = () => {
   const { subscribe, set } = writable([] as Bookmark[])
@@ -47,9 +65,9 @@ const createBookmarks = () => {
           goal = currentCategory.count
       }
       if (start >= (init ? Math.min(30, goal) : goal)) return
-      loading.update(n => n + 1)
+      loading.start()
       const resp = await post('/bookmark/get', { category: currentCategory.id, start })
-      loading.update(n => n - 1)
+      loading.end()
       if (resp.ok) {
         const moreBookmarks = currentBookmarks.concat(await resp.json())
         moreBookmarks.sort((a, b) => a.seq - b.seq)

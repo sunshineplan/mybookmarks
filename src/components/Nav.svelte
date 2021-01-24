@@ -20,7 +20,7 @@
         class="nav-link link"
         on:click={() => {
           window.history.pushState({}, "", "/setting");
-          if (window.innerWidth <= 900) $showSidebar = false;
+          if (window.innerWidth <= 900) showSidebar.close();
           $component = "setting";
         }}> Setting </span>
       <a class="nav-link link" href="/logout">Log out</a>

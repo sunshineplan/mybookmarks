@@ -20,12 +20,8 @@
 
   $: uncategorized = $total - $categories.reduce((a, b) => a + b.count, 0);
 
-  const toggle = () => {
-    $showSidebar = !$showSidebar;
-  };
-
   const goto = async (c: Category) => {
-    if (window.innerWidth <= isSmall) $showSidebar = false;
+    if (window.innerWidth <= isSmall) showSidebar.close();
     $category = c;
     window.history.pushState({}, "", "/");
     $component = "show";
@@ -34,9 +30,9 @@
 
   const add = async (category: string) => {
     category = category.trim();
-    $loading++;
+    loading.start();
     const resp = await post("/category/add", { category });
-    $loading--;
+    loading.end();
     let json: any = {};
     if (resp.ok) {
       json = await resp.json();
@@ -58,7 +54,7 @@
   };
 
   const addCategory = async () => {
-    if (window.innerWidth <= isSmall) $showSidebar = false;
+    if (window.innerWidth <= isSmall) showSidebar.close();
     const newCategory = document.querySelector(".new");
     let ok = true;
     if (newCategory) ok = await add((newCategory as HTMLElement).innerText);
@@ -135,7 +131,7 @@
 {#if smallSize}
   <span
     class="toggle"
-    on:click={toggle}
+    on:click={showSidebar.toggle}
     on:mouseenter={() => (hover = true)}
     on:mouseleave={() => (hover = false)}>
     <svg viewBox="0 0 70 70" width="40" height="30">
