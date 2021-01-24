@@ -7,7 +7,6 @@
     loading,
     bookmark,
     bookmarks,
-    total,
     category,
     categories,
   } from "../stores";
@@ -72,31 +71,6 @@
     else urls.forEach((url) => (url.text = url.dataset.url as string));
   };
 
-  const more = async () => {
-    console.log("more");
-    if ($category.id === -1) {
-      if ($bookmarks.length >= $total) return;
-    } else if ($category.id === 0) {
-      if (
-        $bookmarks.filter((b) => b.category == "").length >=
-        $total - $categories.reduce((a, b) => a + b.count, 0)
-      )
-        return;
-    } else if (currentBookmarks.length >= $category.count) return;
-    $loading++;
-    const resp = await post("/bookmark/get", {
-      category: $category.id,
-      start: currentBookmarks.length,
-    });
-    $loading--;
-    if (resp.ok) {
-      const current = $bookmarks.concat(await resp.json());
-      current.sort((a, b) => a.seq - b.seq);
-      $bookmarks = current;
-      currentBookmarks = currentBookmarks;
-    } else await fire("Error", await resp.text(), "error");
-  };
-
   const editCategory = async (c: string) => {
     c = c.trim();
     if ($category.category != c) {
@@ -145,7 +119,7 @@
   const checkScroll = async () => {
     const table = document.querySelector(".table-responsive") as Element;
     if (table.scrollTop + table.clientHeight >= table.scrollHeight)
-      await more();
+      await bookmarks.more();
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {

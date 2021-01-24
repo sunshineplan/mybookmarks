@@ -29,33 +29,31 @@ const createBookmarks = () => {
   return {
     subscribe,
     set,
-    more: async () => {
-      console.log('more')
-      let start: number
-      if (get(category).id === -1) {
-        start = get(bookmarks).length
-        if (start >= get(total)) return
-      } else if (get(category).id === 0) {
-        start = get(bookmarks).filter((b) => b.category == '').length
-        if (
-          start >=
-          get(total) - get(categories).reduce((a, b) => a + b.count, 0)
-        )
-          return
-      } else {
-        start = get(bookmarks).filter((b) => b.category == get(category).category).length
-        if (length >= get(category).count) return
+    more: async (init?: boolean) => {
+      const currentCategory = get(category)
+      const currentBookmarks = get(bookmarks)
+      let start: number, goal: number
+      switch (currentCategory.id) {
+        case -1:
+          start = currentBookmarks.length
+          goal = get(total)
+          break
+        case 0:
+          start = currentBookmarks.filter(b => b.category == '').length
+          goal = get(total) - get(categories).reduce((a, b) => a + b.count, 0)
+          break
+        default:
+          start = currentBookmarks.filter(b => b.category == currentCategory.category).length
+          goal = currentCategory.count
       }
+      if (start >= (init ? Math.min(30, goal) : goal)) return
       loading.update(n => n + 1)
-      const resp = await post('/bookmark/get', {
-        category: get(category).id,
-        start,
-      })
+      const resp = await post('/bookmark/get', { category: currentCategory.id, start })
       loading.update(n => n - 1)
       if (resp.ok) {
-        const current = get(bookmarks).concat(await resp.json())
-        current.sort((a, b) => a.seq - b.seq)
-        bookmarks.set(current)
+        const moreBookmarks = currentBookmarks.concat(await resp.json())
+        moreBookmarks.sort((a, b) => a.seq - b.seq)
+        bookmarks.set(moreBookmarks)
       } else await fire('Error', await resp.text(), 'error')
     }
   }

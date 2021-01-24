@@ -18,17 +18,18 @@
   let hover = false;
   let smallSize = window.innerWidth <= isSmall;
 
-  $: uncategorized = $bookmarks.filter((b) => b.category === "").length;
+  $: uncategorized = $total - $categories.reduce((a, b) => a + b.count, 0);
 
   const toggle = () => {
     $showSidebar = !$showSidebar;
   };
 
-  const goto = (c: Category) => {
+  const goto = async (c: Category) => {
     if (window.innerWidth <= isSmall) $showSidebar = false;
     $category = c;
     window.history.pushState({}, "", "/");
     $component = "show";
+    await bookmarks.more(true);
   };
 
   const add = async (category: string) => {
@@ -47,7 +48,7 @@
           count: 0,
         };
         $categories = [...$categories, newCategory];
-        goto(newCategory);
+        await goto(newCategory);
         return true;
       }
     }
@@ -103,9 +104,9 @@
       const index = $categories.findIndex((c) => c.id === $category.id);
       if ($category.id && $component === "show")
         if (event.key == "ArrowUp") {
-          if (index > 0) goto($categories[index - 1]);
+          if (index > 0) await goto($categories[index - 1]);
         } else if (event.key == "ArrowDown")
-          if (index < len - 1) goto($categories[index + 1]);
+          if (index < len - 1) await goto($categories[index + 1]);
     }
   };
   const handleClick = async (event: MouseEvent) => {
@@ -156,13 +157,14 @@
       <li
         class="navbar-brand category"
         class:active={$category.id === -1 && $component === "show"}
-        on:click={() => goto({ id: -1, category: "All Bookmarks", count: 0 })}
+        on:click={async () =>
+          await goto({ id: -1, category: "All Bookmarks", count: 0 })}
       >All Bookmarks ({$total})</li>
       {#each $categories as c (c.id)}
         <li
           class="nav-link category"
           class:active={$category.id === c.id && $component === "show"}
-          on:click={() => goto(c)}
+          on:click={async () => await goto(c)}
         >
           {c.category} ({c.count})
         </li>
@@ -172,7 +174,7 @@
           class="nav-link category"
           id="uncategorized"
           class:active={$category.id === 0 && $component === "show"}
-          on:click={() => goto({ id: 0, category: "", count: 0 })}
+          on:click={async () => await goto({ id: 0, category: "", count: 0 })}
         >
           Uncategorized ({uncategorized})
         </li>
