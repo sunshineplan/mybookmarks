@@ -42,38 +42,29 @@ const createLoading = () => {
 }
 export const loading = createLoading()
 
+const more = async (init?: boolean) => {
+  const currentBookmarks = get(bookmarks)
+  const start = currentBookmarks.length
+  const goal = get(total)
+  if (start >= (init ? Math.min(30, goal) : goal)) return
+  loading.start()
+  const resp = await post('/bookmark/get', { start })
+  loading.end()
+  if (resp.ok) {
+    const moreBookmarks = currentBookmarks.concat(await resp.json())
+    moreBookmarks.sort((a, b) => a.seq - b.seq)
+    bookmarks.set(moreBookmarks)
+    const currentCategory = get(category)
+    if (currentCategory.id == -1) return
+    const moreCount = moreBookmarks.filter(b => b.category == currentCategory.category).length
+    if (moreCount < currentBookmarks.filter(b => b.category == currentCategory.category).length + 15)
+      if (currentCategory.id && moreCount < currentCategory.count) await more()
+      else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more()
+  } else await fire('Error', await resp.text(), 'error')
+}
+
 const createBookmarks = () => {
   const { subscribe, set } = writable([] as Bookmark[])
-  return {
-    subscribe,
-    set,
-    more: async (init?: boolean) => {
-      const currentCategory = get(category)
-      const currentBookmarks = get(bookmarks)
-      let start: number, goal: number
-      switch (currentCategory.id) {
-        case -1:
-          start = currentBookmarks.length
-          goal = get(total)
-          break
-        case 0:
-          start = currentBookmarks.filter(b => b.category == '').length
-          goal = get(total) - get(categories).reduce((a, b) => a + b.count, 0)
-          break
-        default:
-          start = currentBookmarks.filter(b => b.category == currentCategory.category).length
-          goal = currentCategory.count
-      }
-      if (start >= (init ? Math.min(30, goal) : goal)) return
-      loading.start()
-      const resp = await post('/bookmark/get', { category: currentCategory.id, start })
-      loading.end()
-      if (resp.ok) {
-        const moreBookmarks = currentBookmarks.concat(await resp.json())
-        moreBookmarks.sort((a, b) => a.seq - b.seq)
-        bookmarks.set(moreBookmarks)
-      } else await fire('Error', await resp.text(), 'error')
-    }
-  }
+  return { subscribe, set, more }
 }
 export const bookmarks = createBookmarks()

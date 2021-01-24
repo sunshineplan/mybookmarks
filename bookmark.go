@@ -38,7 +38,7 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int, err error
 	}
 
 	var rows *sql.Rows
-	rows, err = db.Query("SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT 30", userID)
+	rows, err = db.Query("SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT 50", userID)
 	if err != nil {
 		log.Println("Failed to get bookmarks:", err)
 		return
@@ -61,31 +61,14 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int, err error
 }
 
 func moreBookmark(c *gin.Context) {
-	var r struct{ Category, Start int }
+	var r struct{ Start int }
 	if err := c.BindJSON(&r); err != nil {
 		c.String(400, "")
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
-	stmt := "SELECT %s FROM bookmarks WHERE"
-
-	var args []interface{}
-	switch r.Category {
-	case -1:
-		stmt += " user_id = ?"
-		args = append(args, userID)
-	case 0:
-		stmt += " category_id = 0 AND user_id = ?"
-		args = append(args, userID)
-	default:
-		stmt += " category_id = ? AND user_id = ?"
-		args = append(args, r.Category)
-		args = append(args, userID)
-	}
-
-	limit := fmt.Sprintf(" LIMIT %d, 30", r.Start)
-	rows, err := db.Query(fmt.Sprintf(stmt+limit, "bookmark_id, bookmark, url, category"), args...)
+	rows, err := db.Query("SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT ?, 50",
+		sessions.Default(c).Get("userID"), r.Start)
 	if err != nil {
 		log.Println("Failed to get bookmarks:", err)
 		c.String(500, "")
