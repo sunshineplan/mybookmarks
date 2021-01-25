@@ -1,6 +1,6 @@
 <script lang="ts">
   import Sortable from "sortablejs";
-  import { onMount } from "svelte";
+  import { onMount, createEventDispatcher } from "svelte";
   import { fire, post, confirm } from "../misc";
   import {
     component,
@@ -12,6 +12,7 @@
   } from "../stores";
   import type { Bookmark } from "../stores";
 
+  const dispatch = createEventDispatcher();
   const isSmall = 700;
 
   let smallSize = window.innerWidth <= isSmall;
@@ -60,6 +61,7 @@
       });
     } else await fire("Error", "Failed to reorder.", "error");
   };
+
   const formatURL = (isSmall: boolean) => {
     const urls = Array.from(
       document.querySelectorAll(".url")
@@ -93,7 +95,7 @@
         }
       }
       await fire("Error", json.message ? json.message : "Error", "error");
-      console.log("reload");
+      dispatch("reload");
       return false;
     }
     return true;
@@ -108,18 +110,6 @@
     $bookmark = b;
     window.history.pushState({}, "", "/bookmark/edit");
     $component = "bookmark";
-  };
-
-  const checkSize = () => {
-    if (smallSize != window.innerWidth <= isSmall) {
-      smallSize = window.innerWidth <= isSmall;
-      formatURL(smallSize);
-    }
-  };
-  const checkScroll = async () => {
-    const table = document.querySelector(".table-responsive") as Element;
-    if (table.scrollTop + table.clientHeight >= table.scrollHeight)
-      await bookmarks.more();
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {
@@ -154,13 +144,14 @@
             if (bookmark.category === $category.category)
               bookmark.category = "";
           });
-          $category = { id: -1, category: "All Bookmarks", count: 0 };
           $bookmarks = $bookmarks;
+          $categories = $categories;
           editable = false;
         } else {
           await fire("Error", await resp.text(), "error");
-          console.log("reload");
+          dispatch("reload");
         }
+        category.reset();
       }
     } else {
       editable = true;
@@ -176,7 +167,18 @@
     }
   };
 
-  const handleWindowClick = async (event: MouseEvent) => {
+  const handleResize = () => {
+    if (smallSize != window.innerWidth <= isSmall) {
+      smallSize = window.innerWidth <= isSmall;
+      formatURL(smallSize);
+    }
+  };
+  const handleScroll = async () => {
+    const table = document.querySelector(".table-responsive") as Element;
+    if (table.scrollTop + table.clientHeight >= table.scrollHeight)
+      await bookmarks.more();
+  };
+  const handleClick = async (event: MouseEvent) => {
     const target = event.target as Element;
     if (
       target.id !== "category" &&
@@ -203,24 +205,24 @@
 </svelte:head>
 
 <svelte:window
-  on:resize={checkSize}
-  on:scroll|capture={checkScroll}
-  on:click={handleWindowClick}
+  on:resize={handleResize}
+  on:scroll|capture={handleScroll}
+  on:click={handleClick}
 />
 
 <div style="height: 100%">
-  <header style="padding-left: 20px">
+  <header style="padding-left: 20px; height: 100px;">
     <div style="height: 50px">
-      <span
-        class="h3"
+      <h3
         id="category"
         class:editable
         contenteditable={editable}
-        on:keydown={categoryKeydown}>
+        on:keydown={categoryKeydown}
+      >
         {$category.category ? $category.category : "Uncategorized"}
-      </span>
+      </h3>
       {#if $category.id > 0}
-        <span class="btn icon" on:click={categoryClick}>
+        <span class="icon" on:click={categoryClick}>
           {#if !editable}
             <i class="material-icons edit">edit</i>
           {:else}
@@ -277,10 +279,6 @@
     color: #0056b3 !important;
   }
 
-  .h3 {
-    cursor: default;
-  }
-
   .edit {
     font-size: 18px;
   }
@@ -290,6 +288,10 @@
     display: inline-block;
     min-width: 10px;
     padding-right: 1rem;
+  }
+
+  [contenteditable="true"] {
+    cursor: text;
   }
 
   .table-responsive {

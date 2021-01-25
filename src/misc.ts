@@ -20,7 +20,7 @@ export const valid = () => {
 }
 
 export const post = async (url: string, data?: any) => {
-  let resp
+  let resp: Response
   try {
     resp = await fetch(url, {
       method: 'post',
@@ -30,10 +30,11 @@ export const post = async (url: string, data?: any) => {
   } catch (e) {
     return Promise.reject(await fire('Error', e, 'error'))
   }
-  if (resp.status != 401) return resp
-  await fire('Error', 'Login status has changed. Please Re-login!', 'error')
-  window.location.href = '/'
-  return Promise.reject()
+  if (resp.status == 401) {
+    await fire('Error', 'Login status has changed. Please Re-login!', 'error')
+    window.location.href = '/'
+  }
+  return resp
 }
 
 export const confirm = async (type: string) => {

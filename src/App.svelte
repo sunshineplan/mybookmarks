@@ -47,7 +47,7 @@
       style="padding-left: 250px; opacity: {$loading ? 0.5 : 1}"
       on:mousedown={showSidebar.close}
     >
-      <svelte:component this={components[$component]} />
+      <svelte:component this={components[$component]} on:reload={getInfo} />
     </div>
   {/if}
 {/await}
@@ -78,6 +78,10 @@
     padding-top: 90px;
     height: 100%;
     width: 100%;
+  }
+
+  :global(h3) {
+    cursor: default;
   }
 
   :global(.form) {

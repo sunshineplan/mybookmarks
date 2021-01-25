@@ -49,7 +49,7 @@
       }
     }
     await fire("Error", json.message ? json.message : "Error", "error");
-    console.log("reload");
+    dispatch("reload");
     return false;
   };
 
@@ -88,10 +88,6 @@
     }
   };
 
-  const checkSize = () => {
-    if (smallSize != window.innerWidth <= isSmall)
-      smallSize = window.innerWidth <= isSmall;
-  };
   const handleKeydown = async (event: KeyboardEvent) => {
     if (event.key == "ArrowUp" || event.key == "ArrowDown") {
       const newCategory = document.querySelector(".new");
@@ -120,12 +116,16 @@
       }
     }
   };
+  const handleResize = () => {
+    if (smallSize != window.innerWidth <= isSmall)
+      smallSize = window.innerWidth <= isSmall;
+  };
 </script>
 
 <svelte:window
   on:keydown={handleKeydown}
-  on:resize={checkSize}
   on:click={handleClick}
+  on:resize={handleResize}
 />
 
 {#if smallSize}

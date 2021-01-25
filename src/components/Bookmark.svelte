@@ -1,6 +1,17 @@
 <script lang="ts">
+  import { createEventDispatcher } from "svelte";
   import { fire, post, valid, confirm } from "../misc";
-  import { component, bookmark, categories, bookmarks, total } from "../stores";
+  import {
+    component,
+    category as current,
+    bookmark,
+    categories,
+    bookmarks,
+    total,
+    loading,
+  } from "../stores";
+
+  const dispatch = createEventDispatcher();
 
   let name = $bookmark ? $bookmark.bookmark : "";
   let url = $bookmark ? $bookmark.url : "";
@@ -26,8 +37,7 @@
           url,
           category,
         });
-      if (!resp.ok) await fire("Error", await resp.text(), "error");
-      else {
+      if (resp.ok) {
         const json = await resp.json();
         if (json.status == 1) {
           if (mode == "Add") {
@@ -54,7 +64,11 @@
                 (c) => c.category === category
               );
               if (index !== -1) $categories[index].count++;
-              else $categories.push({ id: json.cid, category, count: 1 });
+              else
+                $categories = [
+                  ...$categories,
+                  { id: json.cid, category, count: 1 },
+                ];
             }
             if ($bookmark.category)
               $categories[
@@ -71,15 +85,21 @@
           if (json.error == 1) name = "";
           else if (json.error == 2) url = "";
         }
+      } else {
+        await fire("Error", await resp.text(), "error");
+        dispatch("reload");
+        current.reset();
+        goback();
       }
     } else validated = true;
   };
 
   const del = async () => {
     if (await confirm("bookmark")) {
+      loading.start();
       const resp = await post("/bookmark/delete/" + $bookmark.id);
-      if (!resp.ok) await fire("Error", await resp.text(), "error");
-      else {
+      loading.end();
+      if (resp.ok) {
         const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
         $bookmarks.splice(index, 1);
         $bookmarks.forEach((b) => {
@@ -90,8 +110,12 @@
             $categories.findIndex((c) => c.category === $bookmark.category)
           ].count--;
         $total--;
-        goback();
+      } else {
+        await fire("Error", await resp.text(), "error");
+        dispatch("reload");
+        current.reset();
       }
+      goback();
     }
   };
 

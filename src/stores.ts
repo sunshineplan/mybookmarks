@@ -18,9 +18,18 @@ export interface Bookmark {
 export const username = writable('')
 export const total = writable(0)
 export const component = writable('show')
-export const category: Writable<Category> = writable({ id: -1, category: 'All Bookmarks', count: 0 })
 export const bookmark: Writable<Bookmark> = writable({} as Bookmark)
 export const categories: Writable<Category[]> = writable([])
+
+const createCategory = () => {
+  const { subscribe, set } = writable({ id: -1, category: 'All Bookmarks', count: 0 } as Category)
+  return {
+    subscribe,
+    set,
+    reset: () => set({ id: -1, category: 'All Bookmarks', count: 0 }),
+  }
+}
+export const category = createCategory()
 
 const createShowSidebar = () => {
   const { subscribe, set, update } = writable(false)

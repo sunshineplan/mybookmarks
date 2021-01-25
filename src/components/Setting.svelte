@@ -60,7 +60,7 @@
   <hr />
 </header>
 <div
-  style="margin-left: 120px; width: 250px"
+  style="padding-left: 20px"
   class="was-validated: {validated}"
   on:keyup={async (e) => {
     if (e.key == "Enter") await setting();
