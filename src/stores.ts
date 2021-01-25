@@ -52,23 +52,29 @@ const createLoading = () => {
 export const loading = createLoading()
 
 const more = async (init?: boolean) => {
+  const currentCategory = get(category)
   const currentBookmarks = get(bookmarks)
-  const start = currentBookmarks.length
-  const goal = get(total)
-  if (start >= (init ? Math.min(30, goal) : goal)) return
+  const now = currentCategory.id == -1
+    ? currentBookmarks.length
+    : currentBookmarks.filter(b => b.category == currentCategory.category).length
+  const goal = currentCategory.id == -1
+    ? get(total)
+    : currentCategory.id
+      ? currentCategory.count
+      : get(total) - get(categories).reduce((a, b) => a + b.count, 0)
+  if (now >= (init ? Math.min(30, goal) : goal)) return
   loading.start()
-  const resp = await post('/bookmark/get', { start })
+  const resp = await post('/bookmark/get', { start: currentBookmarks.length })
   loading.end()
   if (resp.ok) {
     const moreBookmarks = currentBookmarks.concat(await resp.json())
     moreBookmarks.sort((a, b) => a.seq - b.seq)
     bookmarks.set(moreBookmarks)
-    const currentCategory = get(category)
     if (currentCategory.id == -1) return
     const moreCount = moreBookmarks.filter(b => b.category == currentCategory.category).length
-    if (moreCount < currentBookmarks.filter(b => b.category == currentCategory.category).length + 15)
-      if (currentCategory.id && moreCount < currentCategory.count) await more()
-      else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more()
+    if (moreCount < now + 15)
+      if (currentCategory.id && moreCount < currentCategory.count) await more(init)
+      else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more(init)
   } else await fire('Error', await resp.text(), 'error')
 }
 
