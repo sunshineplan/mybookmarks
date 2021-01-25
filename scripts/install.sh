@@ -2,15 +2,13 @@
 
 installSoftware() {
     apt -qq -y install nginx default-mysql-client
-    apt -qq -y -t $(lsb_release -sc)-backports install golang-go npm
 }
 
 installMyBookmarks() {
-    curl -Lo- https://github.com/sunshineplan/mybookmarks/archive/v1.0.tar.gz | tar zxC /var/www
-    mv /var/www/mybookmarks* /var/www/mybookmarks
+    mkdir -p /var/www/mybookmarks
+    curl -Lo- https://github.com/sunshineplan/mybookmarks/releases/download/v1.0/release.tar.gz | tar zxC /var/www/mybookmarks
     cd /var/www/mybookmarks
-    bash build.sh
-    ./mybookmarks install
+    chmod +x mybookmarks
 }
 
 configMyBookmarks() {
@@ -18,7 +16,7 @@ configMyBookmarks() {
     read -p 'Please enter VerifyHeader header: ' header
     read -p 'Please enter VerifyHeader value: ' value
     read -p 'Please enter unix socket(default: /run/mybookmarks.sock): ' unix
-    [ -z $unix ] && unix=/var/www/mybookmarks/mybookmarks.sock
+    [ -z $unix ] && unix=/run/mybookmarks.sock
     read -p 'Please enter host(default: 127.0.0.1): ' host
     [ -z $host ] && host=127.0.0.1
     read -p 'Please enter port(default: 12345): ' port
@@ -33,6 +31,7 @@ configMyBookmarks() {
     sed -i "s,\$log,$log," /var/www/mybookmarks/config.ini
     sed -i "s/\$host/$host/" /var/www/mybookmarks/config.ini
     sed -i "s/\$port/$port/" /var/www/mybookmarks/config.ini
+    ./mybookmarks install
     service mybookmarks start
 }
 
