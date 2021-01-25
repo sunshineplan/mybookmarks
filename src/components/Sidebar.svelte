@@ -229,7 +229,7 @@
   }
 
   #categories {
-    height: calc(100% - 76px);
+    height: calc(100% - 36px);
     overflow-y: auto;
   }
 
