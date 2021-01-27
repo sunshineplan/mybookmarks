@@ -8,7 +8,9 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-mail/mail v2.3.1+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/sunshineplan/utils v0.0.0-20210124044122-48b6b6d95f0f
+	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/sunshineplan/service v0.0.0-20210127074210-8cfdce71698b
+	github.com/sunshineplan/utils v0.0.0-20210127071503-b65d61f86778
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect

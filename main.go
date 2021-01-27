@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sunshineplan/service"
 	"github.com/sunshineplan/utils"
 	"github.com/sunshineplan/utils/httpsvr"
 	"github.com/sunshineplan/utils/metadata"
-	"github.com/sunshineplan/utils/service"
 	"github.com/vharitonsky/iniflags"
 )
 
@@ -47,6 +47,8 @@ func main() {
 	flag.StringVar(&server.Unix, "unix", "", "UNIX-domain Socket")
 	flag.StringVar(&server.Host, "host", "0.0.0.0", "Server Host")
 	flag.StringVar(&server.Port, "port", "12345", "Server Port")
+	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
+	svc.Options.ExcludeFiles = strings.Split(*(flag.String("exclude", "", "Exclude Files")), ",")
 	//flag.StringVar(&logPath, "log", joinPath(dir(self), "access.log"), "Log Path")
 	flag.StringVar(&logPath, "log", "", "Log Path")
 	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
@@ -77,6 +79,8 @@ func main() {
 			err = svc.Start()
 		case "stop":
 			err = svc.Stop()
+		case "update":
+			err = svc.Update()
 		case "backup":
 			backup()
 		case "init":
