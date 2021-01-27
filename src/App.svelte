@@ -72,6 +72,10 @@
     display: flex;
   }
 
+  :global(:root) {
+    --sk-color: #1a73e8;
+  }
+
   :global(.content) {
     position: fixed;
     top: 0;
