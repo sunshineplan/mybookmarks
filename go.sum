@@ -42,8 +42,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/sunshineplan/service v0.0.0-20210127105137-96a212deb217 h1:By/npt8rxSV8+uV/9GfmEwWCLNF8VQRtIczcF2qmV1g=
-github.com/sunshineplan/service v0.0.0-20210127105137-96a212deb217/go.mod h1:5toRZ0t2LQSFT9Lbi7xklpZuRu0F/RC+fbPr/AxsmSA=
+github.com/sunshineplan/service v0.0.0-20210127120612-2cff9811e158 h1:VpRkBN5HZLqgxJEEVFm407YF0M5QWiN+QgPOr/ibgg8=
+github.com/sunshineplan/service v0.0.0-20210127120612-2cff9811e158/go.mod h1:5toRZ0t2LQSFT9Lbi7xklpZuRu0F/RC+fbPr/AxsmSA=
 github.com/sunshineplan/utils v0.0.0-20210127071503-b65d61f86778 h1:K4UAMbkf6PkMtAkjCDCn+lW586eBBQUVToMm46FFkjE=
 github.com/sunshineplan/utils v0.0.0-20210127071503-b65d61f86778/go.mod h1:fJ8/Fjbd50RwQ8/wxBmBgkuDHfcXrCJu6c/iRsgkYok=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
