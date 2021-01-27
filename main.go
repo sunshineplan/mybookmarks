@@ -108,4 +108,7 @@ func main() {
 	default:
 		log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
 	}
+	if err != nil {
+		log.Fatalf("Failed to %s: %v", flag.Arg(0), err)
+	}
 }
