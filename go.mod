@@ -10,7 +10,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
 	github.com/sunshineplan/service v0.0.0-20210127120612-2cff9811e158
-	github.com/sunshineplan/utils v0.0.0-20210127071503-b65d61f86778
+	github.com/sunshineplan/utils v0.0.0-20210128013712-11aed7662a85
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
