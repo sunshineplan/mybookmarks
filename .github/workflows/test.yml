@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: '1.x'
 
-      - name: Test Vue Code
+      - name: Test Node Code
         run: |
           npm i --no-package-lock
           npm run build
