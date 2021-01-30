@@ -41,23 +41,8 @@
         const json = await resp.json();
         if (json.status == 1) {
           if (mode == "Add") {
-            $bookmarks = [
-              ...$bookmarks,
-              {
-                id: json.id,
-                bookmark: name,
-                url,
-                category,
-                seq: $bookmarks.length + 1,
-              },
-            ];
-            const index = $categories.findIndex(
-              (c) => c.category === $bookmark.category
-            );
-            if (index !== -1) $categories[index].count++;
-            else if (json.cid)
-              $categories.push({ id: json.cid, category, count: 1 });
-            $total++;
+            dispatch("reload");
+            await bookmarks.more(true);
           } else {
             if (category) {
               const index = $categories.findIndex(
