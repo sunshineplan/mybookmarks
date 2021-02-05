@@ -6,7 +6,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,7 +87,13 @@ func addCategory(c *gin.Context) {
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
+
 	var message string
 	switch {
 	case category.Name == "":
@@ -134,8 +139,12 @@ func editCategory(c *gin.Context) {
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
-	if !checkCategory(id, userID) {
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	} else if !checkCategory(id, userID) {
 		c.String(403, "")
 		return
 	}
@@ -196,7 +205,12 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	if checkCategory(id, sessions.Default(c).Get("userID")) {
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	} else if checkCategory(id, userID) {
 		if _, err := db.Exec("CALL delete_category(?)", id); err != nil {
 			log.Println("Failed to deleted category:", err)
 			c.String(500, "")

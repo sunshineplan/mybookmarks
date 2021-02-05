@@ -19,14 +19,16 @@ export const valid = () => {
   return result
 }
 
-export const post = async (url: string, data?: any) => {
+export const post = async (url: string, data?: any, universal?: boolean) => {
   let resp: Response
+  const init: RequestInit = {
+    method: 'post',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }
+  if (universal) init.credentials = 'include'
   try {
-    resp = await fetch(url, {
-      method: 'post',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
+    resp = await fetch(url, init)
   } catch (e) {
     return Promise.reject(await fire('Error', e, 'error'))
   }

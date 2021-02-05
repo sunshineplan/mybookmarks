@@ -133,7 +133,8 @@
     class="toggle"
     on:click={showSidebar.toggle}
     on:mouseenter={() => (hover = true)}
-    on:mouseleave={() => (hover = false)}>
+    on:mouseleave={() => (hover = false)}
+  >
     <svg viewBox="0 0 70 70" width="40" height="30">
       {#each [10, 30, 50] as y}
         <rect {y} width="100%" height="10" fill={hover ? "#1a73e8" : "white"} />
@@ -155,7 +156,9 @@
         class:active={$category.id === -1 && $component === "show"}
         on:click={async () =>
           await goto({ id: -1, category: "All Bookmarks", count: 0 })}
-      >All Bookmarks ({$total})</li>
+      >
+        All Bookmarks ({$total})
+      </li>
       {#each $categories as c (c.id)}
         <li
           class="nav-link category"

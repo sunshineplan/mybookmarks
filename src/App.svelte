@@ -13,6 +13,7 @@
     loading,
     categories,
     bookmarks,
+    reset,
   } from "./stores";
 
   const getInfo = async () => {
@@ -23,7 +24,7 @@
       $categories = info.categories;
       $bookmarks = info.bookmarks;
       $total = info.total;
-    }
+    } else reset();
   };
   const promise = getInfo();
 
@@ -36,7 +37,7 @@
   };
 </script>
 
-<Nav bind:username={$username} />
+<Nav bind:username={$username} on:reload={getInfo} />
 {#await promise then _}
   {#if !$username}
     <Login on:info={getInfo} />

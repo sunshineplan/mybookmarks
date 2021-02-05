@@ -6,7 +6,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -67,8 +66,15 @@ func moreBookmark(c *gin.Context) {
 		return
 	}
 
-	rows, err := db.Query("SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT ?, 50",
-		sessions.Default(c).Get("userID"), r.Start)
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
+
+	rows, err := db.Query(
+		"SELECT bookmark_id, bookmark, url, category FROM bookmarks WHERE user_id = ? LIMIT ?, 50", userID, r.Start)
 	if err != nil {
 		log.Println("Failed to get bookmarks:", err)
 		c.String(500, "")
@@ -97,13 +103,19 @@ func addBookmark(c *gin.Context) {
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
+
 	bc := make(chan error, 3)
 	var categoryID int
 	var exist1, exist2 string
 	go func() {
 		var err error
-		categoryID, err = getCategoryID(bookmark.Category, userID.(int))
+		categoryID, err = getCategoryID(bookmark.Category, userID)
 		bc <- err
 	}()
 	go func() {
@@ -173,7 +185,13 @@ func editBookmark(c *gin.Context) {
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
+
 	bc := make(chan error, 4)
 	var old bookmark
 	var categoryID int
@@ -187,7 +205,7 @@ func editBookmark(c *gin.Context) {
 	}()
 	go func() {
 		var err error
-		categoryID, err = getCategoryID(new.Category, userID.(int))
+		categoryID, err = getCategoryID(new.Category, userID)
 		bc <- err
 	}()
 	go func() {
@@ -246,9 +264,14 @@ func deleteBookmark(c *gin.Context) {
 		return
 	}
 
-	if checkBookmark(id, sessions.Default(c).Get("userID")) {
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	} else if checkBookmark(id, userID) {
 		if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?",
-			id, sessions.Default(c).Get("userID")); err != nil {
+			id, userID); err != nil {
 			log.Println("Failed to delete bookmark:", err)
 			c.String(500, "")
 			return
@@ -266,8 +289,12 @@ func reorder(c *gin.Context) {
 		return
 	}
 
-	userID := sessions.Default(c).Get("userID")
-	if !checkBookmark(reorder.Old, userID) || !checkBookmark(reorder.New, userID) {
+	userID, _, err := getUser(c)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	} else if !checkBookmark(reorder.Old, userID) || !checkBookmark(reorder.New, userID) {
 		c.String(403, "")
 		return
 	}

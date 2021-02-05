@@ -252,7 +252,8 @@
                 href={bookmark.url}
                 target="_blank"
                 class="url"
-                data-url={bookmark.url}>
+                data-url={bookmark.url}
+              >
                 {bookmark.url}
               </a>
             </td>

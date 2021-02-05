@@ -1,7 +1,26 @@
 <script lang="ts">
+  import { createEventDispatcher } from "svelte";
+  import { fire, post } from "../misc";
   import { component, showSidebar } from "../stores";
 
+  const dispatch = createEventDispatcher();
+
   export let username: string;
+
+  const setting = () => {
+    window.history.pushState({}, "", "/setting");
+    if (window.innerWidth <= 900) showSidebar.close();
+    $component = "setting";
+  };
+
+  const logout = async () => {
+    const resp = await post("@universal@/logout", null, true);
+    if (resp.ok) {
+      dispatch("reload");
+      window.history.pushState({}, "", "/");
+      $component = "show";
+    } else await fire("Error", "Unknow error", "error");
+  };
 </script>
 
 <nav class="navbar navbar-light topbar">
@@ -11,19 +30,16 @@
       on:click={() => {
         window.history.pushState({}, "", "/");
         $component = "show";
-      }}> My Bookmarks </span>
+      }}
+    >
+      My Bookmarks
+    </span>
   </div>
   <div class="navbar-nav flex-row">
     {#if username}
       <span class="nav-link">{username}</span>
-      <span
-        class="nav-link link"
-        on:click={() => {
-          window.history.pushState({}, "", "/setting");
-          if (window.innerWidth <= 900) showSidebar.close();
-          $component = "setting";
-        }}> Setting </span>
-      <a class="nav-link link" href="/logout">Log out</a>
+      <span class="nav-link link" on:click={setting}>Setting</span>
+      <span class="nav-link link" on:click={logout}>Logout</span>
     {:else}
       <span class="nav-link">Log in</span>
     {/if}

@@ -15,9 +15,14 @@ import (
 
 func addUser(username string) {
 	log.Println("Start!")
-	if _, err := db.Exec("INSERT INTO user(username) VALUES (?)", strings.ToLower(username)); err != nil {
+	if err := initDB(); err != nil {
+		log.Fatalln("Failed to initialize database:", err)
+	}
+
+	username = strings.TrimSpace(strings.ToLower(username))
+	if _, err := db.Exec("INSERT INTO user(username, uid) VALUES (?, ?)", username, username); err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
-			log.Fatalf("Username %s already exists.", strings.ToLower(username))
+			log.Fatalf("Username %s already exists.", username)
 		} else {
 			log.Fatalln("Failed to add user:", err)
 		}
@@ -27,14 +32,19 @@ func addUser(username string) {
 
 func deleteUser(username string) {
 	log.Println("Start!")
-	res, err := db.Exec("DELETE FROM user WHERE username=?", strings.ToLower(username))
+	if err := initDB(); err != nil {
+		log.Fatalln("Failed to initialize database:", err)
+	}
+
+	username = strings.TrimSpace(strings.ToLower(username))
+	res, err := db.Exec("DELETE FROM user WHERE username = ?", username)
 	if err != nil {
 		log.Fatalln("Failed to delete user:", err)
 	}
 	if n, err := res.RowsAffected(); err != nil {
 		log.Fatalln("Failed to get affected rows:", err)
 	} else if n == 0 {
-		log.Fatalf("User %s does not exist.", strings.ToLower(username))
+		log.Fatalf("User %s does not exist.", username)
 	}
 	log.Println("Done!")
 }

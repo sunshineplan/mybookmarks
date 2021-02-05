@@ -83,3 +83,11 @@ const createBookmarks = () => {
   return { subscribe, set, more }
 }
 export const bookmarks = createBookmarks()
+
+export const reset = () => {
+  username.set('')
+  bookmark.set({} as Bookmark)
+  categories.set([])
+  category.reset()
+  bookmarks.set([])
+}

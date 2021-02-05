@@ -15,6 +15,7 @@ import (
 )
 
 var self string
+var universal bool
 var logPath string
 var server httpsvr.Server
 var meta metadata.Server
@@ -53,13 +54,10 @@ func main() {
 	flag.StringVar(&logPath, "log", "", "Log Path")
 	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
+	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 
 	svc.Options.ExcludeFiles = strings.Split(*exclude, ",")
-
-	if err := initDB(); err != nil {
-		log.Fatalln("Failed to load database config:", err)
-	}
 
 	if service.IsWindowsService() {
 		svc.Run(false)
@@ -81,6 +79,8 @@ func main() {
 			err = svc.Start()
 		case "stop":
 			err = svc.Stop()
+		case "restart":
+			err = svc.Restart()
 		case "update":
 			err = svc.Update()
 		case "backup":

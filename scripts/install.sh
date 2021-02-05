@@ -15,6 +15,13 @@ configMyBookmarks() {
     read -p 'Please enter metadata server: ' server
     read -p 'Please enter VerifyHeader header: ' header
     read -p 'Please enter VerifyHeader value: ' value
+    while true
+    do
+        read -p 'Use Universal ID(default: false): ' universal
+        [ -z $universal ] && universal=false && break
+        [ $universal = true -o $universal = false ] && break
+        echo Use Universal ID must be true or false!
+    done
     read -p 'Please enter unix socket(default: /run/mybookmarks.sock): ' unix
     [ -z $unix ] && unix=/run/mybookmarks.sock
     read -p 'Please enter host(default: 127.0.0.1): ' host
@@ -29,13 +36,14 @@ configMyBookmarks() {
     sed "s,\$server,$server," /var/www/mybookmarks/config.ini.default > /var/www/mybookmarks/config.ini
     sed -i "s/\$header/$header/" /var/www/mybookmarks/config.ini
     sed -i "s/\$value/$value/" /var/www/mybookmarks/config.ini
+    sed -i "s/\$universal/$universal/" /var/www/mystocks/config.ini
     sed -i "s,\$unix,$unix," /var/www/mybookmarks/config.ini
     sed -i "s,\$log,$log," /var/www/mybookmarks/config.ini
     sed -i "s/\$host/$host/" /var/www/mybookmarks/config.ini
     sed -i "s/\$port/$port/" /var/www/mybookmarks/config.ini
     sed -i "s,\$update,$update," /var/www/mybookmarks/config.ini
     sed -i "s|\$exclude|$exclude|" /var/www/mybookmarks/config.ini
-    ./mybookmarks install
+    ./mybookmarks install || exit 1
     service mybookmarks start
 }
 

@@ -23,18 +23,20 @@
     )
       await fire("Error", "Password cannot be empty.", "error");
     else {
-      const resp = await post("/login", {
-        username,
-        password,
-        rememberme,
-      });
-      if (!resp.ok) await fire("Error", await resp.text(), "error");
-      else {
-        localStorage.setItem("username", username);
-        dispatch("info");
-        window.history.pushState({}, "", "/");
-        $component = "show";
-      }
+      const resp = await post(
+        "@universal@/login",
+        {
+          username,
+          password,
+          rememberme,
+        },
+        true
+      );
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json.status == 1) dispatch("info");
+        else await fire("Error", json.message, "error");
+      } else await fire("Error", await resp.text(), "error");
     }
   };
 </script>
@@ -48,7 +50,9 @@
     <h3
       class="d-flex justify-content-center align-items-center"
       style="height: 100%"
-    >Log In</h3>
+    >
+      Log In
+    </h3>
   </header>
   <div
     class="login"
