@@ -45,6 +45,7 @@ func main() {
 	flag.StringVar(&meta.Addr, "server", "", "Metadata Server Address")
 	flag.StringVar(&meta.Header, "header", "", "Verify Header Header Name")
 	flag.StringVar(&meta.Value, "value", "", "Verify Header Value")
+	flag.BoolVar(&universal, "universal", false, "Use Universal account id or not")
 	flag.StringVar(&server.Unix, "unix", "", "UNIX-domain Socket")
 	flag.StringVar(&server.Host, "host", "0.0.0.0", "Server Host")
 	flag.StringVar(&server.Port, "port", "12345", "Server Port")
