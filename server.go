@@ -112,9 +112,8 @@ func run() {
 	base.POST("/bookmark/add", addBookmark)
 	base.POST("/bookmark/edit/:id", editBookmark)
 	base.POST("/bookmark/delete/:id", deleteBookmark)
-	base.POST("/category/add", addCategory)
-	base.POST("/category/edit/:id", editCategory)
-	base.POST("/category/delete/:id", deleteCategory)
+	base.POST("/category/edit", editCategory)
+	base.POST("/category/delete", deleteCategory)
 	base.POST("/reorder", reorder)
 
 	router.NoRoute(func(c *gin.Context) {
