@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/sunshineplan/utils/password"
 )
 
 type user struct {
@@ -63,16 +63,15 @@ func login(c *gin.Context) {
 			return
 		}
 	} else {
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password)); err != nil {
-			if (err == bcrypt.ErrHashTooShort && user.Password != login.Password) ||
-				err == bcrypt.ErrMismatchedHashAndPassword {
-				message = "Incorrect password"
-			} else if user.Password != login.Password {
-				log.Print(err)
-				c.String(500, "Critical Error! Please contact your system administrator.")
-				return
-			}
+		ok, err := password.Compare(user.Password, login.Password, false)
+		if err != nil {
+			log.Print(err)
+			c.String(500, "Internal Server Error")
+			return
+		} else if !ok {
+			message = "Incorrect password"
 		}
+
 		if message == "" {
 			session := sessions.Default(c)
 			session.Clear()
@@ -118,35 +117,24 @@ func chgpwd(c *gin.Context) {
 
 	var message string
 	var errorCode int
-	err := bcrypt.CompareHashAndPassword([]byte(oldPassword), []byte(data.Password))
-	switch {
-	case err != nil && data.Password != oldPassword:
-		if err == bcrypt.ErrHashTooShort || err == bcrypt.ErrMismatchedHashAndPassword {
-			message = "Incorrect password."
+	newPassword, err := password.Change(oldPassword, data.Password, data.Password1, data.Password2, false)
+	if err != nil {
+		message = err.Error()
+		switch err {
+		case password.ErrIncorrectPassword:
 			errorCode = 1
-		} else {
+		case password.ErrConfirmPasswordNotMatch, password.ErrSamePassword:
+			errorCode = 2
+		case password.ErrBlankPassword:
+		default:
 			log.Print(err)
-			c.String(500, "")
+			c.String(500, "Internal Server Error")
 			return
 		}
-	case data.Password1 != data.Password2:
-		message = "Confirm password doesn't match new password."
-		errorCode = 2
-	case data.Password1 == data.Password:
-		message = "New password cannot be the same as your current password."
-		errorCode = 2
-	case data.Password1 == "":
-		message = "New password cannot be blank."
 	}
 
 	if message == "" {
-		newPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password1), bcrypt.MinCost)
-		if err != nil {
-			log.Print(err)
-			c.String(500, "")
-			return
-		}
-		if _, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", string(newPassword), userID); err != nil {
+		if _, err = db.Exec("UPDATE user SET password = ? WHERE id = ?", newPassword, userID); err != nil {
 			log.Print(err)
 			c.String(500, "")
 			return
