@@ -1,27 +1,30 @@
 package main
 
 import (
-	"database/sql"
-	"time"
-
-	"github.com/sunshineplan/utils/database/mysql"
+	"github.com/sunshineplan/utils/database/mongodb"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var dbConfig mysql.Config
-var db *sql.DB
+var dbConfig mongodb.Config
+var collAccount *mongo.Collection
+var collBookmark *mongo.Collection
 
 func initDB() (err error) {
-	if err = meta.Get("mybookmarks_mysql", &dbConfig); err != nil {
+	if err = meta.Get("mybookmarks_mongo", &dbConfig); err != nil {
 		return
 	}
 
-	db, err = dbConfig.Open()
+	client, err := dbConfig.Open()
 	if err != nil {
 		return
 	}
-	db.SetConnMaxLifetime(time.Minute * 1)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+
+	db := client.Database(dbConfig.Database)
+
+	if !universal {
+		collAccount = db.Collection("account")
+	}
+	collBookmark = db.Collection("bookmark")
 
 	return
 }

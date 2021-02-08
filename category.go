@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type category struct {
@@ -15,13 +18,14 @@ type category struct {
 	Count int    `json:"count"`
 }
 
-func checkCategory(categoryID, userID interface{}) bool {
-	var exist string
-	if err := db.QueryRow("SELECT category FROM category WHERE id = ? AND user_id = ?",
-		categoryID, userID).Scan(&exist); err == nil {
-		return true
+func checkCategory(category, userID interface{}) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if res := collBookmark.FindOne(ctx, bson.M{"category": category, "user": userID}); res.Err() != nil {
+		return false
 	}
-	return false
+	return true
 }
 
 func getCategory(userID interface{}) (categories []category, err error) {

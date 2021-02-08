@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/sunshineplan/utils/archive"
 	"github.com/sunshineplan/utils/mail"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func addUser(username string) {
@@ -20,12 +22,12 @@ func addUser(username string) {
 	}
 
 	username = strings.TrimSpace(strings.ToLower(username))
-	if _, err := db.Exec("INSERT INTO user(username, uid) VALUES (?, ?)", username, username); err != nil {
-		if strings.Contains(err.Error(), "Duplicate entry") {
-			log.Fatalf("Username %s already exists.", username)
-		} else {
-			log.Fatalln("Failed to add user:", err)
-		}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := collAccount.InsertOne(ctx, bson.D{{"username", username}, {"uid", username}}); err != nil {
+		log.Fatal(err)
 	}
 	log.Println("Done!")
 }
@@ -37,13 +39,14 @@ func deleteUser(username string) {
 	}
 
 	username = strings.TrimSpace(strings.ToLower(username))
-	res, err := db.Exec("DELETE FROM user WHERE username = ?", username)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	res, err := collAccount.DeleteOne(ctx, bson.M{"username": username})
 	if err != nil {
 		log.Fatalln("Failed to delete user:", err)
-	}
-	if n, err := res.RowsAffected(); err != nil {
-		log.Fatalln("Failed to get affected rows:", err)
-	} else if n == 0 {
+	} else if res.DeletedCount == 0 {
 		log.Fatalf("User %s does not exist.", username)
 	}
 	log.Println("Done!")
