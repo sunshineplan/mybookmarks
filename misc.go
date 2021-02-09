@@ -110,7 +110,7 @@ func reorderBookmark(userID interface{}, orig, dest primitive.ObjectID) error {
 	defer cancel()
 
 	if _, err := collBookmark.UpdateOne(
-		ctx, bson.M{"seq": destBookmark.Seq}, bson.M{"_id": orig}); err != nil {
+		ctx, bson.M{"_id": orig}, bson.M{"$set": bson.M{"seq": destBookmark.Seq}}); err != nil {
 		log.Println("Failed to reorder bookmark:", err)
 		return err
 	}
