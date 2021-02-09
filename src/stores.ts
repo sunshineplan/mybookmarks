@@ -2,7 +2,6 @@ import { Writable, writable, get } from 'svelte/store'
 import { fire, post } from './misc'
 
 export interface Category {
-  id: number
   category: string
   count: number
 }
@@ -22,11 +21,11 @@ export const bookmark: Writable<Bookmark> = writable({} as Bookmark)
 export const categories: Writable<Category[]> = writable([])
 
 const createCategory = () => {
-  const { subscribe, set } = writable({ id: -1, category: 'All Bookmarks', count: 0 } as Category)
+  const { subscribe, set } = writable({ category: 'All Bookmarks', count: 0 } as Category)
   return {
     subscribe,
     set,
-    reset: () => set({ id: -1, category: 'All Bookmarks', count: 0 }),
+    reset: () => set({ category: 'All Bookmarks', count: 0 }),
   }
 }
 export const category = createCategory()
@@ -54,12 +53,12 @@ export const loading = createLoading()
 const more = async (init?: boolean) => {
   const currentCategory = get(category)
   const currentBookmarks = get(bookmarks)
-  const now = currentCategory.id == -1
+  const now = currentCategory.category == 'All Bookmarks'
     ? currentBookmarks.length
     : currentBookmarks.filter(b => b.category == currentCategory.category).length
-  const goal = currentCategory.id == -1
+  const goal = currentCategory.category == 'All Bookmarks'
     ? get(total)
-    : currentCategory.id
+    : currentCategory.category
       ? currentCategory.count
       : get(total) - get(categories).reduce((a, b) => a + b.count, 0)
   if (now >= (init ? Math.min(30, goal) : goal)) return
@@ -70,10 +69,10 @@ const more = async (init?: boolean) => {
     const moreBookmarks = currentBookmarks.concat(await resp.json())
     moreBookmarks.sort((a, b) => a.seq - b.seq)
     bookmarks.set(moreBookmarks)
-    if (currentCategory.id == -1) return
+    if (currentCategory.category == 'All Bookmarks') return
     const moreCount = moreBookmarks.filter(b => b.category == currentCategory.category).length
     if (moreCount < now + 15)
-      if (currentCategory.id && moreCount < currentCategory.count) await more(init)
+      if (currentCategory.category != 'Uncategorized' && moreCount < currentCategory.count) await more(init)
       else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more(init)
   } else await fire('Error', await resp.text(), 'error')
 }

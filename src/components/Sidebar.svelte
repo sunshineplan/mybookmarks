@@ -159,10 +159,10 @@
       >
         All Bookmarks ({$total})
       </li>
-      {#each $categories as c (c.id)}
+      {#each $categories as c (c.category)}
         <li
           class="nav-link category"
-          class:active={$category.id === c.id && $component === "show"}
+          class:active={$category.category === c.category && $component === "show"}
           on:click={async () => await goto(c)}
         >
           {c.category} ({c.count})

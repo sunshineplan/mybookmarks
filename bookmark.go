@@ -137,6 +137,9 @@ func addBookmark(c *gin.Context) {
 	} else if len(data.Category) > 15 {
 		c.JSON(200, gin.H{"status": 0, "message": "Category name exceeded length limit.", "error": 3})
 		return
+	} else if data.Category == "All Bookmarks" || data.Category == "Uncategorized" {
+		c.JSON(200, gin.H{"status": 0, "message": "Category name is not allow.", "error": 3})
+		return
 	}
 
 	ec := make(chan error, 2)
@@ -273,6 +276,9 @@ func editBookmark(c *gin.Context) {
 		return
 	} else if len(new.Category) > 15 {
 		c.JSON(200, gin.H{"status": 0, "message": "Category name exceeded length limit.", "error": 3})
+		return
+	} else if new.Category == "All Bookmarks" || new.Category == "Uncategorized" {
+		c.JSON(200, gin.H{"status": 0, "message": "Category name is not allow.", "error": 3})
 		return
 	}
 

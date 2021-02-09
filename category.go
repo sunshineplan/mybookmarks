@@ -67,6 +67,9 @@ func editCategory(c *gin.Context) {
 	case data.New == "":
 		message = "New category name is empty."
 		errorCode = 1
+	case data.New == "All Bookmarks" || data.New == "Uncategorized":
+		message = "New category name is not allow."
+		errorCode = 1
 	case data.Old == data.New:
 		message = "New category is same as old category."
 	case len(data.New) > 15:
