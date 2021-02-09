@@ -22,9 +22,7 @@ func initDB() (err error) {
 
 	database := client.Database(dbConfig.Database)
 
-	if !universal {
-		collAccount = database.Collection("account")
-	}
+	collAccount = database.Collection("account")
 	collBookmark = database.Collection("bookmark")
 
 	return
