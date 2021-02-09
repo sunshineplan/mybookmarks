@@ -51,6 +51,7 @@ func login(c *gin.Context) {
 		Rememberme         bool
 	}
 	if err := c.BindJSON(&login); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -112,6 +113,7 @@ func login(c *gin.Context) {
 func chgpwd(c *gin.Context) {
 	var data struct{ Password, Password1, Password2 string }
 	if err := c.BindJSON(&data); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}

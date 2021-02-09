@@ -14,7 +14,8 @@ func initDB() (err error) {
 		return
 	}
 
-	client, err := dbConfig.Open()
+	var client *mongo.Client
+	client, err = dbConfig.Open()
 	if err != nil {
 		return
 	}

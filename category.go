@@ -49,6 +49,7 @@ func getCategory(userID interface{}) (categories []category, err error) {
 func editCategory(c *gin.Context) {
 	var data struct{ Old, New string }
 	if err := c.BindJSON(&data); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -96,6 +97,7 @@ func editCategory(c *gin.Context) {
 func deleteCategory(c *gin.Context) {
 	var data struct{ Category string }
 	if err := c.BindJSON(&data); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -110,9 +112,11 @@ func deleteCategory(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if _, err := collBookmark.DeleteMany(
-		ctx, bson.M{"user": userID, "category": data.Category}); err != nil {
-		log.Println("Failed to deleted category:", err)
+	if _, err := collBookmark.UpdateMany(ctx,
+		bson.M{"user": userID, "category": data.Category},
+		bson.M{"$unset": bson.M{"category": 1}},
+	); err != nil {
+		log.Println("Failed to delete category:", err)
 		c.String(500, "")
 		return
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/sunshineplan/utils/archive"
 	"github.com/sunshineplan/utils/mail"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func addUser(username string) {
@@ -26,7 +27,23 @@ func addUser(username string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if _, err := collAccount.InsertOne(ctx, bson.D{{"username", username}, {"uid", username}}); err != nil {
+	res, err := collAccount.InsertOne(ctx, bson.D{
+		{Key: "username", Value: username},
+		{Key: "uid", Value: username},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	objectID, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Fatal("Failed to get last insert id.")
+	}
+	if _, err := collBookmark.InsertOne(ctx, bson.D{
+		{Key: "bookmark", Value: "Google"},
+		{Key: "url", Value: "https://www.google.com"},
+		{Key: "user", Value: objectID.Hex()},
+		{Key: "seq", Value: 1},
+	}); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Done!")
@@ -50,6 +67,56 @@ func deleteUser(username string) {
 		log.Fatalf("User %s does not exist.", username)
 	}
 	log.Println("Done!")
+}
+
+func reorderBookmark(userID interface{}, orig, dest primitive.ObjectID) error {
+	var origBookmark, destBookmark bookmark
+
+	c := make(chan error, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		c <- collBookmark.FindOne(ctx, bson.M{"_id": orig}).Decode(&origBookmark)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := collBookmark.FindOne(ctx, bson.M{"_id": dest}).Decode(&destBookmark); err != nil {
+		return err
+	}
+	if err := <-c; err != nil {
+		return err
+	}
+
+	var filter, update bson.M
+	if origBookmark.Seq > destBookmark.Seq {
+		filter = bson.M{"user": userID, "seq": bson.M{"$gte": destBookmark.Seq, "$lt": origBookmark.Seq}}
+		update = bson.M{"$inc": bson.M{"seq": 1}}
+	} else {
+		filter = bson.M{"user": userID, "seq": bson.M{"$gt": origBookmark.Seq, "$lte": destBookmark.Seq}}
+		update = bson.M{"$inc": bson.M{"seq": -1}}
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := collBookmark.UpdateMany(ctx, filter, update); err != nil {
+		log.Println("Failed to reorder bookmark:", err)
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := collBookmark.UpdateOne(
+		ctx, bson.M{"seq": destBookmark.Seq}, bson.M{"_id": orig}); err != nil {
+		log.Println("Failed to reorder bookmark:", err)
+		return err
+	}
+
+	return nil
 }
 
 func backup() {

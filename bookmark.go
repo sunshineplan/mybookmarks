@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,15 +23,9 @@ type bookmark struct {
 	Seq      int                `json:"-"`
 }
 
-func checkBookmark(id, userID interface{}) bool {
+func checkBookmark(objecdID primitive.ObjectID, userID interface{}) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	objecdID, err := primitive.ObjectIDFromHex(id.(string))
-	if err != nil {
-		log.Print(err)
-		return false
-	}
 
 	if err := collBookmark.FindOne(ctx, bson.M{"_id": objecdID, "user": userID}).Err(); err != nil {
 		if err != mongo.ErrNoDocuments {
@@ -86,6 +80,7 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int64, err err
 func moreBookmark(c *gin.Context) {
 	var r struct{ Start int64 }
 	if err := c.BindJSON(&r); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -124,6 +119,7 @@ func moreBookmark(c *gin.Context) {
 func addBookmark(c *gin.Context) {
 	var data bookmark
 	if err := c.BindJSON(&data); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -215,16 +211,21 @@ func addBookmark(c *gin.Context) {
 			seq = bookmarks[0].Seq
 		}
 
+		document := bson.D{
+			{Key: "bookmark", Value: data.Bookmark},
+			{Key: "url", Value: data.URL},
+			{Key: "user", Value: userID},
+			{Key: "seq", Value: seq},
+			{Key: "created", Value: time.Now()},
+		}
+		if data.Category != "" {
+			document = append(document, bson.E{Key: "category", Value: data.Category})
+		}
+
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		res, err := collBookmark.InsertOne(ctx, bson.D{
-			{"bookmark", data.Bookmark},
-			{"category", data.Category},
-			{"url", data.URL},
-			{"user", userID},
-			{"seq", seq},
-		})
+		res, err := collBookmark.InsertOne(ctx, document)
 		if err != nil {
 			log.Println("Failed to add bookmark:", err)
 			c.String(500, "")
@@ -246,10 +247,16 @@ func addBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	id := c.Param("id")
+	objectID, err := primitive.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
 
 	var new bookmark
 	if err := c.BindJSON(&new); err != nil {
+		log.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -261,69 +268,102 @@ func editBookmark(c *gin.Context) {
 		return
 	}
 
-	bc := make(chan error, 4)
+	if new.Bookmark == "" {
+		c.JSON(200, gin.H{"status": 0, "message": "Bookmark name is empty.", "error": 1})
+		return
+	} else if len(new.Category) > 15 {
+		c.JSON(200, gin.H{"status": 0, "message": "Category name exceeded length limit.", "error": 3})
+		return
+	}
+
+	ec := make(chan error, 3)
 	var old bookmark
-	var exist1, exist2 string
+	var exist1, exist2 bool
 	go func() {
-		var oldCategory []byte
-		err := db.QueryRow("SELECT bookmark, url, category FROM bookmarks WHERE bookmark_id = ? AND user_id = ?",
-			id, userID).Scan(&old.Name, &old.URL, &oldCategory)
-		old.Category = string(oldCategory)
-		bc <- err
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var err error
+		err = collBookmark.FindOne(
+			ctx, bson.M{"_id": objectID, "user": userID}).Decode(&old)
+		if err == mongo.ErrNoDocuments {
+			err = errors.New("Bookmark not found")
+		}
+		ec <- err
 	}()
 	go func() {
-		db.QueryRow("SELECT id FROM bookmark WHERE bookmark = ? AND id != ? AND user_id = ?",
-			new.Name, id, userID).Scan(&exist1)
-		bc <- nil
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var err error
+		if err = collBookmark.FindOne(
+			ctx, bson.M{"_id": bson.M{"$ne": objectID}, "bookmark": new.Bookmark, "user": userID},
+		).Err(); err == nil {
+			exist1 = true
+		}
+		ec <- err
 	}()
 	go func() {
-		db.QueryRow("SELECT id FROM bookmark WHERE url = ? AND id != ? AND user_id = ?",
-			new.URL, id, userID).Scan(&exist2)
-		bc <- nil
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var err error
+		if err = collBookmark.FindOne(
+			ctx, bson.M{"_id": bson.M{"$ne": objectID}, "url": new.URL, "user": userID},
+		).Err(); err == nil {
+			exist2 = true
+		}
+		ec <- err
 	}()
-	for i := 0; i < 4; i++ {
-		if err := <-bc; err != nil {
-			log.Println(err)
-			c.String(500, "")
-			return
+	for i := 0; i < 2; i++ {
+		if err := <-ec; err != nil {
+			if err != mongo.ErrNoDocuments {
+				log.Println("Failed to get category id:", err)
+				c.String(500, "")
+				return
+			}
 		}
 	}
 
 	var message string
 	var errorCode int
 	switch {
-	case new.Name == "":
-		message = "Bookmark name is empty."
-		errorCode = 1
 	case old == new:
 		message = "New bookmark is same as old bookmark."
-	case exist1 != "":
-		message = fmt.Sprintf("Bookmark name %s is already existed.", new.Name)
+	case exist1:
+		message = fmt.Sprintf("Bookmark name %s is already existed.", new.Bookmark)
 		errorCode = 1
-	case exist2 != "":
+	case exist2:
 		message = fmt.Sprintf("Bookmark url %s is already existed.", new.URL)
 		errorCode = 2
-	case categoryID == -1:
-		message = "Category name exceeded length limit."
-		errorCode = 3
 	default:
-		if _, err := db.Exec("UPDATE bookmark SET bookmark = ?, url = ?, category_id = ? WHERE id = ? AND user_id = ?",
-			new.Name, new.URL, categoryID, id, userID); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var update bson.M
+		if new.Category == "" {
+			update = bson.M{"$set": bson.M{"bookmark": new.Bookmark, "url": new.URL}}
+		} else {
+			update = bson.M{"$set": bson.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
+		}
+		if _, err := collBookmark.UpdateOne(ctx, bson.M{"_id": objectID}, update); err != nil {
 			log.Println("Failed to edit bookmark:", err)
 			c.String(500, "")
 			return
 		}
-		c.JSON(200, gin.H{"status": 1, "cid": categoryID})
+
+		c.JSON(200, gin.H{"status": 1})
 		return
 	}
+
 	c.JSON(200, gin.H{"status": 0, "message": message, "error": errorCode})
 }
 
 func deleteBookmark(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	objectID, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		log.Println("Failed to get id param:", err)
-		c.String(400, "")
+		log.Print(err)
+		c.String(500, "")
 		return
 	}
 
@@ -332,23 +372,55 @@ func deleteBookmark(c *gin.Context) {
 		log.Print(err)
 		c.String(500, "")
 		return
-	} else if checkBookmark(id, userID) {
-		if _, err := db.Exec("DELETE FROM bookmark WHERE id = ? and user_id = ?",
-			id, userID); err != nil {
+	} else if checkBookmark(objectID, userID) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var bookmark bookmark
+		if err := collBookmark.FindOneAndDelete(ctx, bson.M{"_id": objectID}).Decode(&bookmark); err != nil {
 			log.Println("Failed to delete bookmark:", err)
 			c.String(500, "")
 			return
 		}
+
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if _, err := collBookmark.UpdateMany(ctx,
+			bson.M{"user": userID, "seq": bson.M{"$gt": bookmark.Seq}},
+			bson.M{"$inc": bson.M{"seq": -1}},
+		); err != nil {
+			log.Println("Failed to reorder after delete bookmark:", err)
+			c.String(500, "")
+			return
+		}
+
 		c.JSON(200, gin.H{"status": 1})
 		return
 	}
+
 	c.String(403, "")
 }
 
 func reorder(c *gin.Context) {
-	var reorder struct{ Old, New int }
-	if err := c.BindJSON(&reorder); err != nil {
+	var data struct{ Orig, Dest string }
+	if err := c.BindJSON(&data); err != nil {
+		log.Print(err)
 		c.String(400, "")
+		return
+	}
+
+	orig, err := primitive.ObjectIDFromHex(data.Orig)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
+		return
+	}
+
+	dest, err := primitive.ObjectIDFromHex(data.Dest)
+	if err != nil {
+		log.Print(err)
+		c.String(500, "")
 		return
 	}
 
@@ -357,13 +429,12 @@ func reorder(c *gin.Context) {
 		log.Print(err)
 		c.String(500, "")
 		return
-	} else if !checkBookmark(reorder.Old, userID) || !checkBookmark(reorder.New, userID) {
+	} else if !checkBookmark(orig, userID) || !checkBookmark(dest, userID) {
 		c.String(403, "")
 		return
 	}
 
-	if _, err := db.Exec("CALL reorder(?, ?, ?)",
-		userID, reorder.New, reorder.Old); err != nil {
+	if err := reorderBookmark(userID, orig, dest); err != nil {
 		log.Println("Failed to reorder bookmark:", err)
 		c.String(500, "")
 		return
