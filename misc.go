@@ -29,6 +29,7 @@ func addUser(username string) {
 
 	res, err := collAccount.InsertOne(ctx, bson.D{
 		{Key: "username", Value: username},
+		{Key: "password", Value: "123456"},
 		{Key: "uid", Value: username},
 	})
 	if err != nil {

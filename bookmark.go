@@ -71,6 +71,9 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int64, err err
 		log.Println("Failed to get bookmarks:", err)
 		return
 	}
+	for i := range bookmarks {
+		bookmarks[i].ID = bookmarks[i].ObjectID.Hex()
+	}
 
 	err = <-ec
 
@@ -111,6 +114,9 @@ func moreBookmark(c *gin.Context) {
 		log.Println("Failed to get bookmarks:", err)
 		c.String(500, "")
 		return
+	}
+	for i := range bookmarks {
+		bookmarks[i].ID = bookmarks[i].ObjectID.Hex()
 	}
 
 	c.JSON(200, bookmarks)
