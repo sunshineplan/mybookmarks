@@ -20,12 +20,12 @@ func initDB() (err error) {
 		return
 	}
 
-	db := client.Database(dbConfig.Database)
+	database := client.Database(dbConfig.Database)
 
 	if !universal {
-		collAccount = db.Collection("account")
+		collAccount = database.Collection("account")
 	}
-	collBookmark = db.Collection("bookmark")
+	collBookmark = database.Collection("bookmark")
 
 	return
 }
