@@ -17,7 +17,9 @@
   } from "./stores";
 
   const getInfo = async () => {
+    loading.start();
     const resp = await fetch("/info");
+    loading.end();
     const info = await resp.json();
     if (Object.keys(info).length) {
       $username = info.username;

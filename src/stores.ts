@@ -72,7 +72,7 @@ const more = async (init?: boolean) => {
     if (currentCategory.category == 'All Bookmarks') return
     const moreCount = moreBookmarks.filter(b => b.category == currentCategory.category).length
     if (moreCount < now + 15)
-      if (currentCategory.category != 'Uncategorized' && moreCount < currentCategory.count) await more(init)
+      if (currentCategory.category && moreCount < currentCategory.count) await more(init)
       else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more(init)
   } else await fire('Error', await resp.text(), 'error')
 }

@@ -19,7 +19,7 @@
   let editable = false;
 
   $: currentBookmarks =
-    $category.id === -1
+    $category.category === "All Bookmarks"
       ? $bookmarks
       : $bookmarks.filter(
           (bookmark) => bookmark.category === $category.category
@@ -77,8 +77,9 @@
     c = c.trim();
     if ($category.category != c) {
       loading.start();
-      const resp = await post("/category/edit/" + $category.id, {
-        category: c,
+      const resp = await post("/category/edit", {
+        old: $category.category,
+        new: c,
       });
       loading.end();
       let json: any = {};
@@ -88,7 +89,9 @@
           $bookmarks.forEach((bookmark) => {
             if (bookmark.category === $category.category) bookmark.category = c;
           });
-          const index = $categories.findIndex((c) => c.id === $category.id);
+          const index = $categories.findIndex(
+            (c) => c.category === $category.category
+          );
           $categories[index].category = c;
           currentBookmarks = currentBookmarks;
           return true;
@@ -101,7 +104,7 @@
     return true;
   };
   const add = () => {
-    if ($category.id <= 0) $bookmark = {} as Bookmark;
+    if ($category.category == "All Bookmarks") $bookmark = {} as Bookmark;
     else $bookmark = { category: $category.category } as Bookmark;
     window.history.pushState({}, "", "/bookmark/add");
     $component = "bookmark";
@@ -135,10 +138,14 @@
     if (editable) {
       if (await confirm("category")) {
         loading.start();
-        const resp = await post("/category/delete/" + $category.id);
+        const resp = await post("/category/delete", {
+          category: $category.category,
+        });
         loading.end();
         if (resp.ok) {
-          const index = $categories.findIndex((c) => c.id === $category.id);
+          const index = $categories.findIndex(
+            (c) => c.category === $category.category
+          );
           $categories.splice(index, 1);
           $bookmarks.forEach((bookmark) => {
             if (bookmark.category === $category.category)
@@ -221,7 +228,7 @@
       >
         {$category.category ? $category.category : "Uncategorized"}
       </h3>
-      {#if $category.id > 0}
+      {#if $category.category && $category.category != "All Bookmarks"}
         <span class="icon" on:click={categoryClick}>
           {#if !editable}
             <i class="material-icons edit">edit</i>

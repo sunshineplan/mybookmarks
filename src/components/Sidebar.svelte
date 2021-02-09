@@ -1,18 +1,14 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import { fire, post } from "../misc";
   import {
     total,
     category,
     component,
     showSidebar,
-    loading,
     categories,
     bookmarks,
   } from "../stores";
   import type { Category } from "../stores";
 
-  const dispatch = createEventDispatcher();
   const isSmall = 900;
 
   let hover = false;
@@ -30,62 +26,45 @@
 
   const add = async (category: string) => {
     category = category.trim();
-    loading.start();
-    const resp = await post("/category/add", { category });
-    loading.end();
-    let json: any = {};
-    if (resp.ok) {
-      json = await resp.json();
-      if (json.id && json.status) {
-        (document.querySelector(".new") as Element).remove();
-        const newCategory: Category = {
-          id: json.id,
-          category,
-          count: 0,
-        };
-        $categories = [...$categories, newCategory];
-        await goto(newCategory);
-        return true;
-      }
-    }
-    await fire("Error", json.message ? json.message : "Error", "error");
-    dispatch("reload");
-    return false;
+    (document.querySelector(".new") as Element).remove();
+    const newCategory: Category = {
+      category,
+      count: 0,
+    };
+    $categories = [...$categories, newCategory];
+    await goto(newCategory);
   };
 
   const addCategory = async () => {
     if (window.innerWidth <= isSmall) showSidebar.close();
     const newCategory = document.querySelector(".new");
-    let ok = true;
-    if (newCategory) ok = await add((newCategory as HTMLElement).innerText);
-    if (ok) {
-      const ul = document.querySelector("ul.navbar-nav") as Element;
-      const li = document.createElement("li");
-      li.classList.add("nav-link", "new");
-      const uncategorized = ul.querySelector("#uncategorized");
-      if (uncategorized) ul.insertBefore(li, uncategorized);
-      else ul.appendChild(li);
-      li.addEventListener("keydown", async (event) => {
-        const target = event.target as Element;
-        const category = (target.textContent as string).trim();
-        if (event.key == "Enter") {
-          event.preventDefault();
-          if (category) await add(category);
-          else target.remove();
-        } else if (event.key == "Escape") {
-          if (category) target.textContent = "";
-          else target.remove();
-        }
-      });
-      li.setAttribute("contenteditable", "true");
-      li.focus();
-      const range = document.createRange();
-      range.selectNodeContents(li);
-      range.collapse(false);
-      const sel = window.getSelection() as Selection;
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
+    if (newCategory) await add((newCategory as HTMLElement).innerText);
+    const ul = document.querySelector("ul.navbar-nav") as Element;
+    const li = document.createElement("li");
+    li.classList.add("nav-link", "new");
+    const uncategorized = ul.querySelector("#uncategorized");
+    if (uncategorized) ul.insertBefore(li, uncategorized);
+    else ul.appendChild(li);
+    li.addEventListener("keydown", async (event) => {
+      const target = event.target as Element;
+      const category = (target.textContent as string).trim();
+      if (event.key == "Enter") {
+        event.preventDefault();
+        if (category) await add(category);
+        else target.remove();
+      } else if (event.key == "Escape") {
+        if (category) target.textContent = "";
+        else target.remove();
+      }
+    });
+    li.setAttribute("contenteditable", "true");
+    li.focus();
+    const range = document.createRange();
+    range.selectNodeContents(li);
+    range.collapse(false);
+    const sel = window.getSelection() as Selection;
+    sel.removeAllRanges();
+    sel.addRange(range);
   };
 
   const handleKeydown = async (event: KeyboardEvent) => {
@@ -93,8 +72,10 @@
       const newCategory = document.querySelector(".new");
       if (newCategory) newCategory.remove();
       const len = $categories.length;
-      const index = $categories.findIndex((c) => c.id === $category.id);
-      if ($category.id && $component === "show")
+      const index = $categories.findIndex(
+        (c) => c.category === $category.category
+      );
+      if ($component === "show")
         if (event.key == "ArrowUp") {
           if (index > 0) await goto($categories[index - 1]);
         } else if (event.key == "ArrowDown")
@@ -153,16 +134,18 @@
     <ul class="navbar-nav" id="categories">
       <li
         class="navbar-brand category"
-        class:active={$category.id === -1 && $component === "show"}
+        class:active={$category.category === "All Bookmarks" &&
+          $component === "show"}
         on:click={async () =>
-          await goto({ id: -1, category: "All Bookmarks", count: 0 })}
+          await goto({ category: "All Bookmarks", count: 0 })}
       >
         All Bookmarks ({$total})
       </li>
       {#each $categories as c (c.category)}
         <li
           class="nav-link category"
-          class:active={$category.category === c.category && $component === "show"}
+          class:active={$category.category === c.category &&
+            $component === "show"}
           on:click={async () => await goto(c)}
         >
           {c.category} ({c.count})
@@ -172,8 +155,8 @@
         <li
           class="nav-link category"
           id="uncategorized"
-          class:active={$category.id === 0 && $component === "show"}
-          on:click={async () => await goto({ id: 0, category: "", count: 0 })}
+          class:active={$category.category === "" && $component === "show"}
+          on:click={async () => await goto({ category: "", count: 0 })}
         >
           Uncategorized ({uncategorized})
         </li>

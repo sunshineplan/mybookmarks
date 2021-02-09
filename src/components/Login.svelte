@@ -1,7 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { fire, post } from "../misc";
-  import { component } from "../stores";
 
   const dispatch = createEventDispatcher();
 

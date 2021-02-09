@@ -49,11 +49,7 @@
                 (c) => c.category === category
               );
               if (index !== -1) $categories[index].count++;
-              else
-                $categories = [
-                  ...$categories,
-                  { id: json.cid, category, count: 1 },
-                ];
+              else $categories = [...$categories, { category, count: 1 }];
             }
             if ($bookmark.category)
               $categories[
@@ -166,7 +162,7 @@
         maxlength="15"
       />
       <datalist id="category-list">
-        {#each $categories as category (category.id)}
+        {#each $categories as category (category.category)}
           <option>{category.category}</option>
         {/each}
       </datalist>
