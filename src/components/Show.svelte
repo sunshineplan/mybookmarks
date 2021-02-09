@@ -41,8 +41,8 @@
 
   const onUpdate = async (evt: Sortable.SortableEvent) => {
     const resp = await post("/reorder", {
-      old: currentBookmarks[evt.oldIndex as number].id,
-      new: currentBookmarks[evt.newIndex as number].id,
+      orig: currentBookmarks[evt.oldIndex as number].id,
+      dest: currentBookmarks[evt.newIndex as number].id,
     });
     if ((await resp.text()) == "1") {
       const current = currentBookmarks[evt.oldIndex as number].id;
