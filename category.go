@@ -53,6 +53,7 @@ func editCategory(c *gin.Context) {
 		c.String(400, "")
 		return
 	}
+	data.New = strings.TrimSpace(data.New)
 
 	userID, _, err := getUser(c)
 	if err != nil {
