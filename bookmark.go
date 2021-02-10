@@ -217,7 +217,7 @@ func addBookmark(c *gin.Context) {
 		if len(bookmarks) == 0 {
 			seq = 1
 		} else {
-			seq = bookmarks[0].Seq
+			seq = bookmarks[0].Seq + 1
 		}
 
 		document := bson.D{
