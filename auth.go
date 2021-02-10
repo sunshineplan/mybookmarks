@@ -63,11 +63,7 @@ func login(c *gin.Context) {
 	var user user
 	var message string
 	if err := collAccount.FindOne(ctx, bson.M{"username": login.Username}).Decode(&user); err != nil {
-		if strings.Contains(err.Error(), "doesn't exist") {
-			restore("")
-			c.String(503, "Detected first time running. Initialized the database.")
-			return
-		} else if err == sql.ErrNoRows {
+		if err == mongo.ErrNoDocuments {
 			message = "Incorrect username"
 		} else {
 			log.Print(err)
