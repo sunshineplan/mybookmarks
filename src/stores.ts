@@ -7,7 +7,7 @@ export interface Category {
 }
 
 export interface Bookmark {
-  id: number
+  id: string
   category: string
   bookmark: string
   url: string
