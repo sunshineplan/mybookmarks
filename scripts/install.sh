@@ -36,7 +36,7 @@ configMyBookmarks() {
     sed "s,\$server,$server," /var/www/mybookmarks/config.ini.default > /var/www/mybookmarks/config.ini
     sed -i "s/\$header/$header/" /var/www/mybookmarks/config.ini
     sed -i "s/\$value/$value/" /var/www/mybookmarks/config.ini
-    sed -i "s/\$universal/$universal/" /var/www/mystocks/config.ini
+    sed -i "s/\$universal/$universal/" /var/www/mybookmarks/config.ini
     sed -i "s,\$unix,$unix," /var/www/mybookmarks/config.ini
     sed -i "s,\$log,$log," /var/www/mybookmarks/config.ini
     sed -i "s/\$host/$host/" /var/www/mybookmarks/config.ini
