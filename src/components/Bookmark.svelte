@@ -41,8 +41,8 @@
         const json = await resp.json();
         if (json.status == 1) {
           if (mode == "Add") {
-            dispatch("reload");
-            await bookmarks.more(true);
+            $current.count++;
+            dispatch("reload", { init: true });
           } else {
             if (category) {
               const index = $categories.findIndex(

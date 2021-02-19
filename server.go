@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -32,7 +31,7 @@ func run() {
 	router := gin.Default()
 	server.Handler = router
 
-	js, err := ioutil.ReadFile(joinPath(dir(self), "public/build/bundle.js"))
+	js, err := os.ReadFile(joinPath(dir(self), "public/build/bundle.js"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +42,7 @@ func run() {
 			log.Fatal(err)
 		}
 
-		if err := ioutil.WriteFile(joinPath(dir(self), "public/build/script.js"),
+		if err := os.WriteFile(joinPath(dir(self), "public/build/script.js"),
 			[]byte(strings.ReplaceAll(string(js), "@universal@", redisStore.API)), 0644); err != nil {
 			log.Fatal(err)
 		}
@@ -57,7 +56,7 @@ func run() {
 		}
 		router.Use(sessions.Sessions("universal", store))
 	} else {
-		if err := ioutil.WriteFile(joinPath(dir(self), "public/build/script.js"),
+		if err := os.WriteFile(joinPath(dir(self), "public/build/script.js"),
 			[]byte(strings.ReplaceAll(string(js), "@universal@", "")), 0644); err != nil {
 			log.Fatal(err)
 		}

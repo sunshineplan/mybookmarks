@@ -16,7 +16,7 @@
     reset,
   } from "./stores";
 
-  const getInfo = async () => {
+  const getInfo = async (event?: CustomEvent) => {
     loading.start();
     const resp = await fetch("/info");
     loading.end();
@@ -26,6 +26,8 @@
       $categories = info.categories;
       $bookmarks = info.bookmarks;
       $total = info.total;
+      if (event && event.detail)
+        if (event.detail.init) await bookmarks.more(true);
     } else reset();
   };
   const promise = getInfo();
