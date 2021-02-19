@@ -44,7 +44,9 @@
 <Nav bind:username={$username} on:reload={getInfo} />
 {#await promise then _}
   {#if !$username}
-    <Login on:info={getInfo} />
+    {#if !$loading}
+      <Login on:info={getInfo} />
+    {/if}
   {:else}
     <Sidebar on:reload={getInfo} />
     <div
@@ -56,7 +58,7 @@
     </div>
   {/if}
 {/await}
-<div class="loading" hidden={!$loading}>
+<div class={$username ? "loading" : "initializing"} hidden={!$loading}>
   <div class="sk-wave sk-center">
     <div class="sk-wave-rect" />
     <div class="sk-wave-rect" />
@@ -67,6 +69,14 @@
 </div>
 
 <style>
+  .initializing {
+    position: fixed;
+    top: 70px;
+    height: calc(100% - 70px);
+    width: 100%;
+    display: flex;
+  }
+
   .loading {
     position: fixed;
     z-index: 2;
