@@ -55,3 +55,10 @@ export const confirm = async (type: string) => {
   })
   return confirm.isConfirmed
 }
+
+export const pasteText = (event: ClipboardEvent) => {
+  event.preventDefault()
+  if (event.clipboardData) {
+    document.execCommand('insertHTML', false, event.clipboardData.getData('text/plain'))
+  }
+}

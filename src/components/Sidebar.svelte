@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pasteText } from "../misc";
   import {
     total,
     category,
@@ -45,6 +46,7 @@
     const uncategorized = ul.querySelector("#uncategorized");
     if (uncategorized) ul.insertBefore(li, uncategorized);
     else ul.appendChild(li);
+    li.addEventListener("paste", pasteText);
     li.addEventListener("keydown", async (event) => {
       const target = event.target as Element;
       const category = (target.textContent as string).trim();

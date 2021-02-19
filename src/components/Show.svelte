@@ -1,7 +1,7 @@
 <script lang="ts">
   import Sortable from "sortablejs";
   import { onMount, createEventDispatcher } from "svelte";
-  import { fire, post, confirm } from "../misc";
+  import { fire, post, confirm, pasteText } from "../misc";
   import {
     component,
     loading,
@@ -225,6 +225,7 @@
         class:editable
         contenteditable={editable}
         on:keydown={categoryKeydown}
+        on:paste={pasteText}
       >
         {$category.category ? $category.category : "Uncategorized"}
       </h3>
