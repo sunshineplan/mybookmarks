@@ -77,9 +77,20 @@
       );
       if ($component === "show")
         if (event.key == "ArrowUp") {
-          if (index > 0) await goto($categories[index - 1]);
+          if (index == 0) await goto({ category: "All Bookmarks", count: 0 });
+          else if (index > 0) await goto($categories[index - 1]);
+          else if ($category.category == "") {
+            if (len > 0) await goto($categories[len - 1]);
+            else await goto({ category: "All Bookmarks", count: 0 });
+          }
         } else if (event.key == "ArrowDown")
-          if (index < len - 1) await goto($categories[index + 1]);
+          if ($category.category == "All Bookmarks") {
+            if (len > 0) await goto($categories[0]);
+            else if (uncategorized) await goto({ category: "", count: 0 });
+          } else if (index < len - 1 && $category.category != "")
+            await goto($categories[index + 1]);
+          else if (index == len - 1 && uncategorized)
+            await goto({ category: "", count: 0 });
     }
   };
   const handleClick = async (event: MouseEvent) => {
