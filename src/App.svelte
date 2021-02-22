@@ -19,7 +19,6 @@
   const getInfo = async (event?: CustomEvent) => {
     loading.start();
     const resp = await fetch("/info");
-    loading.end();
     const info = await resp.json();
     if (Object.keys(info).length) {
       $username = info.username;
@@ -29,6 +28,7 @@
       if (event && event.detail)
         if (event.detail.init) await bookmarks.more(true);
     } else reset();
+    loading.end();
   };
   const promise = getInfo();
 
