@@ -299,7 +299,7 @@ func editBookmark(c *gin.Context) {
 		err = collBookmark.FindOne(
 			ctx, bson.M{"_id": objectID, "user": userID}).Decode(&old)
 		if err == mongo.ErrNoDocuments {
-			err = errors.New("Bookmark not found")
+			err = errors.New("bookmark not found")
 		}
 		ec <- err
 	}()

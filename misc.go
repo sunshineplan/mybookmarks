@@ -120,6 +120,10 @@ func reorderBookmark(userID interface{}, orig, dest primitive.ObjectID) error {
 
 func backup() {
 	log.Print("Start!")
+	if err := initDB(); err != nil {
+		log.Fatalln("Failed to initialize database:", err)
+	}
+
 	var config struct {
 		SMTPServer     string
 		SMTPServerPort int
@@ -163,6 +167,11 @@ func restore(file string) {
 	if _, err := os.Stat(file); err != nil {
 		log.Fatalln("File not found:", err)
 	}
+
+	if err := initDB(); err != nil {
+		log.Fatalln("Failed to initialize database:", err)
+	}
+
 	if err := dbConfig.Restore(file); err != nil {
 		log.Fatal(err)
 	}
