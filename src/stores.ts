@@ -56,11 +56,12 @@ const more = async (init?: boolean) => {
   const now = currentCategory.category == 'All Bookmarks'
     ? currentBookmarks.length
     : currentBookmarks.filter(b => b.category == currentCategory.category).length
+  const uncategorized = get(total) - get(categories).reduce((a, b) => a + b.count, 0)
   const goal = currentCategory.category == 'All Bookmarks'
     ? get(total)
     : currentCategory.category
       ? currentCategory.count
-      : get(total) - get(categories).reduce((a, b) => a + b.count, 0)
+      : uncategorized
   if (now >= (init ? Math.min(30, goal) : goal)) return
   loading.start()
   const resp = await post('/bookmark/get', { start: currentBookmarks.length })
@@ -72,8 +73,8 @@ const more = async (init?: boolean) => {
     if (currentCategory.category == 'All Bookmarks') return
     const moreCount = moreBookmarks.filter(b => b.category == currentCategory.category).length
     if (moreCount < now + 15)
-      if (currentCategory.category && moreCount < currentCategory.count) await more(init)
-      else if (moreCount < goal - get(categories).reduce((a, b) => a + b.count, 0)) await more(init)
+      if (currentCategory.category) { if (moreCount < currentCategory.count) await more(init) }
+      else if (moreCount < uncategorized) await more(init)
   } else await fire('Error', await resp.text(), 'error')
 }
 
