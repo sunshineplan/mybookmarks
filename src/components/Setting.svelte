@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { fire, post, valid } from "../misc";
-  import { username, component } from "../stores";
+  import { component } from "../stores";
 
   const dispatch = createEventDispatcher();
 
@@ -73,8 +73,8 @@
     if (e.key == "Enter") await setting();
   }}
 >
-  <div class="form-group">
-    <label for="password">Current Password</label>
+  <div class="mb-3">
+    <label class="form-label" for="password">Current Password</label>
     <input
       class="form-control"
       type="password"
@@ -85,8 +85,8 @@
     />
     <div class="invalid-feedback">This field is required.</div>
   </div>
-  <div class="form-group">
-    <label for="password1">New Password</label>
+  <div class="mb-3">
+    <label class="form-label" for="password1">New Password</label>
     <input
       class="form-control"
       type="password"
@@ -97,8 +97,8 @@
     />
     <div class="invalid-feedback">This field is required.</div>
   </div>
-  <div class="form-group">
-    <label for="password2">Confirm Password</label>
+  <div class="mb-3">
+    <label class="form-label" for="password2">Confirm Password</label>
     <input
       class="form-control"
       type="password"

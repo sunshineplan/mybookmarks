@@ -48,13 +48,15 @@
               const index = $categories.findIndex(
                 (c) => c.category === category
               );
-              if (index !== -1) $categories[index].count++;
-              else $categories = [...$categories, { category, count: 1 }];
+              if (index !== -1) {
+                $categories[index].count++;
+              } else $categories = [...$categories, { category, count: 1 }];
             }
-            if ($bookmark.category)
+            if ($bookmark.category) {
               $categories[
                 $categories.findIndex((c) => c.category === $bookmark.category)
               ].count--;
+            }
             const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
             $bookmarks[index].bookmark = name;
             $bookmarks[index].url = url;
@@ -86,10 +88,11 @@
         $bookmarks.forEach((b) => {
           if (b.seq > $bookmark.seq) b.seq++;
         });
-        if ($bookmark.category)
+        if ($bookmark.category) {
           $categories[
             $categories.findIndex((c) => c.category === $bookmark.category)
           ].count--;
+        }
         $total--;
       } else {
         await fire("Error", await resp.text(), "error");
@@ -126,8 +129,8 @@
     <hr />
   </header>
   <div class="form" class:was-validated={validated}>
-    <div class="form-group">
-      <label for="bookmark">Bookmark</label>
+    <div class="mb-3">
+      <label class="form-label" for="bookmark">Bookmark</label>
       <!-- svelte-ignore a11y-autofocus -->
       <input
         class="form-control"
@@ -140,8 +143,8 @@
       <div class="invalid-feedback">This field is required.</div>
       <small class="form-text text-muted">Max length: 40 characters.</small>
     </div>
-    <div class="form-group">
-      <label for="url">URL</label>
+    <div class="mb-3">
+      <label class="form-label" for="url">URL</label>
       <input
         class="form-control"
         id="url"
@@ -152,8 +155,8 @@
       />
       <div class="invalid-feedback">Please enter a valid URL.</div>
     </div>
-    <div class="form-group">
-      <label for="category">Category</label>
+    <div class="mb-3">
+      <label class="form-label" for="category">Category</label>
       <input
         class="form-control"
         id="category"

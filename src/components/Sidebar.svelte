@@ -10,15 +10,12 @@
   } from "../stores";
   import type { Category } from "../stores";
 
-  const isSmall = 900;
-
   let hover = false;
-  let smallSize = window.innerWidth <= isSmall;
 
   $: uncategorized = $total - $categories.reduce((a, b) => a + b.count, 0);
 
   const goto = async (c: Category) => {
-    if (window.innerWidth <= isSmall) showSidebar.close();
+    showSidebar.close();
     $category = c;
     window.history.pushState({}, "", "/");
     $component = "show";
@@ -37,7 +34,7 @@
   };
 
   const addCategory = async () => {
-    if (window.innerWidth <= isSmall) showSidebar.close();
+    showSidebar.close();
     const newCategory = document.querySelector(".new");
     if (newCategory) await add((newCategory as HTMLElement).innerText);
     const ul = document.querySelector("ul.navbar-nav") as Element;
@@ -110,36 +107,23 @@
       }
     }
   };
-  const handleResize = () => {
-    if (smallSize != window.innerWidth <= isSmall)
-      smallSize = window.innerWidth <= isSmall;
-  };
 </script>
 
-<svelte:window
-  on:keydown={handleKeydown}
-  on:click={handleClick}
-  on:resize={handleResize}
-/>
+<svelte:window on:keydown={handleKeydown} on:click={handleClick} />
 
-{#if smallSize}
-  <span
-    class="toggle"
-    on:click={showSidebar.toggle}
-    on:mouseenter={() => (hover = true)}
-    on:mouseleave={() => (hover = false)}
-  >
-    <svg viewBox="0 0 70 70" width="40" height="30">
-      {#each [10, 30, 50] as y}
-        <rect {y} width="100%" height="10" fill={hover ? "#1a73e8" : "white"} />
-      {/each}
-    </svg>
-  </span>
-{/if}
-<nav
-  class="nav flex-column navbar-light sidebar"
-  hidden={!$showSidebar && smallSize}
+<span
+  class="toggle"
+  on:click={showSidebar.toggle}
+  on:mouseenter={() => (hover = true)}
+  on:mouseleave={() => (hover = false)}
 >
+  <svg viewBox="0 0 70 70" width="40" height="30">
+    {#each [10, 30, 50] as y}
+      <rect {y} width="100%" height="10" fill={hover ? "#1a73e8" : "white"} />
+    {/each}
+  </svg>
+</span>
+<nav class="nav flex-column navbar-light sidebar" class:show={$showSidebar}>
   <div class="category-menu">
     <button class="btn btn-primary btn-sm" on:click={addCategory}>
       Add Category
@@ -180,6 +164,7 @@
 
 <style>
   .toggle {
+    display: none;
     position: fixed;
     z-index: 100;
     top: 0;
@@ -255,15 +240,19 @@
     background-color: #eaf5fd;
   }
 
-  @media (min-width: 901px) {
-    .sidebar {
-      display: block !important;
-    }
-  }
-
   @media (max-width: 900px) {
+    .toggle {
+      display: block;
+    }
+
     .sidebar {
+      left: -100%;
+      transition: left 0.3s ease-in-out;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .show {
+      left: 0;
     }
   }
 </style>

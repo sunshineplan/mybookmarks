@@ -48,11 +48,11 @@
       const current = currentBookmarks[evt.oldIndex as number].id;
       const oldSeq = currentBookmarks[evt.oldIndex as number].seq;
       const newSeq = currentBookmarks[evt.newIndex as number].seq;
-      if (oldSeq > newSeq)
+      if (oldSeq > newSeq) {
         $bookmarks.forEach((b) => {
           if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
         });
-      else
+      } else
         $bookmarks.forEach((b) => {
           if (b.seq > oldSeq && b.seq <= newSeq) b.seq--;
         });

@@ -27,6 +27,7 @@
   <div class="d-flex" style="height:100%">
     <span
       class="brand"
+      class:user={username}
       on:click={() => {
         window.history.pushState({}, "", "/");
         $component = "show";
@@ -64,11 +65,7 @@
     font-size: 25px;
     letter-spacing: 0.3px;
     color: white;
-  }
-
-  .brand:hover {
-    color: white;
-    text-decoration: none;
+    cursor: pointer;
   }
 
   .topbar .nav-link {
@@ -83,12 +80,8 @@
     cursor: pointer;
   }
 
-  span {
-    cursor: default;
-  }
-
   @media (max-width: 900px) {
-    .brand {
+    .brand.user {
       padding-left: 90px;
     }
   }
