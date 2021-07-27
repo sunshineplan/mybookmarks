@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/sunshineplan/utils/mail"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -118,46 +115,14 @@ func reorderBookmark(userID interface{}, orig, dest primitive.ObjectID) error {
 	return nil
 }
 
-func backup() {
+func backup(file string) {
 	log.Print("Start!")
 	if err := initDB(); err != nil {
 		log.Fatalln("Failed to initialize database:", err)
 	}
 
-	var config struct {
-		SMTPServer     string
-		SMTPServerPort int
-		From, Password string
-		To             []string
-	}
-	if err := meta.Get("mybookmarks_backup", &config); err != nil {
-		log.Fatalln("Failed to get mybookmarks_backup metadata:", err)
-	}
-	dialer := &mail.Dialer{
-		Host:     config.SMTPServer,
-		Port:     config.SMTPServerPort,
-		Account:  config.From,
-		Password: config.Password,
-	}
-
-	tmpfile, err := ioutil.TempFile("", "tmp")
-	if err != nil {
-		log.Fatalln("Failed to create temporary file:", err)
-	}
-	tmpfile.Close()
-	if err := dbConfig.Backup(tmpfile.Name()); err != nil {
+	if err := dbConfig.Backup(file); err != nil {
 		log.Fatal(err)
-	}
-	defer os.Remove(tmpfile.Name())
-
-	if err := dialer.Send(
-		&mail.Message{
-			To:          config.To,
-			Subject:     fmt.Sprintf("My Bookmarks Backup-%s", time.Now().Format("20060102")),
-			Attachments: []*mail.Attachment{{Path: tmpfile.Name(), Filename: "database"}},
-		},
-	); err != nil {
-		log.Fatalln("Failed to send mail:", err)
 	}
 	log.Print("Done!")
 }

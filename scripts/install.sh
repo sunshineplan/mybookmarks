@@ -6,7 +6,7 @@ installSoftware() {
 
 installMyBookmarks() {
     mkdir -p /var/www/mybookmarks
-    curl -Lo- https://github.com/sunshineplan/mybookmarks/releases/download/v1.0/release.tar.gz | tar zxC /var/www/mybookmarks
+    curl -Lo- https://github.com/sunshineplan/mybookmarks/releases/latest/download/release.tar.gz | tar zxC /var/www/mybookmarks
     cd /var/www/mybookmarks
     chmod +x mybookmarks
 }
@@ -62,11 +62,6 @@ writeLogrotateScrip() {
     fi
 }
 
-createCronTask() {
-    cp -s /var/www/mybookmarks/scripts/mybookmarks.cron /etc/cron.monthly/mybookmarks
-    chmod +x /var/www/mybookmarks/scripts/mybookmarks.cron
-}
-
 setupNGINX() {
     cp -s /var/www/mybookmarks/scripts/mybookmarks.conf /etc/nginx/conf.d
     sed -i "s/\$domain/$domain/" /var/www/mybookmarks/scripts/mybookmarks.conf
@@ -80,7 +75,6 @@ main() {
     installMyBookmarks
     configMyBookmarks
     writeLogrotateScrip
-    createCronTask
     setupNGINX
 }
 

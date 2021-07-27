@@ -30,7 +30,13 @@ export const post = async (url: string, data?: any, universal?: boolean) => {
   try {
     resp = await fetch(url, init)
   } catch (e) {
-    return Promise.reject(await fire('Error', e, 'error'))
+    let message = ''
+    if (typeof e === "string") {
+      message = e
+    } else if (e instanceof Error) {
+      message = e.message
+    }
+    return Promise.reject(await fire('Error', message, 'error'))
   }
   if (resp.status == 401) {
     await fire('Error', 'Login status has changed. Please Re-login!', 'error')

@@ -30,3 +30,12 @@ func initDB() (err error) {
 
 	return
 }
+
+func test() error {
+	if err := meta.Get("mybookmarks_mongo", &dbConfig); err != nil {
+		return err
+	}
+
+	_, err := dbConfig.Open()
+	return err
+}
