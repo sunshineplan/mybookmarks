@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/sunshineplan/database/mongodb"
 	"github.com/sunshineplan/utils"
-	"github.com/sunshineplan/utils/database/mongodb"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

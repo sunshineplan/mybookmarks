@@ -32,7 +32,7 @@ jobs:
           npm run build
 
       - name: Test Go Code
-        run: go build -v
+        run: go build -v ./...
 
   merge:
     if: ${{ github.actor == 'dependabot[bot]' }}
