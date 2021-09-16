@@ -10,7 +10,6 @@
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@rollup/plugin-typescript": "^8.2.5",
     "@tsconfig/svelte": "^2.0.1",
-    "@types/js-cookie": "^2.2.7",
     "@types/sortablejs": "^1.10.7",
     "rollup": "^2.56.3",
     "rollup-plugin-css-only": "^3.1.0",
@@ -24,7 +23,6 @@
     "typescript": "^4.4.3"
   },
   "dependencies": {
-    "js-cookie": "^3.0.1",
     "sortablejs": "^1.14.0",
     "sweetalert2": "^11.1.5"
   }

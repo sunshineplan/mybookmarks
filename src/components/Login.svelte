@@ -1,17 +1,12 @@
 <script lang="ts">
-  import Cookies from "js-cookie";
-  import { onMount, createEventDispatcher } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import { fire, post } from "../misc";
 
   const dispatch = createEventDispatcher();
 
   let username = localStorage.getItem("username") as string;
   let password = "";
-  let rememberme = false;
-
-  onMount(() => {
-    rememberme = Cookies.get("rememberme") == "true" ? true : false;
-  });
+  let rememberme = localStorage.getItem("rememberme") == "true" ? true : false;
 
   const login = async () => {
     if (
@@ -39,9 +34,8 @@
       if (resp.ok) {
         const json = await resp.json();
         if (json.status == 1) {
-          if (rememberme)
-            Cookies.set("rememberme", "true", { expires: 365 * 100 });
-          else Cookies.remove("rememberme");
+          if (rememberme) localStorage.setItem("rememberme", "true");
+          else localStorage.removeItem("rememberme");
           dispatch("info");
         } else await fire("Error", json.message, "error");
       } else await fire("Error", await resp.text(), "error");
