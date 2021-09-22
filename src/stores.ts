@@ -91,3 +91,5 @@ export const reset = () => {
   category.reset()
   bookmarks.set([])
 }
+
+export const pubkey = "@pubkey@"

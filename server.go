@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -42,10 +44,7 @@ func run() {
 			log.Fatal(err)
 		}
 
-		if err := os.WriteFile(joinPath(dir(self), "public/build/script.js"),
-			[]byte(strings.ReplaceAll(string(js), "@universal@", redisStore.API)), 0644); err != nil {
-			log.Fatal(err)
-		}
+		js = bytes.ReplaceAll(js, []byte("@universal@"), []byte(redisStore.API))
 
 		store, err := redis.NewStore(10, "tcp", redisStore.Endpoint, redisStore.Password, []byte(redisStore.Secret))
 		if err != nil {
@@ -56,16 +55,37 @@ func run() {
 		}
 		router.Use(sessions.Sessions("universal", store))
 	} else {
-		if err := os.WriteFile(joinPath(dir(self), "public/build/script.js"),
-			[]byte(strings.ReplaceAll(string(js), "@universal@", "")), 0644); err != nil {
-			log.Fatal(err)
-		}
+		js = bytes.ReplaceAll(js, []byte("@universal@"), nil)
 
 		secret := make([]byte, 16)
 		if _, err := rand.Read(secret); err != nil {
 			log.Fatalln("Failed to get secret:", err)
 		}
 		router.Use(sessions.Sessions("session", cookie.NewStore(secret)))
+	}
+
+	if priv != nil {
+		pubkey_bytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		js = bytes.ReplaceAll(
+			js, []byte("@pubkey@"),
+			bytes.ReplaceAll(
+				pem.EncodeToMemory(&pem.Block{
+					Type:  "RSA PUBLIC KEY",
+					Bytes: pubkey_bytes,
+				}),
+				[]byte{'\n'},
+				nil,
+			),
+		)
+	} else {
+		js = bytes.ReplaceAll(js, []byte("@pubkey@"), nil)
+	}
+
+	if err := os.WriteFile(joinPath(dir(self), "public/build/script.js"), js, 0644); err != nil {
+		log.Fatal(err)
 	}
 
 	router.StaticFS("/build", http.Dir(joinPath(dir(self), "public/build")))

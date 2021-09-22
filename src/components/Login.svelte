@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { fire, post } from "../misc";
+  import { encrypt, fire, post } from "../misc";
+  import { pubkey } from "../stores";
 
   const dispatch = createEventDispatcher();
 
@@ -22,11 +23,14 @@
     )
       await fire("Error", "Password cannot be empty.", "error");
     else {
+      var pwd: string;
+      if (pubkey.length) pwd = encrypt(pubkey, password) as string;
+      else pwd = password;
       const resp = await post(
         "@universal@/login",
         {
           username,
-          password,
+          password: pwd,
           rememberme,
         },
         true

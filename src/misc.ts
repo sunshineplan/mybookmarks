@@ -1,4 +1,11 @@
+import JSEncrypt from 'jsencrypt'
 import Swal from 'sweetalert2'
+
+export const encrypt = (pubkey: string, password: string) => {
+  const encrypt = new JSEncrypt()
+  encrypt.setPublicKey(pubkey)
+  return encrypt.encrypt(password)
+}
 
 export const fire = (
   title?: string | undefined,

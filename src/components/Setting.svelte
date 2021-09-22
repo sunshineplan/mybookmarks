@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { fire, post, valid } from "../misc";
-  import { component } from "../stores";
+  import { encrypt, fire, post, valid } from "../misc";
+  import { pubkey, component } from "../stores";
 
   const dispatch = createEventDispatcher();
 
@@ -13,12 +13,22 @@
   const setting = async () => {
     if (valid()) {
       validated = false;
+      var pwd: string, p1: string, p2: string;
+      if (pubkey.length) {
+        pwd = encrypt(pubkey, password) as string;
+        p1 = encrypt(pubkey, password1) as string;
+        p2 = encrypt(pubkey, password2) as string;
+      } else {
+        pwd = password;
+        p1 = password1;
+        p2 = password2;
+      }
       const resp = await post(
         "@universal@/chgpwd",
         {
-          password,
-          password1,
-          password2,
+          password: pwd,
+          password1: p1,
+          password2: p2,
         },
         true
       );
