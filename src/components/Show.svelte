@@ -313,6 +313,10 @@
     table-layout: fixed;
   }
 
+  tbody {
+    border-width: 0 !important;
+  }
+
   th {
     position: sticky;
     top: 0;
