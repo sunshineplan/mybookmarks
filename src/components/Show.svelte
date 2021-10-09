@@ -4,7 +4,6 @@
   import { fire, post, confirm, pasteText } from "../misc";
   import {
     component,
-    loading,
     bookmark,
     bookmarks,
     category,
@@ -44,22 +43,24 @@
       orig: currentBookmarks[evt.oldIndex as number].id,
       dest: currentBookmarks[evt.newIndex as number].id,
     });
-    if ((await resp.text()) == "1") {
-      const current = currentBookmarks[evt.oldIndex as number].id;
-      const oldSeq = currentBookmarks[evt.oldIndex as number].seq;
-      const newSeq = currentBookmarks[evt.newIndex as number].seq;
-      if (oldSeq > newSeq) {
+    if (resp.ok) {
+      if ((await resp.text()) == "1") {
+        const current = currentBookmarks[evt.oldIndex as number].id;
+        const oldSeq = currentBookmarks[evt.oldIndex as number].seq;
+        const newSeq = currentBookmarks[evt.newIndex as number].seq;
+        if (oldSeq > newSeq) {
+          $bookmarks.forEach((b) => {
+            if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
+          });
+        } else
+          $bookmarks.forEach((b) => {
+            if (b.seq > oldSeq && b.seq <= newSeq) b.seq--;
+          });
         $bookmarks.forEach((b) => {
-          if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
+          if (b.id === current) b.seq = newSeq;
         });
-      } else
-        $bookmarks.forEach((b) => {
-          if (b.seq > oldSeq && b.seq <= newSeq) b.seq--;
-        });
-      $bookmarks.forEach((b) => {
-        if (b.id === current) b.seq = newSeq;
-      });
-    } else await fire("Error", "Failed to reorder.", "error");
+      } else await fire("Error", "Failed to reorder.", "error");
+    } else await fire("Error", await resp.text(), "error");
   };
 
   const formatURL = (isSmall: boolean) => {
@@ -76,12 +77,10 @@
   const editCategory = async (c: string) => {
     c = c.trim();
     if ($category.category != c) {
-      loading.start();
       const resp = await post("/category/edit", {
         old: $category.category,
         new: c,
       });
-      loading.end();
       let json: any = {};
       if (resp.ok) {
         json = await resp.json();
@@ -96,7 +95,7 @@
           currentBookmarks = currentBookmarks;
           return true;
         }
-      }
+      } else json.message = await resp.text();
       await fire("Error", json.message ? json.message : "Error", "error");
       dispatch("reload");
       return false;
@@ -137,11 +136,9 @@
   const categoryClick = async () => {
     if (editable) {
       if (await confirm("category")) {
-        loading.start();
         const resp = await post("/category/delete", {
           category: $category.category,
         });
-        loading.end();
         if (resp.ok) {
           const index = $categories.findIndex(
             (c) => c.category === $category.category

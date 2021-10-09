@@ -19,7 +19,7 @@
       dispatch("reload");
       window.history.pushState({}, "", "/");
       $component = "show";
-    } else await fire("Error", "Unknow error", "error");
+    } else await fire("Error", await resp.text(), "error");
   };
 </script>
 

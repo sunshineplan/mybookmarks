@@ -8,7 +8,6 @@
     categories,
     bookmarks,
     total,
-    loading,
   } from "../stores";
 
   const dispatch = createEventDispatcher();
@@ -79,9 +78,7 @@
 
   const del = async () => {
     if (await confirm("bookmark")) {
-      loading.start();
       const resp = await post("/bookmark/delete/" + $bookmark.id);
-      loading.end();
       if (resp.ok) {
         const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
         $bookmarks.splice(index, 1);
