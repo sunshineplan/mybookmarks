@@ -10,17 +10,16 @@ var dbConfig mongodb.Config
 var collAccount *mongo.Collection
 var collBookmark *mongo.Collection
 
-func initDB() (err error) {
-	if err = utils.Retry(func() error {
+func initDB() error {
+	if err := utils.Retry(func() error {
 		return meta.Get("mybookmarks_mongo", &dbConfig)
 	}, 3, 20); err != nil {
-		return
+		return err
 	}
 
-	var client *mongo.Client
-	client, err = dbConfig.Open()
+	client, err := dbConfig.Open()
 	if err != nil {
-		return
+		return err
 	}
 
 	database := client.Database(dbConfig.Database)
@@ -28,14 +27,14 @@ func initDB() (err error) {
 	collAccount = database.Collection("account")
 	collBookmark = database.Collection("bookmark")
 
-	return
+	return nil
 }
 
-func test() error {
-	if err := meta.Get("mybookmarks_mongo", &dbConfig); err != nil {
-		return err
+func test() (err error) {
+	if err = meta.Get("mybookmarks_mongo", &dbConfig); err != nil {
+		return
 	}
 
-	_, err := dbConfig.Open()
-	return err
+	_, err = dbConfig.Open()
+	return
 }
