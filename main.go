@@ -19,9 +19,6 @@ import (
 )
 
 var self string
-var universal bool
-var pemPath, logPath string
-var maxRetry int
 var meta metadata.Server
 var priv *rsa.PrivateKey
 
@@ -42,34 +39,39 @@ var (
 	dir      = filepath.Dir
 )
 
-func main() {
+func init() {
 	var err error
 	self, err = os.Executable()
 	if err != nil {
 		log.Fatalln("Failed to get self path:", err)
 	}
+}
 
+var (
+	maxRetry  = flag.Int("retry", 5, "Max number of retries on wrong password")
+	universal = flag.Bool("universal", false, "Use Universal account id or not")
+	pemPath   = flag.String("pem", "", "PEM File Path")
+	exclude   = flag.String("exclude", "", "Exclude Files")
+	logPath   = flag.String("log", "", "Log Path")
+	// logPath = flag.String("log", joinPath(dir(self), "access.log"), "Log Path")
+)
+
+func main() {
 	flag.StringVar(&meta.Addr, "server", "", "Metadata Server Address")
 	flag.StringVar(&meta.Header, "header", "", "Verify Header Header Name")
 	flag.StringVar(&meta.Value, "value", "", "Verify Header Value")
-	flag.IntVar(&maxRetry, "retry", 5, "Max number of retries on wrong password")
-	flag.BoolVar(&universal, "universal", false, "Use Universal account id or not")
 	flag.StringVar(&server.Unix, "unix", "", "UNIX-domain Socket")
 	flag.StringVar(&server.Host, "host", "0.0.0.0", "Server Host")
 	flag.StringVar(&server.Port, "port", "12345", "Server Port")
-	flag.StringVar(&pemPath, "pem", "", "PEM File Path")
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
-	exclude := flag.String("exclude", "", "Exclude Files")
-	//flag.StringVar(&logPath, "log", joinPath(dir(self), "access.log"), "Log Path")
-	flag.StringVar(&logPath, "log", "", "Log Path")
 	iniflags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 
-	password.SetMaxAttempts(maxRetry)
-	if pemPath != "" {
-		b, err := os.ReadFile(pemPath)
+	password.SetMaxAttempts(*maxRetry)
+	if *pemPath != "" {
+		b, err := os.ReadFile(*pemPath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -89,6 +91,7 @@ func main() {
 		return
 	}
 
+	var err error
 	switch flag.NArg() {
 	case 0:
 		run()

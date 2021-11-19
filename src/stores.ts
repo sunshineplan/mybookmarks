@@ -63,9 +63,7 @@ const more = async (init?: boolean) => {
       ? currentCategory.count
       : uncategorized
   if (now >= (init ? Math.min(30, goal) : goal)) return
-  loading.start()
   const resp = await post('/bookmark/get', { start: currentBookmarks.length })
-  loading.end()
   if (resp.ok) {
     const moreBookmarks = currentBookmarks.concat(await resp.json())
     moreBookmarks.sort((a, b) => a.seq - b.seq)

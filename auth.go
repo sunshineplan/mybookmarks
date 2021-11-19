@@ -32,7 +32,7 @@ func getUser(c *gin.Context) (id, username string, err error) {
 	session := sessions.Default(c)
 	sid := session.Get("id")
 	username, _ = session.Get("username").(string)
-	if universal {
+	if *universal {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
