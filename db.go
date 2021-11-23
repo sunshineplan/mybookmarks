@@ -1,40 +1,29 @@
 package main
 
 import (
-	"github.com/sunshineplan/database/mongodb"
+	"github.com/sunshineplan/database/mongodb/api"
 	"github.com/sunshineplan/utils"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var dbConfig mongodb.Config
-var collAccount *mongo.Collection
-var collBookmark *mongo.Collection
+var accountClient api.Client
+var bookmarkClient api.Client
 
 func initDB() error {
+	var mongo api.Client
 	if err := utils.Retry(func() error {
-		return meta.Get("mybookmarks_mongo", &dbConfig)
+		return meta.Get("mybookmarks_mongo", &mongo)
 	}, 3, 20); err != nil {
 		return err
 	}
 
-	client, err := dbConfig.Open()
-	if err != nil {
-		return err
-	}
-
-	database := client.Database(dbConfig.Database)
-
-	collAccount = database.Collection("account")
-	collBookmark = database.Collection("bookmark")
+	accountClient, bookmarkClient = mongo, mongo
+	accountClient.Collection = "account"
+	bookmarkClient.Collection = "bookmark"
 
 	return nil
 }
 
-func test() (err error) {
-	if err = meta.Get("mybookmarks_mongo", &dbConfig); err != nil {
-		return
-	}
-
-	_, err = dbConfig.Open()
-	return
+func test() error {
+	var mongo api.Client
+	return meta.Get("mybookmarks_mongo", &mongo)
 }

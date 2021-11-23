@@ -1,19 +1,17 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/sunshineplan/database/mongodb/api"
 )
 
 type category struct {
-	Category string `json:"category" bson:"_id"`
+	ID       string `json:"_id,omitempty"`
+	Category string `json:"category"`
 	Count    int    `json:"count"`
 }
 
@@ -23,25 +21,18 @@ func getCategory(userID interface{}) (categories []category, err error) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var cursor *mongo.Cursor
-	cursor, err = collBookmark.Aggregate(ctx, []bson.M{
-		{"$match": bson.M{"user": userID, "category": bson.M{"$exists": true}}},
-		{"$group": bson.M{"_id": "$category", "count": bson.M{"$sum": 1}}},
-		{"$sort": bson.M{"_id": 1}},
-	})
-	if err != nil {
+	if err = bookmarkClient.Aggregate([]api.M{
+		{"$match": api.M{"user": userID, "category": api.M{"$exists": true}}},
+		{"$group": api.M{"_id": "$category", "count": api.M{"$sum": 1}}},
+		{"$sort": api.M{"_id": 1}},
+	},
+		&categories,
+	); err != nil {
 		log.Println("Failed to query categories:", err)
-		return
 	}
-
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err = cursor.All(ctx, &categories); err != nil {
-		log.Println("Failed to get categories:", err)
+	for i := range categories {
+		categories[i].Category = categories[i].ID
+		categories[i].ID = ""
 	}
 
 	return
@@ -81,12 +72,10 @@ func editCategory(c *gin.Context) {
 		message = fmt.Sprintf("Category %s is already existed.", data.New)
 		errorCode = 1
 	default:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if _, err := collBookmark.UpdateMany(ctx,
-			bson.M{"user": userID, "category": data.Old},
-			bson.M{"$set": bson.M{"category": data.New}},
+		if _, err := bookmarkClient.UpdateMany(
+			api.M{"user": userID, "category": data.Old},
+			api.M{"$set": api.M{"category": data.New}},
+			nil,
 		); err != nil {
 			log.Println("Failed to edit category:", err)
 			c.String(500, "")
@@ -114,12 +103,10 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if _, err := collBookmark.UpdateMany(ctx,
-		bson.M{"user": userID, "category": data.Category},
-		bson.M{"$unset": bson.M{"category": 1}},
+	if _, err := bookmarkClient.UpdateMany(
+		api.M{"user": userID, "category": data.Category},
+		api.M{"$unset": api.M{"category": 1}},
+		nil,
 	); err != nil {
 		log.Println("Failed to delete category:", err)
 		c.String(500, "")

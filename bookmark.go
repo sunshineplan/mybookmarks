@@ -1,34 +1,28 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/sunshineplan/database/mongodb/api"
 )
 
 type bookmark struct {
-	ID       string             `json:"id"`
-	ObjectID primitive.ObjectID `json:"-" bson:"_id"`
-	Bookmark string             `json:"bookmark"`
-	URL      string             `json:"url"`
-	Category string             `json:"category"`
-	Seq      int                `json:"-"`
+	ID       string `json:"id"`
+	ObjectID string `json:"_id,omitempty"`
+	Bookmark string `json:"bookmark"`
+	URL      string `json:"url"`
+	Category string `json:"category"`
+	Seq      int    `json:"seq"`
 }
 
-func checkBookmark(objecdID primitive.ObjectID, userID interface{}) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := collBookmark.FindOne(ctx, bson.M{"_id": objecdID, "user": userID}).Err(); err != nil {
-		if err != mongo.ErrNoDocuments {
+func checkBookmark(id string, userID interface{}) bool {
+	var user user
+	if err := bookmarkClient.FindOne(api.M{"_id": api.ObjectID(id), "user": userID}, nil, &user); err != nil {
+		if err != api.ErrNoDocuments {
 			log.Print(err)
 		}
 		return false
@@ -45,34 +39,20 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int64, err err
 
 	ec := make(chan error, 1)
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
 		var err error
-		total, err = collBookmark.CountDocuments(ctx, bson.M{"user": userID})
+		total, err = bookmarkClient.CountDocuments(api.M{"user": userID}, nil)
 		ec <- err
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var cursor *mongo.Cursor
-	cursor, err = collBookmark.Find(
-		ctx, bson.M{"user": userID}, options.Find().SetSort(bson.M{"seq": 1}).SetLimit(50))
-	if err != nil {
+	if err = bookmarkClient.Find(
+		api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": 1}, Limit: 50}, &bookmarks,
+	); err != nil {
 		log.Println("Failed to query bookmarks:", err)
 		return
 	}
-
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err = cursor.All(ctx, &bookmarks); err != nil {
-		log.Println("Failed to get bookmarks:", err)
-		return
-	}
 	for i := range bookmarks {
-		bookmarks[i].ID = bookmarks[i].ObjectID.Hex()
+		bookmarks[i].ID = bookmarks[i].ObjectID
+		bookmarks[i].ObjectID = ""
 	}
 
 	err = <-ec
@@ -95,28 +75,18 @@ func moreBookmark(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cursor, err := collBookmark.Find(
-		ctx, bson.M{"user": userID}, options.Find().SetSort(bson.M{"seq": 1}).SetSkip(r.Start).SetLimit(50))
-	if err != nil {
+	bookmarks := []bookmark{}
+	if err := bookmarkClient.Find(
+		api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": 1}, Skip: r.Start, Limit: 50}, &bookmarks,
+	); err != nil {
 		log.Println("Failed to query bookmarks:", err)
 		c.String(500, "")
 		return
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	bookmarks := []bookmark{}
-	if err := cursor.All(ctx, &bookmarks); err != nil {
-		log.Println("Failed to get bookmarks:", err)
-		c.String(500, "")
-		return
-	}
 	for i := range bookmarks {
-		bookmarks[i].ID = bookmarks[i].ObjectID.Hex()
+		bookmarks[i].ID = bookmarks[i].ObjectID
+		bookmarks[i].ObjectID = ""
 	}
 
 	c.JSON(200, bookmarks)
@@ -151,30 +121,24 @@ func addBookmark(c *gin.Context) {
 	ec := make(chan error, 2)
 	var exist1, exist2 bool
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+		var tmp interface{}
 		var err error
-		if err = collBookmark.FindOne(
-			ctx, bson.M{"bookmark": data.Bookmark, "user": userID}).Err(); err == nil {
+		if err = bookmarkClient.FindOne(api.M{"bookmark": data.Bookmark, "user": userID}, nil, &tmp); err == nil {
 			exist1 = true
 		}
 		ec <- err
 	}()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+		var tmp interface{}
 		var err error
-		if err = collBookmark.FindOne(
-			ctx, bson.M{"url": data.URL, "user": userID}).Err(); err == nil {
+		if err = bookmarkClient.FindOne(api.M{"url": data.URL, "user": userID}, nil, &tmp); err == nil {
 			exist2 = true
 		}
 		ec <- err
 	}()
 	for i := 0; i < 2; i++ {
 		if err := <-ec; err != nil {
-			if err != mongo.ErrNoDocuments {
+			if err != api.ErrNoDocuments {
 				log.Println("Failed to get category id:", err)
 				c.String(500, "")
 				return
@@ -192,22 +156,10 @@ func addBookmark(c *gin.Context) {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", data.URL)
 		errorCode = 2
 	default:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		cursor, err := collBookmark.Find(
-			ctx, bson.M{"user": userID}, options.Find().SetSort(bson.M{"seq": -1}).SetLimit(1))
-		if err != nil {
-			log.Println("Failed to query bookmarks:", err)
-			c.String(500, "")
-			return
-		}
-
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
 		var bookmarks []bookmark
-		if err := cursor.All(ctx, &bookmarks); err != nil {
+		if err := bookmarkClient.Find(
+			api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": -1}, Limit: 1}, &bookmarks,
+		); err != nil {
 			log.Println("Failed to get bookmarks:", err)
 			c.String(500, "")
 			return
@@ -220,35 +172,25 @@ func addBookmark(c *gin.Context) {
 			seq = bookmarks[0].Seq + 1
 		}
 
-		document := bson.D{
-			{Key: "bookmark", Value: data.Bookmark},
-			{Key: "url", Value: data.URL},
-			{Key: "user", Value: userID},
-			{Key: "seq", Value: seq},
-			{Key: "created", Value: time.Now()},
+		document := api.M{
+			"bookmark": data.Bookmark,
+			"url":      data.URL,
+			"user":     userID,
+			"seq":      seq,
+			"created":  time.Now(),
 		}
 		if data.Category != "" {
-			document = append(document, bson.E{Key: "category", Value: data.Category})
+			document["category"] = data.Category
 		}
 
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		res, err := collBookmark.InsertOne(ctx, document)
+		res, err := bookmarkClient.InsertOne(document)
 		if err != nil {
 			log.Println("Failed to add bookmark:", err)
 			c.String(500, "")
 			return
 		}
 
-		objecdID, ok := res.InsertedID.(primitive.ObjectID)
-		if !ok {
-			log.Print("Failed to get last insert id.")
-			c.String(500, "")
-			return
-		}
-
-		c.JSON(200, gin.H{"status": 1, "id": objecdID.Hex()})
+		c.JSON(200, gin.H{"status": 1, "id": res})
 		return
 	}
 
@@ -256,12 +198,7 @@ func addBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	objectID, err := primitive.ObjectIDFromHex(c.Param("id"))
-	if err != nil {
-		log.Print(err)
-		c.String(500, "")
-		return
-	}
+	id := c.Param("id")
 
 	var new bookmark
 	if err := c.BindJSON(&new); err != nil {
@@ -292,44 +229,39 @@ func editBookmark(c *gin.Context) {
 	var old bookmark
 	var exist1, exist2 bool
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		var err error
-		err = collBookmark.FindOne(
-			ctx, bson.M{"_id": objectID, "user": userID}).Decode(&old)
-		if err == mongo.ErrNoDocuments {
+		err := bookmarkClient.FindOne(api.M{"_id": api.ObjectID(id), "user": userID}, nil, &old)
+		if err == api.ErrNoDocuments {
 			err = errors.New("bookmark not found")
 		}
 		ec <- err
 	}()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+		var tmp interface{}
 		var err error
-		if err = collBookmark.FindOne(
-			ctx, bson.M{"_id": bson.M{"$ne": objectID}, "bookmark": new.Bookmark, "user": userID},
-		).Err(); err == nil {
+		if err = bookmarkClient.FindOne(
+			api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "bookmark": new.Bookmark, "user": userID},
+			nil,
+			&tmp,
+		); err == nil {
 			exist1 = true
 		}
 		ec <- err
 	}()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+		var tmp interface{}
 		var err error
-		if err = collBookmark.FindOne(
-			ctx, bson.M{"_id": bson.M{"$ne": objectID}, "url": new.URL, "user": userID},
-		).Err(); err == nil {
+		if err = bookmarkClient.FindOne(
+			api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "url": new.URL, "user": userID},
+			nil,
+			&tmp,
+		); err == nil {
 			exist2 = true
 		}
 		ec <- err
 	}()
 	for i := 0; i < 2; i++ {
 		if err := <-ec; err != nil {
-			if err != mongo.ErrNoDocuments {
+			if err != api.ErrNoDocuments {
 				log.Println("Failed to get category id:", err)
 				c.String(500, "")
 				return
@@ -349,16 +281,13 @@ func editBookmark(c *gin.Context) {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", new.URL)
 		errorCode = 2
 	default:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		var update bson.M
+		var update api.M
 		if new.Category == "" {
-			update = bson.M{"$set": bson.M{"bookmark": new.Bookmark, "url": new.URL}}
+			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL}}
 		} else {
-			update = bson.M{"$set": bson.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
+			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
 		}
-		if _, err := collBookmark.UpdateOne(ctx, bson.M{"_id": objectID}, update); err != nil {
+		if _, err := bookmarkClient.UpdateOne(api.M{"_id": api.ObjectID(id)}, update, nil); err != nil {
 			log.Println("Failed to edit bookmark:", err)
 			c.String(500, "")
 			return
@@ -372,35 +301,24 @@ func editBookmark(c *gin.Context) {
 }
 
 func deleteBookmark(c *gin.Context) {
-	objectID, err := primitive.ObjectIDFromHex(c.Param("id"))
-	if err != nil {
-		log.Print(err)
-		c.String(500, "")
-		return
-	}
-
+	id := c.Param("id")
 	userID, _, err := getUser(c)
 	if err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
-	} else if checkBookmark(objectID, userID) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
+	} else if checkBookmark(id, userID) {
 		var bookmark bookmark
-		if err := collBookmark.FindOneAndDelete(ctx, bson.M{"_id": objectID}).Decode(&bookmark); err != nil {
+		if err := bookmarkClient.FindOneAndDelete(api.M{"_id": api.ObjectID(id)}, nil, &bookmark); err != nil {
 			log.Println("Failed to delete bookmark:", err)
 			c.String(500, "")
 			return
 		}
 
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if _, err := collBookmark.UpdateMany(ctx,
-			bson.M{"user": userID, "seq": bson.M{"$gt": bookmark.Seq}},
-			bson.M{"$inc": bson.M{"seq": -1}},
+		if _, err := bookmarkClient.UpdateMany(
+			api.M{"user": userID, "seq": api.M{"$gt": bookmark.Seq}},
+			api.M{"$inc": api.M{"seq": -1}},
+			nil,
 		); err != nil {
 			log.Println("Failed to reorder after delete bookmark:", err)
 			c.String(500, "")
@@ -422,31 +340,17 @@ func reorder(c *gin.Context) {
 		return
 	}
 
-	orig, err := primitive.ObjectIDFromHex(data.Orig)
-	if err != nil {
-		log.Print(err)
-		c.String(500, "")
-		return
-	}
-
-	dest, err := primitive.ObjectIDFromHex(data.Dest)
-	if err != nil {
-		log.Print(err)
-		c.String(500, "")
-		return
-	}
-
 	userID, _, err := getUser(c)
 	if err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
-	} else if !checkBookmark(orig, userID) || !checkBookmark(dest, userID) {
+	} else if !checkBookmark(data.Orig, userID) || !checkBookmark(data.Dest, userID) {
 		c.String(403, "")
 		return
 	}
 
-	if err := reorderBookmark(userID, orig, dest); err != nil {
+	if err := reorderBookmark(userID, data.Orig, data.Dest); err != nil {
 		log.Println("Failed to reorder bookmark:", err)
 		c.String(500, "")
 		return

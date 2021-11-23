@@ -1,23 +1,19 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/sunshineplan/database/mongodb/api"
 	"github.com/sunshineplan/password"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type user struct {
-	ID       primitive.ObjectID `bson:"_id"`
+	ID       string `json:"_id"`
 	Username string
 	Password string
 }
@@ -33,14 +29,11 @@ func getUser(c *gin.Context) (id, username string, err error) {
 	sid := session.Get("id")
 	username, _ = session.Get("username").(string)
 	if *universal {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
 		var user user
-		if err = collAccount.FindOne(ctx, bson.M{"uid": sid}).Decode(&user); err != nil {
+		if err = accountClient.FindOne(api.M{"uid": sid}, nil, &user); err != nil {
 			return
 		}
-		id = user.ID.Hex()
+		id = user.ID
 		return
 	}
 	id, _ = sid.(string)
@@ -64,13 +57,10 @@ func login(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	var user user
 	var message string
-	if err := collAccount.FindOne(ctx, bson.M{"username": login.Username}).Decode(&user); err != nil {
-		if err == mongo.ErrNoDocuments {
+	if err := accountClient.FindOne(api.M{"username": login.Username}, nil, &user); err != nil {
+		if err == api.ErrNoDocuments {
 			message = "Incorrect username"
 		} else {
 			log.Print(err)
@@ -96,7 +86,7 @@ func login(c *gin.Context) {
 		if message == "" {
 			session := sessions.Default(c)
 			session.Clear()
-			session.Set("id", user.ID.Hex())
+			session.Set("id", user.ID)
 			session.Set("username", user.Username)
 
 			if login.Rememberme {
@@ -139,23 +129,14 @@ func chgpwd(c *gin.Context) {
 		return
 	}
 
-	objecdID, err := primitive.ObjectIDFromHex(userID.(string))
-	if err != nil {
-		log.Print(err)
-		c.String(500, "")
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	var user user
-	if err := collAccount.FindOne(ctx, bson.M{"_id": objecdID}).Decode(&user); err != nil {
+	if err := accountClient.FindOne(api.M{"_id": api.ObjectID(userID.(string))}, nil, &user); err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
 	}
 
+	var err error
 	var message, newPassword string
 	var errorCode int
 	if priv == nil {
@@ -183,11 +164,11 @@ func chgpwd(c *gin.Context) {
 	}
 
 	if message == "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if _, err := collAccount.UpdateOne(
-			ctx, bson.M{"_id": objecdID}, bson.M{"$set": bson.M{"password": newPassword}}); err != nil {
+		if _, err := accountClient.UpdateOne(
+			api.M{"_id": api.ObjectID(userID.(string))},
+			api.M{"$set": api.M{"password": newPassword}},
+			nil,
+		); err != nil {
 			log.Print(err)
 			c.String(500, "")
 			return

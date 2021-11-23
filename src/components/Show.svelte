@@ -59,6 +59,7 @@
         $bookmarks.forEach((b) => {
           if (b.id === current) b.seq = newSeq;
         });
+        $bookmarks.sort((a, b) => a.seq - b.seq)
       } else await fire("Error", "Failed to reorder.", "error");
     } else await fire("Error", await resp.text(), "error");
   };
