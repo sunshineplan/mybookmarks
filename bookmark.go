@@ -121,28 +121,20 @@ func addBookmark(c *gin.Context) {
 	ec := make(chan error, 2)
 	var exist1, exist2 bool
 	go func() {
-		var tmp interface{}
-		var err error
-		if err = bookmarkClient.FindOne(api.M{"bookmark": data.Bookmark, "user": userID}, nil, &tmp); err == nil {
-			exist1 = true
-		}
+		n, err := bookmarkClient.CountDocuments(api.M{"bookmark": data.Bookmark, "user": userID}, nil)
+		exist1 = n > 0
 		ec <- err
 	}()
 	go func() {
-		var tmp interface{}
-		var err error
-		if err = bookmarkClient.FindOne(api.M{"url": data.URL, "user": userID}, nil, &tmp); err == nil {
-			exist2 = true
-		}
+		n, err := bookmarkClient.CountDocuments(api.M{"url": data.URL, "user": userID}, nil)
+		exist2 = n > 0
 		ec <- err
 	}()
 	for i := 0; i < 2; i++ {
 		if err := <-ec; err != nil {
-			if err != api.ErrNoDocuments {
-				log.Println("Failed to get category id:", err)
-				c.String(500, "")
-				return
-			}
+			log.Println("Failed to get category id:", err)
+			c.String(500, "")
+			return
 		}
 	}
 
@@ -172,18 +164,25 @@ func addBookmark(c *gin.Context) {
 			seq = bookmarks[0].Seq + 1
 		}
 
-		document := api.M{
-			"bookmark": data.Bookmark,
-			"url":      data.URL,
-			"user":     userID,
-			"seq":      seq,
-			"created":  time.Now(),
+		doc := struct {
+			Bookmark string      `json:"bookmark"`
+			URL      string      `json:"url"`
+			User     string      `json:"user"`
+			Seq      int         `json:"seq"`
+			Created  interface{} `json:"created"`
+			Category string      `json:"category,omitempty"`
+		}{
+			Bookmark: data.Bookmark,
+			URL:      data.URL,
+			User:     userID,
+			Seq:      seq,
+			Created:  api.Date(time.Now()),
 		}
 		if data.Category != "" {
-			document["category"] = data.Category
+			doc.Category = data.Category
 		}
 
-		res, err := bookmarkClient.InsertOne(document)
+		res, err := bookmarkClient.InsertOne(doc)
 		if err != nil {
 			log.Println("Failed to add bookmark:", err)
 			c.String(500, "")
@@ -236,36 +235,20 @@ func editBookmark(c *gin.Context) {
 		ec <- err
 	}()
 	go func() {
-		var tmp interface{}
-		var err error
-		if err = bookmarkClient.FindOne(
-			api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "bookmark": new.Bookmark, "user": userID},
-			nil,
-			&tmp,
-		); err == nil {
-			exist1 = true
-		}
+		n, err := bookmarkClient.CountDocuments(api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "bookmark": new.Bookmark, "user": userID}, nil)
+		exist1 = n > 0
 		ec <- err
 	}()
 	go func() {
-		var tmp interface{}
-		var err error
-		if err = bookmarkClient.FindOne(
-			api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "url": new.URL, "user": userID},
-			nil,
-			&tmp,
-		); err == nil {
-			exist2 = true
-		}
+		n, err := bookmarkClient.CountDocuments(api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "url": new.URL, "user": userID}, nil)
+		exist2 = n > 0
 		ec <- err
 	}()
 	for i := 0; i < 2; i++ {
 		if err := <-ec; err != nil {
-			if err != api.ErrNoDocuments {
-				log.Println("Failed to get category id:", err)
-				c.String(500, "")
-				return
-			}
+			log.Println("Failed to get category id:", err)
+			c.String(500, "")
+			return
 		}
 	}
 
@@ -283,7 +266,7 @@ func editBookmark(c *gin.Context) {
 	default:
 		var update api.M
 		if new.Category == "" {
-			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL}}
+			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL}, "$unset": api.M{"category": ""}}
 		} else {
 			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
 		}

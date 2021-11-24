@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/sunshineplan/database/mongodb/api"
 )
@@ -15,21 +16,26 @@ func addUser(username string) {
 
 	username = strings.TrimSpace(strings.ToLower(username))
 
-	insertedID, err := accountClient.InsertOne(api.M{
-		"username": username,
-		"password": "123456",
-		"uid":      username,
-	})
+	insertedID, err := accountClient.InsertOne(
+		struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+			Uid      string `json:"uid"`
+		}{username, "123456", username},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if _, err := bookmarkClient.InsertOne(api.M{
-		"bookmark": "Google",
-		"url":      "https://www.google.com",
-		"user":     insertedID,
-		"seq":      1,
-	}); err != nil {
+	if _, err := bookmarkClient.InsertOne(
+		struct {
+			Bookmark string      `json:"bookmark"`
+			URL      string      `json:"url"`
+			User     string      `json:"user"`
+			Seq      int         `json:"seq"`
+			Created  interface{} `json:"created"`
+		}{"Google", "https://www.google.com", insertedID, 1, api.Date(time.Now())},
+	); err != nil {
 		log.Fatal(err)
 	}
 	log.Print("Done!")
