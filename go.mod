@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/gin-contrib/sessions v0.0.4
-	github.com/gin-gonic/gin v1.7.6
+	github.com/gin-gonic/gin v1.7.7
 	github.com/sunshineplan/database/mongodb/api v1.0.11
 	github.com/sunshineplan/password v1.0.4
 	github.com/sunshineplan/service v1.0.3
