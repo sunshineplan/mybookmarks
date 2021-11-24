@@ -21,14 +21,15 @@ func getCategory(userID interface{}) (categories []category, err error) {
 		return
 	}
 
-	if err = bookmarkClient.Aggregate([]api.M{
-		{"$match": api.M{"user": userID, "category": api.M{"$exists": true}}},
-		{"$group": api.M{"_id": "$category", "count": api.M{"$sum": 1}}},
-		{"$sort": api.M{"_id": 1}},
-	},
+	if err = bookmarkClient.Aggregate(
+		[]api.M{
+			{"$match": api.M{"user": userID, "category": api.M{"$exists": true}}},
+			{"$group": api.M{"_id": "$category", "count": api.M{"$sum": 1}}},
+			{"$sort": api.M{"_id": 1}},
+		},
 		&categories,
 	); err != nil {
-		log.Println("Failed to query categories:", err)
+		return
 	}
 	for i := range categories {
 		categories[i].Category = categories[i].ID

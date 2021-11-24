@@ -101,11 +101,16 @@ func run() {
 			return
 		}
 
-		ch := make(chan int, 1)
+		ch := make(chan error, 1)
 		var categories []category
-		go func() { categories, _ = getCategory(id); ch <- 1 }()
-		bookmarks, total, _ := getBookmark(id)
-		<-ch
+		go func() { var err error; categories, err = getCategory(id); ch <- err }()
+		bookmarks, total, err := getBookmark(id)
+		if err != nil {
+			log.Println("Failed to get bookmarks:", err)
+		}
+		if err = <-ch; err != nil {
+			log.Println("Failed to get categories:", err)
+		}
 
 		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks, "total": total})
 	})

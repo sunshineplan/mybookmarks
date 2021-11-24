@@ -82,7 +82,6 @@ func reorderBookmark(userID interface{}, orig, dest string) error {
 	}
 
 	if _, err := bookmarkClient.UpdateMany(filter, update, nil); err != nil {
-		log.Println("Failed to reorder bookmark:", err)
 		return err
 	}
 
@@ -91,7 +90,6 @@ func reorderBookmark(userID interface{}, orig, dest string) error {
 		api.M{"$set": api.M{"seq": destBookmark.Seq}},
 		nil,
 	); err != nil {
-		log.Println("Failed to reorder bookmark:", err)
 		return err
 	}
 
