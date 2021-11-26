@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/sunshineplan/database/mongodb/api"
+	"github.com/sunshineplan/database/mongodb"
 	"github.com/sunshineplan/password"
 )
 
@@ -30,7 +30,7 @@ func getUser(c *gin.Context) (id, username string, err error) {
 	username, _ = session.Get("username").(string)
 	if *universal {
 		var user user
-		if err = accountClient.FindOne(api.M{"uid": sid}, nil, &user); err != nil {
+		if err = accountClient.FindOne(mongodb.M{"uid": sid}, nil, &user); err != nil {
 			return
 		}
 		id = user.ID
@@ -59,8 +59,8 @@ func login(c *gin.Context) {
 
 	var user user
 	var message string
-	if err := accountClient.FindOne(api.M{"username": login.Username}, nil, &user); err != nil {
-		if err == api.ErrNoDocuments {
+	if err := accountClient.FindOne(mongodb.M{"username": login.Username}, nil, &user); err != nil {
+		if err == mongodb.ErrNoDocuments {
 			message = "Incorrect username"
 		} else {
 			log.Print(err)
@@ -116,6 +116,7 @@ func chgpwd(c *gin.Context) {
 		c.String(401, "")
 		return
 	}
+	id, _ := accountClient.ObjectID(userID.(string))
 
 	if password.IsMaxAttempts(c.ClientIP() + username.(string)) {
 		c.JSON(200, gin.H{"status": 0, "message": fmt.Sprintf("Max retries exceeded (%d)", maxRetry), "error": 1})
@@ -130,7 +131,7 @@ func chgpwd(c *gin.Context) {
 	}
 
 	var user user
-	if err := accountClient.FindOne(api.M{"_id": api.ObjectID(userID.(string))}, nil, &user); err != nil {
+	if err := accountClient.FindOne(mongodb.M{"_id": id.Interface()}, nil, &user); err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
@@ -165,8 +166,8 @@ func chgpwd(c *gin.Context) {
 
 	if message == "" {
 		if _, err := accountClient.UpdateOne(
-			api.M{"_id": api.ObjectID(userID.(string))},
-			api.M{"$set": api.M{"password": newPassword}},
+			mongodb.M{"_id": id.Interface()},
+			mongodb.M{"$set": mongodb.M{"password": newPassword}},
 			nil,
 		); err != nil {
 			log.Print(err)

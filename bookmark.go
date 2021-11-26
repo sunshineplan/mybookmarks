@@ -6,20 +6,20 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sunshineplan/database/mongodb/api"
+	"github.com/sunshineplan/database/mongodb"
 )
 
 type bookmark struct {
 	ID       string `json:"id"`
-	ObjectID string `json:"_id,omitempty"`
+	ObjectID string `json:"_id,omitempty" bson:"_id"`
 	Bookmark string `json:"bookmark"`
 	URL      string `json:"url"`
 	Category string `json:"category"`
 	Seq      int    `json:"seq"`
 }
 
-func checkBookmark(id string, userID interface{}) bool {
-	n, err := bookmarkClient.CountDocuments(api.M{"_id": api.ObjectID(id), "user": userID}, nil)
+func checkBookmark(id mongodb.ObjectID, userID interface{}) bool {
+	n, err := bookmarkClient.CountDocuments(mongodb.M{"_id": id.Interface(), "user": userID}, nil)
 	if err != nil {
 		log.Print(err)
 	}
@@ -34,9 +34,9 @@ func getBookmark(userID interface{}) (bookmarks []bookmark, total int64, err err
 
 	ec := make(chan error, 1)
 	go func() {
-		ec <- bookmarkClient.Find(api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": 1}, Limit: 50}, &bookmarks)
+		ec <- bookmarkClient.Find(mongodb.M{"user": userID}, &mongodb.FindOpt{Sort: mongodb.M{"seq": 1}, Limit: 50}, &bookmarks)
 	}()
-	total, err = bookmarkClient.CountDocuments(api.M{"user": userID}, nil)
+	total, err = bookmarkClient.CountDocuments(mongodb.M{"user": userID}, nil)
 	if err != nil {
 		return
 	}
@@ -69,7 +69,7 @@ func moreBookmark(c *gin.Context) {
 
 	bookmarks := []bookmark{}
 	if err := bookmarkClient.Find(
-		api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": 1}, Skip: r.Start, Limit: 50}, &bookmarks,
+		mongodb.M{"user": userID}, &mongodb.FindOpt{Sort: mongodb.M{"seq": 1}, Skip: r.Start, Limit: 50}, &bookmarks,
 	); err != nil {
 		log.Println("Failed to query bookmarks:", err)
 		c.String(500, "")
@@ -112,12 +112,12 @@ func addBookmark(c *gin.Context) {
 	ec := make(chan error, 2)
 	var exist1, exist2 bool
 	go func() {
-		n, err := bookmarkClient.CountDocuments(api.M{"bookmark": data.Bookmark, "user": userID}, nil)
+		n, err := bookmarkClient.CountDocuments(mongodb.M{"bookmark": data.Bookmark, "user": userID}, nil)
 		exist1 = n > 0
 		ec <- err
 	}()
 	go func() {
-		n, err := bookmarkClient.CountDocuments(api.M{"url": data.URL, "user": userID}, nil)
+		n, err := bookmarkClient.CountDocuments(mongodb.M{"url": data.URL, "user": userID}, nil)
 		exist2 = n > 0
 		ec <- err
 	}()
@@ -141,7 +141,7 @@ func addBookmark(c *gin.Context) {
 	default:
 		var bookmarks []bookmark
 		if err := bookmarkClient.Find(
-			api.M{"user": userID}, &api.FindOpt{Sort: api.M{"seq": -1}, Limit: 1}, &bookmarks,
+			mongodb.M{"user": userID}, &mongodb.FindOpt{Sort: mongodb.M{"seq": -1}, Limit: 1}, &bookmarks,
 		); err != nil {
 			log.Println("Failed to get bookmarks:", err)
 			c.String(500, "")
@@ -156,18 +156,18 @@ func addBookmark(c *gin.Context) {
 		}
 
 		doc := struct {
-			Bookmark string      `json:"bookmark"`
-			URL      string      `json:"url"`
-			User     string      `json:"user"`
-			Seq      int         `json:"seq"`
-			Created  interface{} `json:"created"`
-			Category string      `json:"category,omitempty"`
+			Bookmark string      `json:"bookmark" bson:"bookmark"`
+			URL      string      `json:"url" bson:"url"`
+			User     string      `json:"user" bson:"user"`
+			Seq      int         `json:"seq" bson:"seq"`
+			Created  interface{} `json:"created" bson:"created"`
+			Category string      `json:"category,omitempty" bson:"category,omitempty"`
 		}{
 			Bookmark: data.Bookmark,
 			URL:      data.URL,
 			User:     userID,
 			Seq:      seq,
-			Created:  api.Date(time.Now()),
+			Created:  bookmarkClient.Date(time.Now()).Interface(),
 		}
 		if data.Category != "" {
 			doc.Category = data.Category
@@ -180,7 +180,7 @@ func addBookmark(c *gin.Context) {
 			return
 		}
 
-		c.JSON(200, gin.H{"status": 1, "id": insertedID})
+		c.JSON(200, gin.H{"status": 1, "id": insertedID.(mongodb.ObjectID).Hex()})
 		return
 	}
 
@@ -188,7 +188,12 @@ func addBookmark(c *gin.Context) {
 }
 
 func editBookmark(c *gin.Context) {
-	id := c.Param("id")
+	id, err := bookmarkClient.ObjectID(c.Param("id"))
+	if err != nil {
+		log.Print(err)
+		c.String(400, "")
+		return
+	}
 
 	var new bookmark
 	if err := c.BindJSON(&new); err != nil {
@@ -219,15 +224,15 @@ func editBookmark(c *gin.Context) {
 	var old bookmark
 	var exist1, exist2 bool
 	go func() {
-		ec <- bookmarkClient.FindOne(api.M{"_id": api.ObjectID(id), "user": userID}, nil, &old)
+		ec <- bookmarkClient.FindOne(mongodb.M{"_id": id.Interface(), "user": userID}, nil, &old)
 	}()
 	go func() {
-		n, err := bookmarkClient.CountDocuments(api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "bookmark": new.Bookmark, "user": userID}, nil)
+		n, err := bookmarkClient.CountDocuments(mongodb.M{"_id": mongodb.M{"$ne": id.Interface()}, "bookmark": new.Bookmark, "user": userID}, nil)
 		exist1 = n > 0
 		ec <- err
 	}()
 	go func() {
-		n, err := bookmarkClient.CountDocuments(api.M{"_id": api.M{"$ne": api.ObjectID(id)}, "url": new.URL, "user": userID}, nil)
+		n, err := bookmarkClient.CountDocuments(mongodb.M{"_id": mongodb.M{"$ne": id.Interface()}, "url": new.URL, "user": userID}, nil)
 		exist2 = n > 0
 		ec <- err
 	}()
@@ -251,13 +256,13 @@ func editBookmark(c *gin.Context) {
 		message = fmt.Sprintf("Bookmark url %s is already existed.", new.URL)
 		errorCode = 2
 	default:
-		var update api.M
+		var update mongodb.M
 		if new.Category == "" {
-			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL}, "$unset": api.M{"category": ""}}
+			update = mongodb.M{"$set": mongodb.M{"bookmark": new.Bookmark, "url": new.URL}, "$unset": mongodb.M{"category": ""}}
 		} else {
-			update = api.M{"$set": api.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
+			update = mongodb.M{"$set": mongodb.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
 		}
-		if _, err := bookmarkClient.UpdateOne(api.M{"_id": api.ObjectID(id)}, update, nil); err != nil {
+		if _, err := bookmarkClient.UpdateOne(mongodb.M{"_id": id.Interface()}, update, nil); err != nil {
 			log.Println("Failed to edit bookmark:", err)
 			c.String(500, "")
 			return
@@ -271,7 +276,12 @@ func editBookmark(c *gin.Context) {
 }
 
 func deleteBookmark(c *gin.Context) {
-	id := c.Param("id")
+	id, err := bookmarkClient.ObjectID(c.Param("id"))
+	if err != nil {
+		log.Print(err)
+		c.String(400, "")
+		return
+	}
 	userID, _, err := getUser(c)
 	if err != nil {
 		log.Print(err)
@@ -279,15 +289,15 @@ func deleteBookmark(c *gin.Context) {
 		return
 	} else if checkBookmark(id, userID) {
 		var bookmark bookmark
-		if err := bookmarkClient.FindOneAndDelete(api.M{"_id": api.ObjectID(id)}, nil, &bookmark); err != nil {
+		if err := bookmarkClient.FindOneAndDelete(mongodb.M{"_id": id.Interface()}, nil, &bookmark); err != nil {
 			log.Println("Failed to delete bookmark:", err)
 			c.String(500, "")
 			return
 		}
 
 		if _, err := bookmarkClient.UpdateMany(
-			api.M{"user": userID, "seq": api.M{"$gt": bookmark.Seq}},
-			api.M{"$inc": api.M{"seq": -1}},
+			mongodb.M{"user": userID, "seq": mongodb.M{"$gt": bookmark.Seq}},
+			mongodb.M{"$inc": mongodb.M{"seq": -1}},
 			nil,
 		); err != nil {
 			log.Println("Failed to reorder after delete bookmark:", err)
@@ -310,17 +320,30 @@ func reorder(c *gin.Context) {
 		return
 	}
 
+	origID, err := bookmarkClient.ObjectID(data.Orig)
+	if err != nil {
+		log.Print(err)
+		c.String(400, "")
+		return
+	}
+	destID, err := bookmarkClient.ObjectID(data.Dest)
+	if err != nil {
+		log.Print(err)
+		c.String(400, "")
+		return
+	}
+
 	userID, _, err := getUser(c)
 	if err != nil {
 		log.Print(err)
 		c.String(500, "")
 		return
-	} else if !checkBookmark(data.Orig, userID) || !checkBookmark(data.Dest, userID) {
+	} else if !checkBookmark(origID, userID) || !checkBookmark(destID, userID) {
 		c.String(403, "")
 		return
 	}
 
-	if err := reorderBookmark(userID, data.Orig, data.Dest); err != nil {
+	if err := reorderBookmark(userID, origID, destID); err != nil {
 		log.Println("Failed to reorder bookmark:", err)
 		c.String(500, "")
 		return

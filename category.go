@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sunshineplan/database/mongodb/api"
+	"github.com/sunshineplan/database/mongodb"
 )
 
 type category struct {
@@ -22,10 +22,10 @@ func getCategory(userID interface{}) (categories []category, err error) {
 	}
 
 	if err = bookmarkClient.Aggregate(
-		[]api.M{
-			{"$match": api.M{"user": userID, "category": api.M{"$exists": true}}},
-			{"$group": api.M{"_id": "$category", "count": api.M{"$sum": 1}}},
-			{"$sort": api.M{"_id": 1}},
+		[]mongodb.M{
+			{"$match": mongodb.M{"user": userID, "category": mongodb.M{"$exists": true}}},
+			{"$group": mongodb.M{"_id": "$category", "count": mongodb.M{"$sum": 1}}},
+			{"$sort": mongodb.M{"_id": 1}},
 		},
 		&categories,
 	); err != nil {
@@ -74,8 +74,8 @@ func editCategory(c *gin.Context) {
 		errorCode = 1
 	default:
 		if _, err := bookmarkClient.UpdateMany(
-			api.M{"user": userID, "category": data.Old},
-			api.M{"$set": api.M{"category": data.New}},
+			mongodb.M{"user": userID, "category": data.Old},
+			mongodb.M{"$set": mongodb.M{"category": data.New}},
 			nil,
 		); err != nil {
 			log.Println("Failed to edit category:", err)
@@ -105,8 +105,8 @@ func deleteCategory(c *gin.Context) {
 	}
 
 	if _, err := bookmarkClient.UpdateMany(
-		api.M{"user": userID, "category": data.Category},
-		api.M{"$unset": api.M{"category": 1}},
+		mongodb.M{"user": userID, "category": data.Category},
+		mongodb.M{"$unset": mongodb.M{"category": 1}},
 		nil,
 	); err != nil {
 		log.Println("Failed to delete category:", err)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sunshineplan/database/mongodb/api"
+	"github.com/sunshineplan/database/mongodb"
 )
 
 func addUser(username string) {
@@ -18,9 +18,9 @@ func addUser(username string) {
 
 	insertedID, err := accountClient.InsertOne(
 		struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-			Uid      string `json:"uid"`
+			Username string `json:"username" bson:"username"`
+			Password string `json:"password" bson:"password"`
+			Uid      string `json:"uid" bson:"uid"`
 		}{username, "123456", username},
 	)
 	if err != nil {
@@ -29,12 +29,12 @@ func addUser(username string) {
 
 	if _, err := bookmarkClient.InsertOne(
 		struct {
-			Bookmark string      `json:"bookmark"`
-			URL      string      `json:"url"`
-			User     string      `json:"user"`
-			Seq      int         `json:"seq"`
-			Created  interface{} `json:"created"`
-		}{"Google", "https://www.google.com", insertedID, 1, api.Date(time.Now())},
+			Bookmark string      `json:"bookmark" bson:"bookmark"`
+			URL      string      `json:"url" bson:"url"`
+			User     string      `json:"user" bson:"user"`
+			Seq      int         `json:"seq" bson:"seq"`
+			Created  interface{} `json:"created" bson:"created"`
+		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now()).Interface()},
 	); err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func deleteUser(username string) {
 
 	username = strings.TrimSpace(strings.ToLower(username))
 
-	deletedCount, err := accountClient.DeleteOne(api.M{"username": username})
+	deletedCount, err := accountClient.DeleteOne(mongodb.M{"username": username})
 	if err != nil {
 		log.Fatalln("Failed to delete user:", err)
 	} else if deletedCount == 0 {
@@ -58,27 +58,27 @@ func deleteUser(username string) {
 	log.Print("Done!")
 }
 
-func reorderBookmark(userID interface{}, orig, dest string) error {
+func reorderBookmark(userID interface{}, orig, dest mongodb.ObjectID) error {
 	var origBookmark, destBookmark bookmark
 
 	c := make(chan error, 1)
 	go func() {
-		c <- bookmarkClient.FindOne(api.M{"_id": api.ObjectID(orig)}, nil, &origBookmark)
+		c <- bookmarkClient.FindOne(mongodb.M{"_id": orig.Interface()}, nil, &origBookmark)
 	}()
-	if err := bookmarkClient.FindOne(api.M{"_id": api.ObjectID(dest)}, nil, &destBookmark); err != nil {
+	if err := bookmarkClient.FindOne(mongodb.M{"_id": dest.Interface()}, nil, &destBookmark); err != nil {
 		return err
 	}
 	if err := <-c; err != nil {
 		return err
 	}
 
-	var filter, update api.M
+	var filter, update mongodb.M
 	if origBookmark.Seq > destBookmark.Seq {
-		filter = api.M{"user": userID, "seq": api.M{"$gte": destBookmark.Seq, "$lt": origBookmark.Seq}}
-		update = api.M{"$inc": api.M{"seq": 1}}
+		filter = mongodb.M{"user": userID, "seq": mongodb.M{"$gte": destBookmark.Seq, "$lt": origBookmark.Seq}}
+		update = mongodb.M{"$inc": mongodb.M{"seq": 1}}
 	} else {
-		filter = api.M{"user": userID, "seq": api.M{"$gt": origBookmark.Seq, "$lte": destBookmark.Seq}}
-		update = api.M{"$inc": api.M{"seq": -1}}
+		filter = mongodb.M{"user": userID, "seq": mongodb.M{"$gt": origBookmark.Seq, "$lte": destBookmark.Seq}}
+		update = mongodb.M{"$inc": mongodb.M{"seq": -1}}
 	}
 
 	if _, err := bookmarkClient.UpdateMany(filter, update, nil); err != nil {
@@ -86,8 +86,8 @@ func reorderBookmark(userID interface{}, orig, dest string) error {
 	}
 
 	if _, err := bookmarkClient.UpdateOne(
-		api.M{"_id": api.ObjectID(orig)},
-		api.M{"$set": api.M{"seq": destBookmark.Seq}},
+		mongodb.M{"_id": orig.Interface()},
+		mongodb.M{"$set": mongodb.M{"seq": destBookmark.Seq}},
 		nil,
 	); err != nil {
 		return err
