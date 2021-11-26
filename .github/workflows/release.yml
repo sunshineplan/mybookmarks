@@ -33,7 +33,7 @@ jobs:
         run: |
           npm install
           npm run build
-          go build -ldflags "-s -w"
+          go build -ldflags "-s -w" -tags="appengine"
           echo "::set-output name=date::$(TZ=PRC date +'%Y-%m-%d')"
 
       - name: Delete Old Release
