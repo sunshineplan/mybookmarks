@@ -31,6 +31,7 @@ func run() {
 	}
 
 	router := gin.Default()
+	router.TrustedPlatform = "X-Real-IP"
 	server.Handler = router
 
 	js, err := os.ReadFile(joinPath(dir(self), "public/build/bundle.js"))
