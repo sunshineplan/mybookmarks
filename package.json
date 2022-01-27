@@ -26,6 +26,6 @@
   "dependencies": {
     "jsencrypt": "^3.2.1",
     "sortablejs": "^1.14.0",
-    "sweetalert2": "^11.3.8"
+    "sweetalert2": "^11.3.10"
   }
 }
