@@ -18,7 +18,7 @@ type bookmark struct {
 	Seq      int    `json:"seq"`
 }
 
-func checkBookmark(id mongodb.ObjectID, userID interface{}) bool {
+func checkBookmark(id mongodb.ObjectID, userID any) bool {
 	n, err := bookmarkClient.CountDocuments(mongodb.M{"_id": id.Interface(), "user": userID}, nil)
 	if err != nil {
 		log.Print(err)
@@ -26,7 +26,7 @@ func checkBookmark(id mongodb.ObjectID, userID interface{}) bool {
 	return n > 0
 }
 
-func getBookmark(userID interface{}) (bookmarks []bookmark, total int64, err error) {
+func getBookmark(userID any) (bookmarks []bookmark, total int64, err error) {
 	bookmarks = []bookmark{}
 	if userID == nil {
 		return
@@ -156,12 +156,12 @@ func addBookmark(c *gin.Context) {
 		}
 
 		doc := struct {
-			Bookmark string      `json:"bookmark" bson:"bookmark"`
-			URL      string      `json:"url" bson:"url"`
-			User     string      `json:"user" bson:"user"`
-			Seq      int         `json:"seq" bson:"seq"`
-			Created  interface{} `json:"created" bson:"created"`
-			Category string      `json:"category,omitempty" bson:"category,omitempty"`
+			Bookmark string `json:"bookmark" bson:"bookmark"`
+			URL      string `json:"url" bson:"url"`
+			User     string `json:"user" bson:"user"`
+			Seq      int    `json:"seq" bson:"seq"`
+			Created  any    `json:"created" bson:"created"`
+			Category string `json:"category,omitempty" bson:"category,omitempty"`
 		}{
 			Bookmark: data.Bookmark,
 			URL:      data.URL,

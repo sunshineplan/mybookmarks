@@ -29,11 +29,11 @@ func addUser(username string) {
 
 	if _, err := bookmarkClient.InsertOne(
 		struct {
-			Bookmark string      `json:"bookmark" bson:"bookmark"`
-			URL      string      `json:"url" bson:"url"`
-			User     string      `json:"user" bson:"user"`
-			Seq      int         `json:"seq" bson:"seq"`
-			Created  interface{} `json:"created" bson:"created"`
+			Bookmark string `json:"bookmark" bson:"bookmark"`
+			URL      string `json:"url" bson:"url"`
+			User     string `json:"user" bson:"user"`
+			Seq      int    `json:"seq" bson:"seq"`
+			Created  any    `json:"created" bson:"created"`
 		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now()).Interface()},
 	); err != nil {
 		log.Fatal(err)
@@ -58,7 +58,7 @@ func deleteUser(username string) {
 	log.Print("Done!")
 }
 
-func reorderBookmark(userID interface{}, orig, dest mongodb.ObjectID) error {
+func reorderBookmark(userID any, orig, dest mongodb.ObjectID) error {
 	var origBookmark, destBookmark bookmark
 
 	c := make(chan error, 1)

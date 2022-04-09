@@ -15,7 +15,7 @@ type category struct {
 	Count    int    `json:"count"`
 }
 
-func getCategory(userID interface{}) (categories []category, err error) {
+func getCategory(userID any) (categories []category, err error) {
 	categories = []category{}
 	if userID == nil {
 		return
