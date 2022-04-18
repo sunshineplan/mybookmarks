@@ -3,7 +3,7 @@ module mybookmarks
 go 1.18
 
 require (
-	github.com/gin-contrib/sessions v0.0.4
+	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.7.7
 	github.com/sunshineplan/database/mongodb v1.0.4
 	github.com/sunshineplan/password v1.0.4
