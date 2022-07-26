@@ -213,6 +213,8 @@
   }
 
   #categories {
+    --bs-navbar-brand-font-size: 1.25rem;
+    --bs-navbar-brand-padding-y: 0.3125rem;
     height: calc(100% - 36px);
     overflow-y: auto;
   }
