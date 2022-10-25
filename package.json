@@ -24,7 +24,7 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "jsencrypt": "^3.2.1",
+    "jsencrypt": "^3.3.0",
     "sortablejs": "^1.15.0",
     "sweetalert2": "^11.6.1"
   }
