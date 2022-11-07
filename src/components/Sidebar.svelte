@@ -1,14 +1,8 @@
 <script lang="ts">
   import { pasteText } from "../misc";
-  import {
-    total,
-    category,
-    component,
-    showSidebar,
-    categories,
-    bookmarks,
-  } from "../stores";
-  import type { Category } from "../stores";
+  import { total, component, showSidebar } from "../stores";
+  import { category, categories, bookmarks } from "../bookmark";
+  import type { Category } from "../bookmark";
 
   let hover = false;
 
@@ -111,6 +105,7 @@
 
 <svelte:window on:keydown={handleKeydown} on:click={handleClick} />
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <span
   class="toggle"
   on:click={showSidebar.toggle}
@@ -129,6 +124,7 @@
       Add Category
     </button>
     <ul class="navbar-nav" id="categories">
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
       <li
         class="navbar-brand category"
         class:active={$category.category === "All Bookmarks" &&
@@ -139,6 +135,7 @@
         All Bookmarks ({$total})
       </li>
       {#each $categories as c (c.category)}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <li
           class="nav-link category"
           class:active={$category.category === c.category &&
@@ -149,6 +146,7 @@
         </li>
       {/each}
       {#if $bookmarks.filter((b) => b.category == "").length}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <li
           class="nav-link category"
           id="uncategorized"

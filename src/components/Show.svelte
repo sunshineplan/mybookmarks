@@ -2,14 +2,9 @@
   import Sortable from "sortablejs";
   import { onMount, createEventDispatcher } from "svelte";
   import { fire, post, confirm, pasteText } from "../misc";
-  import {
-    component,
-    bookmark,
-    bookmarks,
-    category,
-    categories,
-  } from "../stores";
-  import type { Bookmark } from "../stores";
+  import { component } from "../stores";
+  import { bookmark, bookmarks, category, categories } from "../bookmark";
+  import type { Bookmark } from "../bookmark";
 
   const dispatch = createEventDispatcher();
   const isSmall = 700;
@@ -59,7 +54,7 @@
         $bookmarks.forEach((b) => {
           if (b.id === current) b.seq = newSeq;
         });
-        $bookmarks.sort((a, b) => a.seq - b.seq)
+        $bookmarks.sort((a, b) => a.seq - b.seq);
       } else await fire("Error", "Failed to reorder.", "error");
     } else await fire("Error", await resp.text(), "error");
   };
@@ -228,6 +223,7 @@
         {$category.category ? $category.category : "Uncategorized"}
       </h3>
       {#if $category.category && $category.category != "All Bookmarks"}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <span class="icon" on:click={categoryClick}>
           {#if !editable}
             <i class="material-icons edit">edit</i>
@@ -257,6 +253,7 @@
               <a
                 href={bookmark.url}
                 target="_blank"
+                rel="noreferrer"
                 class="url"
                 data-url={bookmark.url}
               >
@@ -265,6 +262,7 @@
             </td>
             <td>{bookmark.category}</td>
             <td>
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
               <span class="icon" on:click={() => edit(bookmark)}>
                 <i class="material-icons edit">edit</i>
               </span>

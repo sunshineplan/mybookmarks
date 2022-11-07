@@ -25,6 +25,7 @@
 
 <nav class="navbar navbar-light topbar">
   <div class="d-flex" style="height:100%">
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <span
       class="brand"
       class:user={username}
@@ -39,7 +40,9 @@
   <div class="navbar-nav flex-row">
     {#if username}
       <span class="nav-link">{username}</span>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
       <span class="nav-link link" on:click={setting}>Setting</span>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
       <span class="nav-link link" on:click={logout}>Logout</span>
     {:else}
       <span class="nav-link">Log in</span>

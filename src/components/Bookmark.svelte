@@ -1,14 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { fire, post, valid, confirm } from "../misc";
+  import { component, total } from "../stores";
   import {
-    component,
     category as current,
     bookmark,
     categories,
     bookmarks,
-    total,
-  } from "../stores";
+  } from "../bookmark";
 
   const dispatch = createEventDispatcher();
 

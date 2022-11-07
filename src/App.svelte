@@ -5,16 +5,8 @@
   import Sidebar from "./components/Sidebar.svelte";
   import Show from "./components/Show.svelte";
   import Bookmark from "./components/Bookmark.svelte";
-  import {
-    username,
-    total,
-    showSidebar,
-    component,
-    loading,
-    categories,
-    bookmarks,
-    reset,
-  } from "./stores";
+  import { username, total, showSidebar, component, loading } from "./stores";
+  import { categories, bookmarks, reset } from "./bookmark";
 
   const getInfo = async (event?: CustomEvent) => {
     loading.start();
