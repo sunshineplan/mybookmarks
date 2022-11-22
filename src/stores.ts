@@ -23,5 +23,3 @@ const createLoading = () => {
   }
 }
 export const loading = createLoading()
-
-export const pubkey = "@pubkey@"

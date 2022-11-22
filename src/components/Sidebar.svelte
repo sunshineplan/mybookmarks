@@ -2,7 +2,6 @@
   import { pasteText } from "../misc";
   import { total, component, showSidebar } from "../stores";
   import { category, categories, bookmarks } from "../bookmark";
-  import type { Category } from "../bookmark";
 
   let hover = false;
 

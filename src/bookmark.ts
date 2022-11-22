@@ -1,20 +1,6 @@
-import { writable, get } from 'svelte/store'
-import type { Writable } from 'svelte/store'
-import { total, username } from "./stores";
+import { writable, get, type Writable } from 'svelte/store'
+import { total, username } from './stores'
 import { fire, post } from './misc'
-
-export interface Category {
-  category: string
-  count: number
-}
-
-export interface Bookmark {
-  id: string
-  category: string
-  bookmark: string
-  url: string
-  seq: number
-}
 
 export const bookmark: Writable<Bookmark> = writable({} as Bookmark)
 export const categories: Writable<Category[]> = writable([])

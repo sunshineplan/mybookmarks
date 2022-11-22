@@ -14,7 +14,7 @@
   };
 
   const logout = async () => {
-    const resp = await post("@universal@/logout", undefined, true);
+    const resp = await post(window.universal + "/logout", undefined, true);
     if (resp.ok) {
       dispatch("reload");
       window.history.pushState({}, "", "/");

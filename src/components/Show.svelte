@@ -4,7 +4,6 @@
   import { fire, post, confirm, pasteText } from "../misc";
   import { component } from "../stores";
   import { bookmark, bookmarks, category, categories } from "../bookmark";
-  import type { Bookmark } from "../bookmark";
 
   const dispatch = createEventDispatcher();
   const isSmall = 700;
