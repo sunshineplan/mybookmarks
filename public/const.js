@@ -1,2 +1,2 @@
-const universal = '@universal@'
-const pubkey = '@pubkey@'
+var universal = '@universal@'
+var pubkey = '@pubkey@'
