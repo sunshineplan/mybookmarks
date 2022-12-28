@@ -7,4 +7,3 @@ host      = $host
 port      = $port
 log       = $log
 update    = $update
-exclude   = $exclude

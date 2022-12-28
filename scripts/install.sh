@@ -31,7 +31,6 @@ configMyBookmarks() {
     read -p 'Please enter log path(default: /var/log/app/mybookmarks.log): ' log
     [ -z $log ] && log=/var/log/app/mybookmarks.log
     read -p 'Please enter update URL: ' update
-    read -p 'Please enter exclude files: ' exclude
     mkdir -p $(dirname $log)
     sed "s,\$server,$server," /var/www/mybookmarks/config.ini.default > /var/www/mybookmarks/config.ini
     sed -i "s/\$header/$header/" /var/www/mybookmarks/config.ini
@@ -42,7 +41,6 @@ configMyBookmarks() {
     sed -i "s/\$host/$host/" /var/www/mybookmarks/config.ini
     sed -i "s/\$port/$port/" /var/www/mybookmarks/config.ini
     sed -i "s,\$update,$update," /var/www/mybookmarks/config.ini
-    sed -i "s|\$exclude|$exclude|" /var/www/mybookmarks/config.ini
     ./mybookmarks install || exit 1
     service mybookmarks start
 }
