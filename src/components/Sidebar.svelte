@@ -12,6 +12,8 @@
     $category = c;
     window.history.pushState({}, "", "/");
     $component = "show";
+    const div = document.querySelector(".table-responsive");
+    if (div) div.scrollTop = 0;
     await bookmarks.more(true);
   };
 
