@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.2
 	github.com/sunshineplan/database/mongodb v1.0.5
-	github.com/sunshineplan/metadata v1.1.0
+	github.com/sunshineplan/metadata v1.1.1
 	github.com/sunshineplan/password v1.0.4
 	github.com/sunshineplan/service v1.0.6
 	github.com/sunshineplan/utils v0.1.16
@@ -32,10 +32,10 @@ require (
 	github.com/pschlump/AesCCM v0.0.0-20160925022350-c5df73b5834e // indirect
 	github.com/sunshineplan/cipher v1.0.4 // indirect
 	github.com/ugorji/go/codec v1.2.8 // indirect
-	golang.org/x/crypto v0.4.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
