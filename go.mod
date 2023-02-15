@@ -9,7 +9,7 @@ require (
 	github.com/sunshineplan/metadata v1.1.1
 	github.com/sunshineplan/password v1.0.4
 	github.com/sunshineplan/service v1.0.6
-	github.com/sunshineplan/utils v0.1.21
+	github.com/sunshineplan/utils v0.1.22
 )
 
 require (
