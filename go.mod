@@ -8,7 +8,7 @@ require (
 	github.com/sunshineplan/database/mongodb v1.0.5
 	github.com/sunshineplan/metadata v1.1.1
 	github.com/sunshineplan/password v1.0.4
-	github.com/sunshineplan/service v1.0.6
+	github.com/sunshineplan/service v1.0.8
 	github.com/sunshineplan/utils v0.1.29
 )
 
@@ -39,7 +39,7 @@ require (
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
