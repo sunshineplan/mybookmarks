@@ -9,7 +9,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^1.4.0",
     "@tsconfig/svelte": "^3.0.0",
-    "@types/sortablejs": "^1.15.0",
+    "@types/sortablejs": "^1.15.1",
     "jsencrypt": "^3.3.2",
     "sortablejs": "^1.15.0",
     "svelte": "^3.56.0",
