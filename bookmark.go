@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +20,7 @@ type bookmark struct {
 func checkBookmark(id mongodb.ObjectID, userID any) bool {
 	n, err := bookmarkClient.CountDocuments(mongodb.M{"_id": id.Interface(), "user": userID}, nil)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 	}
 	return n > 0
 }
@@ -55,14 +54,14 @@ func getBookmark(userID any) (bookmarks []bookmark, total int64, err error) {
 func moreBookmark(c *gin.Context) {
 	var r struct{ Start int64 }
 	if err := c.BindJSON(&r); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -71,7 +70,7 @@ func moreBookmark(c *gin.Context) {
 	if err := bookmarkClient.Find(
 		mongodb.M{"user": userID}, &mongodb.FindOpt{Sort: mongodb.M{"seq": 1}, Skip: r.Start, Limit: 50}, &bookmarks,
 	); err != nil {
-		log.Println("Failed to query bookmarks:", err)
+		svc.Println("Failed to query bookmarks:", err)
 		c.String(500, "")
 		return
 	}
@@ -86,14 +85,14 @@ func moreBookmark(c *gin.Context) {
 func addBookmark(c *gin.Context) {
 	var data bookmark
 	if err := c.BindJSON(&data); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -123,7 +122,7 @@ func addBookmark(c *gin.Context) {
 	}()
 	for i := 0; i < 2; i++ {
 		if err := <-ec; err != nil {
-			log.Println("Failed to get bookmark:", err)
+			svc.Println("Failed to get bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -143,7 +142,7 @@ func addBookmark(c *gin.Context) {
 		if err := bookmarkClient.Find(
 			mongodb.M{"user": userID}, &mongodb.FindOpt{Sort: mongodb.M{"seq": -1}, Limit: 1}, &bookmarks,
 		); err != nil {
-			log.Println("Failed to get bookmarks:", err)
+			svc.Println("Failed to get bookmarks:", err)
 			c.String(500, "")
 			return
 		}
@@ -175,7 +174,7 @@ func addBookmark(c *gin.Context) {
 
 		insertedID, err := bookmarkClient.InsertOne(doc)
 		if err != nil {
-			log.Println("Failed to add bookmark:", err)
+			svc.Println("Failed to add bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -190,21 +189,21 @@ func addBookmark(c *gin.Context) {
 func editBookmark(c *gin.Context) {
 	id, err := bookmarkClient.ObjectID(c.Param("id"))
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	var new bookmark
 	if err := c.BindJSON(&new); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -238,7 +237,7 @@ func editBookmark(c *gin.Context) {
 	}()
 	for i := 0; i < 3; i++ {
 		if err := <-ec; err != nil {
-			log.Println("Failed to get bookmark:", err)
+			svc.Println("Failed to get bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -263,7 +262,7 @@ func editBookmark(c *gin.Context) {
 			update = mongodb.M{"$set": mongodb.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
 		}
 		if _, err := bookmarkClient.UpdateOne(mongodb.M{"_id": id.Interface()}, update, nil); err != nil {
-			log.Println("Failed to edit bookmark:", err)
+			svc.Println("Failed to edit bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -278,19 +277,19 @@ func editBookmark(c *gin.Context) {
 func deleteBookmark(c *gin.Context) {
 	id, err := bookmarkClient.ObjectID(c.Param("id"))
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	} else if checkBookmark(id, userID) {
 		var bookmark bookmark
 		if err := bookmarkClient.FindOneAndDelete(mongodb.M{"_id": id.Interface()}, nil, &bookmark); err != nil {
-			log.Println("Failed to delete bookmark:", err)
+			svc.Println("Failed to delete bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -300,7 +299,7 @@ func deleteBookmark(c *gin.Context) {
 			mongodb.M{"$inc": mongodb.M{"seq": -1}},
 			nil,
 		); err != nil {
-			log.Println("Failed to reorder after delete bookmark:", err)
+			svc.Println("Failed to reorder after delete bookmark:", err)
 			c.String(500, "")
 			return
 		}
@@ -315,27 +314,27 @@ func deleteBookmark(c *gin.Context) {
 func reorder(c *gin.Context) {
 	var data struct{ Orig, Dest string }
 	if err := c.BindJSON(&data); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	origID, err := bookmarkClient.ObjectID(data.Orig)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 	destID, err := bookmarkClient.ObjectID(data.Dest)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	} else if !checkBookmark(origID, userID) || !checkBookmark(destID, userID) {
@@ -344,7 +343,7 @@ func reorder(c *gin.Context) {
 	}
 
 	if err := reorderBookmark(userID, origID, destID); err != nil {
-		log.Println("Failed to reorder bookmark:", err)
+		svc.Println("Failed to reorder bookmark:", err)
 		c.String(500, "")
 		return
 	}

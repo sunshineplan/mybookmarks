@@ -5,10 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sunshineplan/metadata"
 	"github.com/sunshineplan/password"
@@ -18,25 +16,14 @@ import (
 	"github.com/sunshineplan/utils/httpsvr"
 )
 
-var self string
-var meta metadata.Server
-var priv *rsa.PrivateKey
-
-var server = httpsvr.New()
-var svc = service.Service{
-	Name:     "MyBookmarks",
-	Desc:     "Instance to serve My Bookmarks",
-	Exec:     run,
-	TestExec: test,
-	Options: service.Options{
-		Dependencies:       []string{"Wants=network-online.target", "After=network.target"},
-		Environment:        map[string]string{"GIN_MODE": "release"},
-		RemoveBeforeUpdate: []string{"dist/assets"},
-		ExcludeFiles:       []string{"scripts/mybookmarks.conf"},
-	},
-}
-
 var (
+	self string
+	priv *rsa.PrivateKey
+
+	server = httpsvr.New()
+	svc    = service.New()
+	meta   metadata.Server
+
 	joinPath = filepath.Join
 	dir      = filepath.Dir
 )
@@ -45,8 +32,27 @@ func init() {
 	var err error
 	self, err = os.Executable()
 	if err != nil {
-		log.Fatalln("Failed to get self path:", err)
+		svc.Fatalln("Failed to get self path:", err)
 	}
+	svc.Name = "MyBookmarks"
+	svc.Desc = "Instance to serve My Bookmarks"
+	svc.Exec = run
+	svc.TestExec = test
+	svc.Options = service.Options{
+		Dependencies:       []string{"Wants=network-online.target", "After=network.target"},
+		Environment:        map[string]string{"GIN_MODE": "release"},
+		RemoveBeforeUpdate: []string{"dist/assets"},
+		ExcludeFiles:       []string{"scripts/mybookmarks.conf"},
+	}
+	svc.RegisterCommand("add", "add user", func(arg ...string) error {
+		return addUser(arg[0])
+	}, 1)
+	svc.RegisterCommand("delete", "delete user", func(arg ...string) error {
+		if utils.Confirm("Do you want to delete this user?", 3) {
+			return deleteUser(arg[0])
+		}
+		return nil
+	}, 1)
 }
 
 var (
@@ -65,6 +71,7 @@ func main() {
 	flag.StringVar(&server.Host, "host", "0.0.0.0", "Server Host")
 	flag.StringVar(&server.Port, "port", "12345", "Server Port")
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
+	flag.StringVar(&svc.Options.PIDFile, "pid", "/var/run/mybookmarks.pid", "PID file path")
 	flags.SetConfigFile(joinPath(dir(self), "config.ini"))
 	flags.Parse()
 
@@ -72,52 +79,19 @@ func main() {
 	if *pemPath != "" {
 		b, err := os.ReadFile(*pemPath)
 		if err != nil {
-			log.Fatal(err)
+			svc.Fatal(err)
 		}
 		block, _ := pem.Decode(b)
 		if block == nil {
-			log.Fatal("no PEM data is found")
+			svc.Fatal("no PEM data is found")
 		}
 		priv, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
-			log.Fatal(err)
+			svc.Fatal(err)
 		}
 	}
 
-	if service.IsWindowsService() {
-		svc.Run(false)
-		return
-	}
-
-	var err error
-	switch flag.NArg() {
-	case 0:
-		run()
-	case 1:
-		cmd := flag.Arg(0)
-		var ok bool
-		if ok, err = svc.Command(cmd); !ok {
-			if cmd == "add" || cmd == "delete" {
-				log.Fatalf("%s need two arguments", cmd)
-			} else {
-				log.Fatalln("Unknown argument:", cmd)
-			}
-		}
-	case 2:
-		switch flag.Arg(0) {
-		case "add":
-			addUser(flag.Arg(1))
-		case "delete":
-			if utils.Confirm("Do you want to delete this user?", 3) {
-				deleteUser(flag.Arg(1))
-			}
-		default:
-			log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
-		}
-	default:
-		log.Fatalln("Unknown arguments:", strings.Join(flag.Args(), " "))
-	}
-	if err != nil {
-		log.Fatalf("Failed to %s: %v", flag.Arg(0), err)
+	if err := svc.ParseAndRun(flag.Args()); err != nil {
+		svc.Fatal(err)
 	}
 }

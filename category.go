@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +41,7 @@ func getCategory(userID any) (categories []category, err error) {
 func editCategory(c *gin.Context) {
 	var data struct{ Old, New string }
 	if err := c.BindJSON(&data); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
@@ -50,7 +49,7 @@ func editCategory(c *gin.Context) {
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -78,7 +77,7 @@ func editCategory(c *gin.Context) {
 			mongodb.M{"$set": mongodb.M{"category": data.New}},
 			nil,
 		); err != nil {
-			log.Println("Failed to edit category:", err)
+			svc.Println("Failed to edit category:", err)
 			c.String(500, "")
 			return
 		}
@@ -92,14 +91,14 @@ func editCategory(c *gin.Context) {
 func deleteCategory(c *gin.Context) {
 	var data struct{ Category string }
 	if err := c.BindJSON(&data); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(400, "")
 		return
 	}
 
 	userID, _, err := getUser(c)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		c.String(500, "")
 		return
 	}
@@ -109,7 +108,7 @@ func deleteCategory(c *gin.Context) {
 		mongodb.M{"$unset": mongodb.M{"category": 1}},
 		nil,
 	); err != nil {
-		log.Println("Failed to delete category:", err)
+		svc.Println("Failed to delete category:", err)
 		c.String(500, "")
 		return
 	}

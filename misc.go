@@ -1,17 +1,17 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/sunshineplan/database/mongodb"
 )
 
-func addUser(username string) {
-	log.Print("Start!")
+func addUser(username string) error {
+	svc.Print("Start!")
 	if err := initDB(); err != nil {
-		log.Fatalln("Failed to initialize database:", err)
+		return err
 	}
 
 	username = strings.TrimSpace(strings.ToLower(username))
@@ -24,7 +24,7 @@ func addUser(username string) {
 		}{username, "123456", username},
 	)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if _, err := bookmarkClient.InsertOne(
@@ -36,26 +36,28 @@ func addUser(username string) {
 			Created  any    `json:"created" bson:"created"`
 		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now()).Interface()},
 	); err != nil {
-		log.Fatal(err)
+		return err
 	}
-	log.Print("Done!")
+	svc.Print("Done!")
+	return nil
 }
 
-func deleteUser(username string) {
-	log.Print("Start!")
+func deleteUser(username string) error {
+	svc.Print("Start!")
 	if err := initDB(); err != nil {
-		log.Fatalln("Failed to initialize database:", err)
+		return err
 	}
 
 	username = strings.TrimSpace(strings.ToLower(username))
 
 	deletedCount, err := accountClient.DeleteOne(mongodb.M{"username": username})
 	if err != nil {
-		log.Fatalln("Failed to delete user:", err)
+		return err
 	} else if deletedCount == 0 {
-		log.Fatalf("User %s does not exist.", username)
+		return fmt.Errorf("user %s does not exist", username)
 	}
-	log.Print("Done!")
+	svc.Print("Done!")
+	return nil
 }
 
 func reorderBookmark(userID any, orig, dest mongodb.ObjectID) error {
