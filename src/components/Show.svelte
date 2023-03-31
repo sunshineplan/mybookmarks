@@ -19,29 +19,26 @@
         );
 
   onMount(() => {
-    const sortable = new Sortable(
-      document.querySelector("#mybookmarks") as HTMLElement,
-      {
-        animation: 150,
-        delay: 500,
-        swapThreshold: 0.5,
-        onUpdate,
-      }
-    );
+    const sortable = new Sortable(document.querySelector("#mybookmarks"), {
+      animation: 150,
+      delay: 500,
+      swapThreshold: 0.5,
+      onUpdate,
+    });
     if (smallSize) formatURL(true);
     return () => sortable.destroy();
   });
 
   const onUpdate = async (evt: Sortable.SortableEvent) => {
     const resp = await post("/reorder", {
-      orig: currentBookmarks[evt.oldIndex as number].id,
-      dest: currentBookmarks[evt.newIndex as number].id,
+      orig: currentBookmarks[evt.oldIndex].id,
+      dest: currentBookmarks[evt.newIndex].id,
     });
     if (resp.ok) {
       if ((await resp.text()) == "1") {
-        const current = currentBookmarks[evt.oldIndex as number].id;
-        const oldSeq = currentBookmarks[evt.oldIndex as number].seq;
-        const newSeq = currentBookmarks[evt.newIndex as number].seq;
+        const current = currentBookmarks[evt.oldIndex].id;
+        const oldSeq = currentBookmarks[evt.oldIndex].seq;
+        const newSeq = currentBookmarks[evt.newIndex].seq;
         if (oldSeq > newSeq) {
           $bookmarks.forEach((b) => {
             if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
@@ -66,7 +63,7 @@
       urls.forEach(
         (url) => (url.text = url.text.replace(/https?:\/\/(www\.)?/i, ""))
       );
-    else urls.forEach((url) => (url.text = url.dataset.url as string));
+    else urls.forEach((url) => (url.text = url.dataset.url));
   };
 
   const editCategory = async (c: string) => {
@@ -111,7 +108,7 @@
 
   const categoryKeydown = async (event: KeyboardEvent) => {
     const target = event.target as Element;
-    target.textContent = (target.textContent as string).trim();
+    target.textContent = target.textContent.trim();
     if (event.key == "Enter") {
       event.preventDefault();
       if (target.textContent)
@@ -160,7 +157,7 @@
       const range = document.createRange();
       range.selectNodeContents(target);
       range.collapse(false);
-      const sel = window.getSelection() as Selection;
+      const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
     }
@@ -173,7 +170,7 @@
     }
   };
   const handleScroll = async () => {
-    const table = document.querySelector(".table-responsive") as Element;
+    const table = document.querySelector(".table-responsive");
     if (table.scrollTop + table.clientHeight >= table.scrollHeight)
       await bookmarks.more();
   };
@@ -185,8 +182,8 @@
       !target.classList.contains("swal2-confirm") &&
       editable
     ) {
-      const element = document.querySelector("#category") as Element;
-      element.textContent = (element.textContent as string).trim();
+      const element = document.querySelector("#category");
+      element.textContent = element.textContent.trim();
       if (element.textContent)
         editable = !(await editCategory(element.textContent));
       else {

@@ -19,7 +19,7 @@
 
   const add = async (category: string) => {
     category = category.trim();
-    (document.querySelector(".new") as Element).remove();
+    document.querySelector(".new").remove();
     const newCategory: Category = {
       category,
       count: 0,
@@ -32,7 +32,7 @@
     showSidebar.close();
     const newCategory = document.querySelector(".new");
     if (newCategory) await add((newCategory as HTMLElement).innerText);
-    const ul = document.querySelector("ul.navbar-nav") as Element;
+    const ul = document.querySelector("ul.navbar-nav");
     const li = document.createElement("li");
     li.classList.add("nav-link", "new");
     const uncategorized = ul.querySelector("#uncategorized");
@@ -41,7 +41,7 @@
     li.addEventListener("paste", pasteText);
     li.addEventListener("keydown", async (event) => {
       const target = event.target as Element;
-      const category = (target.textContent as string).trim();
+      const category = target.textContent.trim();
       if (event.key == "Enter") {
         event.preventDefault();
         if (category) await add(category);
@@ -56,7 +56,7 @@
     const range = document.createRange();
     range.selectNodeContents(li);
     range.collapse(false);
-    const sel = window.getSelection() as Selection;
+    const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
   };
@@ -96,7 +96,7 @@
     ) {
       const newCategory = document.querySelector(".new");
       if (newCategory) {
-        const category = (newCategory.textContent as string).trim();
+        const category = newCategory.textContent.trim();
         if (category) await add(category);
         else newCategory.remove();
       }
