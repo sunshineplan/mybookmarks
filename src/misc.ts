@@ -1,5 +1,5 @@
 import JSEncrypt from 'jsencrypt'
-import Swal from 'sweetalert2'
+import Swal, { type SweetAlertIcon } from 'sweetalert2'
 import { loading } from './stores'
 
 export const encrypt = (pubkey: string, password: string) => {
@@ -8,16 +8,13 @@ export const encrypt = (pubkey: string, password: string) => {
   return encrypt.encrypt(password)
 }
 
-export const fire = (
-  title?: string | undefined,
-  html?: string | undefined,
-  icon?: 'success' | 'error' | 'warning' | 'info' | 'question' | undefined
-) => {
+export const fire = async (title?: string, html?: string, icon?: SweetAlertIcon) => {
   const swal = Swal.mixin({
     customClass: { confirmButton: 'swal btn btn-primary' },
     buttonsStyling: false
   })
-  return swal.fire(title, html, icon)
+  await swal.fire(title, html, icon)
+  if (title == 'Fatal') throw html
 }
 
 export const valid = () => {
@@ -50,6 +47,9 @@ export const post = async (url: string, data?: any, universal?: boolean) => {
   loading.end()
   if (resp.status == 401) {
     await fire('Error', 'Login status has changed. Please Re-login!', 'error')
+    window.location.href = '/'
+  } else if (resp.status == 409) {
+    await fire('Error', 'Data has changed.', 'error')
     window.location.href = '/'
   }
   return resp

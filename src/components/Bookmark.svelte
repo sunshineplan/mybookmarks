@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { fire, post, valid, confirm } from "../misc";
-  import { component, total } from "../stores";
+  import { valid, confirm } from "../misc";
+  import { component } from "../stores";
   import {
     category as current,
     bookmark,
@@ -25,51 +25,16 @@
   const save = async () => {
     if (valid()) {
       validated = false;
-      if (!category) category = "";
-      let resp: Response;
-      if (mode == "Add")
-        resp = await post("/bookmark/add", { bookmark: name, url, category });
-      else
-        resp = await post("/bookmark/edit/" + $bookmark.id, {
-          bookmark: name,
-          url,
-          category,
-        });
-      if (resp.ok) {
-        const json = await resp.json();
-        if (json.status == 1) {
-          if (mode == "Add") {
-            $current.count++;
-            dispatch("reload", { init: true });
-          } else {
-            if (category) {
-              const index = $categories.findIndex(
-                (c) => c.category === category
-              );
-              if (index !== -1) {
-                $categories[index].count++;
-              } else $categories = [...$categories, { category, count: 1 }];
-            }
-            if ($bookmark.category) {
-              $categories[
-                $categories.findIndex((c) => c.category === $bookmark.category)
-              ].count--;
-            }
-            const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
-            $bookmarks[index].bookmark = name;
-            $bookmarks[index].url = url;
-            $bookmarks[index].category = category;
-          }
-          goback();
-        } else {
-          await fire("Error", json.message, "error");
-          if (json.error == 1) name = "";
-          else if (json.error == 2) url = "";
-        }
-      } else {
-        await fire("Error", await resp.text(), "error");
+      const b = <Bookmark>{ bookmark: name, url, category };
+      if (mode == "Edit") b.id = $bookmark.id;
+      try {
+        const res = await bookmarks.save(b);
+        if (res === 0) goback();
+        else if (res == 1) name = "";
+        else if (res == 2) url = "";
+      } catch {
         dispatch("reload");
-        current.reset();
+        $current = {};
         goback();
       }
     } else validated = true;
@@ -77,23 +42,11 @@
 
   const del = async () => {
     if (await confirm("bookmark")) {
-      const resp = await post("/bookmark/delete/" + $bookmark.id);
-      if (resp.ok) {
-        const index = $bookmarks.findIndex((b) => b.id === $bookmark.id);
-        $bookmarks.splice(index, 1);
-        $bookmarks.forEach((b) => {
-          if (b.seq > $bookmark.seq) b.seq++;
-        });
-        if ($bookmark.category) {
-          $categories[
-            $categories.findIndex((c) => c.category === $bookmark.category)
-          ].count--;
-        }
-        $total--;
-      } else {
-        await fire("Error", await resp.text(), "error");
+      try {
+        await bookmarks.delete($bookmark);
+      } catch {
         dispatch("reload");
-        current.reset();
+        $current = {};
       }
       goback();
     }

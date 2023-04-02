@@ -14,28 +14,34 @@ type category struct {
 	Count    int    `json:"count"`
 }
 
-func getCategory(userID any) (categories []category, err error) {
-	categories = []category{}
-	if userID == nil {
-		return
-	}
-
-	if err = bookmarkClient.Aggregate(
+func getCategory(c *gin.Context) {
+	userID, _ := c.Get("id")
+	var categories []category
+	if err := bookmarkClient.Aggregate(
 		[]mongodb.M{
-			{"$match": mongodb.M{"user": userID, "category": mongodb.M{"$exists": true}}},
+			{"$match": mongodb.M{"user": userID}},
 			{"$group": mongodb.M{"_id": "$category", "count": mongodb.M{"$sum": 1}}},
 			{"$sort": mongodb.M{"_id": 1}},
 		},
 		&categories,
 	); err != nil {
+		svc.Println("Failed to query categories:", err)
+		c.String(500, "")
 		return
 	}
-	for i := range categories {
-		categories[i].Category = categories[i].ID
-		categories[i].ID = ""
+	res := []category{}
+	var uncategorized category
+	for _, i := range categories {
+		i.Category = i.ID
+		i.ID = ""
+		if i.Category != "" {
+			res = append(res, i)
+		} else {
+			uncategorized = i
+		}
 	}
 
-	return
+	c.JSON(200, append(res, uncategorized))
 }
 
 func editCategory(c *gin.Context) {
@@ -47,15 +53,12 @@ func editCategory(c *gin.Context) {
 	}
 	data.New = strings.TrimSpace(data.New)
 
-	userID, _, err := getUser(c)
-	if err != nil {
-		svc.Print(err)
-		c.String(500, "")
-		return
-	}
+	userID, _ := c.Get("id")
 
+	var exist any
 	var message string
 	var errorCode int
+	err := bookmarkClient.FindOne(mongodb.M{"user": userID, "category": data.New}, nil, &exist)
 	switch {
 	case data.New == "":
 		message = "New category name is empty."
@@ -82,6 +85,7 @@ func editCategory(c *gin.Context) {
 			return
 		}
 
+		newLastModified(userID, c)
 		c.JSON(200, gin.H{"status": 1})
 		return
 	}
@@ -96,13 +100,7 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	userID, _, err := getUser(c)
-	if err != nil {
-		svc.Print(err)
-		c.String(500, "")
-		return
-	}
-
+	userID, _ := c.Get("id")
 	if _, err := bookmarkClient.UpdateMany(
 		mongodb.M{"user": userID, "category": data.Category},
 		mongodb.M{"$unset": mongodb.M{"category": 1}},
@@ -113,5 +111,6 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
+	newLastModified(userID, c)
 	c.JSON(200, gin.H{"status": 1})
 }

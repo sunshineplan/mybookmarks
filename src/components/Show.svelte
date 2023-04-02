@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Sortable from "sortablejs";
+  import Sortable, { type SortableEvent } from "sortablejs";
   import { onMount, createEventDispatcher } from "svelte";
-  import { fire, post, confirm, pasteText } from "../misc";
+  import { confirm, pasteText } from "../misc";
   import { component } from "../stores";
   import { bookmark, bookmarks, category, categories } from "../bookmark";
 
@@ -11,12 +11,7 @@
   let smallSize = window.innerWidth <= isSmall;
   let editable = false;
 
-  $: currentBookmarks =
-    $category.category === "All Bookmarks"
-      ? $bookmarks
-      : $bookmarks.filter(
-          (bookmark) => bookmark.category === $category.category
-        );
+  $: $category, bookmarks.get($category);
 
   onMount(() => {
     const sortable = new Sortable(document.querySelector("#mybookmarks"), {
@@ -29,36 +24,14 @@
     return () => sortable.destroy();
   });
 
-  const onUpdate = async (evt: Sortable.SortableEvent) => {
-    const resp = await post("/reorder", {
-      orig: currentBookmarks[evt.oldIndex].id,
-      dest: currentBookmarks[evt.newIndex].id,
-    });
-    if (resp.ok) {
-      if ((await resp.text()) == "1") {
-        const current = currentBookmarks[evt.oldIndex].id;
-        const oldSeq = currentBookmarks[evt.oldIndex].seq;
-        const newSeq = currentBookmarks[evt.newIndex].seq;
-        if (oldSeq > newSeq) {
-          $bookmarks.forEach((b) => {
-            if (b.seq >= newSeq && b.seq < oldSeq) b.seq++;
-          });
-        } else
-          $bookmarks.forEach((b) => {
-            if (b.seq > oldSeq && b.seq <= newSeq) b.seq--;
-          });
-        $bookmarks.forEach((b) => {
-          if (b.id === current) b.seq = newSeq;
-        });
-        $bookmarks.sort((a, b) => a.seq - b.seq);
-      } else await fire("Error", "Failed to reorder.", "error");
-    } else await fire("Error", await resp.text(), "error");
+  const onUpdate = async (evt: SortableEvent) => {
+    await bookmarks.swap($bookmarks[evt.oldIndex], $bookmarks[evt.newIndex]);
   };
 
   const formatURL = (isSmall: boolean) => {
     const urls = Array.from(
-      document.querySelectorAll(".url")
-    ) as HTMLAnchorElement[];
+      document.querySelectorAll<HTMLAnchorElement>(".url")
+    );
     if (isSmall)
       urls.forEach(
         (url) => (url.text = url.text.replace(/https?:\/\/(www\.)?/i, ""))
@@ -69,34 +42,19 @@
   const editCategory = async (c: string) => {
     c = c.trim();
     if ($category.category != c) {
-      const resp = await post("/category/edit", {
-        old: $category.category,
-        new: c,
-      });
-      let json: any = {};
-      if (resp.ok) {
-        json = await resp.json();
-        if (json.status) {
-          $bookmarks.forEach((bookmark) => {
-            if (bookmark.category === $category.category) bookmark.category = c;
-          });
-          const index = $categories.findIndex(
-            (c) => c.category === $category.category
-          );
-          $categories[index].category = c;
-          currentBookmarks = currentBookmarks;
-          return true;
-        }
-      } else json.message = await resp.text();
-      await fire("Error", json.message ? json.message : "Error", "error");
-      dispatch("reload");
-      return false;
+      try {
+        await categories.edit($category, c);
+        await bookmarks.get({ category: c });
+      } catch {
+        dispatch("reload");
+        return false;
+      }
     }
     return true;
   };
   const add = () => {
-    if ($category.category == "All Bookmarks") $bookmark = {} as Bookmark;
-    else $bookmark = { category: $category.category } as Bookmark;
+    if (!$category.category) $bookmark = <Bookmark>{};
+    else $bookmark = <Bookmark>{ category: $category.category };
     window.history.pushState({}, "", "/bookmark/add");
     $component = "bookmark";
   };
@@ -107,7 +65,7 @@
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {
-    const target = event.target as Element;
+    const target = <Element>event.target;
     target.textContent = target.textContent.trim();
     if (event.key == "Enter") {
       event.preventDefault();
@@ -128,30 +86,18 @@
   const categoryClick = async () => {
     if (editable) {
       if (await confirm("category")) {
-        const resp = await post("/category/delete", {
-          category: $category.category,
-        });
-        if (resp.ok) {
-          const index = $categories.findIndex(
-            (c) => c.category === $category.category
-          );
-          $categories.splice(index, 1);
-          $bookmarks.forEach((bookmark) => {
-            if (bookmark.category === $category.category)
-              bookmark.category = "";
-          });
-          $bookmarks = $bookmarks;
-          $categories = $categories;
+        try {
+          await categories.delete($category);
+          await bookmarks.get();
           editable = false;
-        } else {
-          await fire("Error", await resp.text(), "error");
+        } catch {
           dispatch("reload");
         }
-        category.reset();
+        $category = {};
       }
     } else {
       editable = true;
-      const target = document.querySelector("#category") as HTMLElement;
+      const target = document.querySelector<HTMLElement>("#category");
       target.setAttribute("contenteditable", "true");
       target.focus();
       const range = document.createRange();
@@ -172,10 +118,10 @@
   const handleScroll = async () => {
     const table = document.querySelector(".table-responsive");
     if (table.scrollTop + table.clientHeight >= table.scrollHeight)
-      await bookmarks.more();
+      await bookmarks.get($category, 15);
   };
   const handleClick = async (event: MouseEvent) => {
-    const target = event.target as Element;
+    const target = <Element>event.target;
     if (
       target.id !== "category" &&
       !target.classList.contains("edit") &&
@@ -218,7 +164,7 @@
       >
         {$category.category ? $category.category : "Uncategorized"}
       </h3>
-      {#if $category.category && $category.category != "All Bookmarks"}
+      {#if $category.category}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <span class="icon" on:click={categoryClick}>
           {#if !editable}
@@ -242,7 +188,7 @@
         </tr>
       </thead>
       <tbody id="mybookmarks">
-        {#each currentBookmarks as bookmark (bookmark.id)}
+        {#each $bookmarks as bookmark (bookmark.id)}
           <tr>
             <td>{bookmark.bookmark}</td>
             <td>

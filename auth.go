@@ -18,7 +18,9 @@ type user struct {
 }
 
 func authRequired(c *gin.Context) {
-	if sessions.Default(c).Get("id") == nil {
+	if id := sessions.Default(c).Get("id"); id != nil {
+		c.Set("id", id)
+	} else {
 		c.AbortWithStatus(401)
 	}
 }

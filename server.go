@@ -97,18 +97,16 @@ func run() error {
 			return
 		}
 
-		ch := make(chan error, 1)
-		var categories []category
-		go func() { var err error; categories, err = getCategory(id); ch <- err }()
-		bookmarks, total, err := getBookmark(id)
-		if err != nil {
-			svc.Println("Failed to get bookmarks:", err)
-		}
-		if err = <-ch; err != nil {
-			svc.Println("Failed to get categories:", err)
-		}
+		mu.Lock()
+		defer mu.Unlock()
 
-		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks, "total": total})
+		last, ok := checkLastModified(id, c)
+		c.SetCookie("last", last, 856400*365, "", "", false, true)
+		if ok {
+			c.JSON(200, gin.H{"username": username})
+		} else {
+			c.AbortWithStatus(409)
+		}
 	})
 
 	auth := router.Group("/")
@@ -127,13 +125,14 @@ func run() error {
 	auth.POST("/chgpwd", authRequired, chgpwd)
 
 	base := router.Group("/")
-	base.Use(authRequired)
-	base.POST("/bookmark/get", moreBookmark)
+	base.Use(authRequired, checkRequired)
+	base.POST("/category/get", getCategory)
+	base.POST("/category/edit", editCategory)
+	base.POST("/category/delete", deleteCategory)
+	base.POST("/bookmark/get", getBookmark)
 	base.POST("/bookmark/add", addBookmark)
 	base.POST("/bookmark/edit/:id", editBookmark)
 	base.POST("/bookmark/delete/:id", deleteBookmark)
-	base.POST("/category/edit", editCategory)
-	base.POST("/category/delete", deleteCategory)
 	base.POST("/reorder", reorder)
 
 	router.NoRoute(func(c *gin.Context) {
