@@ -60,6 +60,16 @@ func deleteUser(username string) error {
 	return nil
 }
 
+func checkExist(filter any) (ok bool, err error) {
+	var exist any
+	err = bookmarkClient.FindOne(filter, nil, &exist)
+	ok = err == nil
+	if err == mongodb.ErrNoDocuments {
+		err = nil
+	}
+	return
+}
+
 func reorderBookmark(userID any, orig, dest mongodb.ObjectID) error {
 	var origBookmark, destBookmark bookmark
 

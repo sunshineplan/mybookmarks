@@ -91,19 +91,16 @@ func run() error {
 		c.HTML(200, "index.html", nil)
 	})
 	router.GET("/info", func(c *gin.Context) {
-		id, username, _ := getUser(c)
-		if username == "" {
+		user, _ := getUser(sessions.Default(c))
+		if user.Username == "" {
 			c.JSON(200, gin.H{})
 			return
 		}
 
-		mu.Lock()
-		defer mu.Unlock()
-
-		last, ok := checkLastModified(id, c)
+		last, ok := checkLastModified(user.ID, c)
 		c.SetCookie("last", last, 856400*365, "", "", false, true)
 		if ok {
-			c.JSON(200, gin.H{"username": username})
+			c.JSON(200, gin.H{"username": user.Username})
 		} else {
 			c.AbortWithStatus(409)
 		}
@@ -117,7 +114,7 @@ func run() error {
 		session.Options(sessions.Options{MaxAge: -1})
 		if err := session.Save(); err != nil {
 			svc.Print(err)
-			c.String(500, "")
+			c.AbortWithStatus(500)
 			return
 		}
 		c.String(200, "bye")

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/gin-contrib/sessions"
@@ -15,30 +16,31 @@ type user struct {
 	ID       string `json:"_id"`
 	Username string
 	Password string
+	Last     int64
+}
+
+func getUser(session sessions.Session) (usr user, err error) {
+	id := session.Get("id")
+	if id == nil {
+		return
+	}
+	key := "id"
+	if *universal {
+		key = "uid"
+	}
+	err = accountClient.FindOne(mongodb.M{key: id}, nil, &usr)
+	return
 }
 
 func authRequired(c *gin.Context) {
-	if id := sessions.Default(c).Get("id"); id != nil {
-		c.Set("id", id)
-	} else {
+	if user, err := getUser(sessions.Default(c)); user.ID == "" || err == mongodb.ErrNoDocuments {
 		c.AbortWithStatus(401)
+	} else if user.ID != "" {
+		c.Set("id", user.ID)
+		c.Set("last", strconv.FormatInt(user.Last, 10))
+	} else {
+		c.AbortWithStatus(500)
 	}
-}
-
-func getUser(c *gin.Context) (id, username string, err error) {
-	session := sessions.Default(c)
-	sid := session.Get("id")
-	username, _ = session.Get("username").(string)
-	if *universal {
-		var user user
-		if err = accountClient.FindOne(mongodb.M{"uid": sid}, nil, &user); err != nil {
-			return
-		}
-		id = user.ID
-		return
-	}
-	id, _ = sid.(string)
-	return
 }
 
 func login(c *gin.Context) {
@@ -48,7 +50,6 @@ func login(c *gin.Context) {
 	}
 	if err := c.BindJSON(&login); err != nil {
 		svc.Print(err)
-		c.String(400, "")
 		return
 	}
 	login.Username = strings.ToLower(login.Username)
@@ -66,6 +67,7 @@ func login(c *gin.Context) {
 		} else {
 			svc.Print(err)
 			c.String(500, "Critical Error! Please contact your system administrator.")
+			c.Abort()
 			return
 		}
 	} else {
@@ -79,7 +81,7 @@ func login(c *gin.Context) {
 				message = err.Error()
 			} else {
 				svc.Print(err)
-				c.String(500, "Internal Server Error")
+				c.AbortWithStatus(500)
 				return
 			}
 		}
@@ -88,7 +90,6 @@ func login(c *gin.Context) {
 			session := sessions.Default(c)
 			session.Clear()
 			session.Set("id", user.ID)
-			session.Set("username", user.Username)
 
 			if login.Rememberme {
 				session.Options(sessions.Options{HttpOnly: true, MaxAge: 856400 * 365})
@@ -98,7 +99,7 @@ func login(c *gin.Context) {
 
 			if err := session.Save(); err != nil {
 				svc.Print(err)
-				c.String(500, "Internal Server Error")
+				c.AbortWithStatus(500)
 				return
 			}
 
@@ -114,7 +115,7 @@ func chgpwd(c *gin.Context) {
 	session := sessions.Default(c)
 	userID, username := session.Get("id"), session.Get("username")
 	if userID == nil || username == nil {
-		c.String(401, "")
+		c.AbortWithStatus(401)
 		return
 	}
 	id, _ := accountClient.ObjectID(userID.(string))
@@ -127,14 +128,13 @@ func chgpwd(c *gin.Context) {
 	var data struct{ Password, Password1, Password2 string }
 	if err := c.BindJSON(&data); err != nil {
 		svc.Print(err)
-		c.String(400, "")
 		return
 	}
 
 	var user user
 	if err := accountClient.FindOne(mongodb.M{"_id": id.Interface()}, nil, &user); err != nil {
 		svc.Print(err)
-		c.String(500, "")
+		c.AbortWithStatus(500)
 		return
 	}
 
@@ -160,7 +160,7 @@ func chgpwd(c *gin.Context) {
 		case err == password.ErrBlankPassword:
 		default:
 			svc.Print(err)
-			c.String(500, "Internal Server Error")
+			c.AbortWithStatus(500)
 			return
 		}
 	}
@@ -172,7 +172,7 @@ func chgpwd(c *gin.Context) {
 			nil,
 		); err != nil {
 			svc.Print(err)
-			c.String(500, "")
+			c.AbortWithStatus(500)
 			return
 		}
 
@@ -180,7 +180,7 @@ func chgpwd(c *gin.Context) {
 		session.Options(sessions.Options{MaxAge: -1})
 		if err := session.Save(); err != nil {
 			svc.Print(err)
-			c.String(500, "")
+			c.AbortWithStatus(500)
 			return
 		}
 

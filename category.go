@@ -26,7 +26,7 @@ func getCategory(c *gin.Context) {
 		&categories,
 	); err != nil {
 		svc.Println("Failed to query categories:", err)
-		c.String(500, "")
+		c.AbortWithStatus(500)
 		return
 	}
 	res := []category{}
@@ -48,17 +48,15 @@ func editCategory(c *gin.Context) {
 	var data struct{ Old, New string }
 	if err := c.BindJSON(&data); err != nil {
 		svc.Print(err)
-		c.String(400, "")
 		return
 	}
 	data.New = strings.TrimSpace(data.New)
 
 	userID, _ := c.Get("id")
 
-	var exist any
 	var message string
 	var errorCode int
-	err := bookmarkClient.FindOne(mongodb.M{"user": userID, "category": data.New}, nil, &exist)
+	exist, err := checkExist(mongodb.M{"user": userID, "category": data.New})
 	switch {
 	case data.New == "":
 		message = "New category name is empty."
@@ -71,7 +69,11 @@ func editCategory(c *gin.Context) {
 	case len(data.New) > 15:
 		message = "Category name exceeded length limit."
 		errorCode = 1
-	case err == nil:
+	case err != nil:
+		svc.Println("Failed to get category:", err)
+		c.AbortWithStatus(500)
+		return
+	case exist:
 		message = fmt.Sprintf("Category %s is already existed.", data.New)
 		errorCode = 1
 	default:
@@ -81,7 +83,7 @@ func editCategory(c *gin.Context) {
 			nil,
 		); err != nil {
 			svc.Println("Failed to edit category:", err)
-			c.String(500, "")
+			c.AbortWithStatus(500)
 			return
 		}
 
@@ -96,7 +98,6 @@ func deleteCategory(c *gin.Context) {
 	var data struct{ Category string }
 	if err := c.BindJSON(&data); err != nil {
 		svc.Print(err)
-		c.String(400, "")
 		return
 	}
 
@@ -107,7 +108,7 @@ func deleteCategory(c *gin.Context) {
 		nil,
 	); err != nil {
 		svc.Println("Failed to delete category:", err)
-		c.String(500, "")
+		c.AbortWithStatus(500)
 		return
 	}
 
