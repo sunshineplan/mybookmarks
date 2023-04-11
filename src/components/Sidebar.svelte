@@ -1,7 +1,7 @@
 <script lang="ts">
   import { pasteText } from "../misc";
   import { component, showSidebar } from "../stores";
-  import { category, categories, bookmarks } from "../bookmark";
+  import { category, categories } from "../bookmark";
 
   let hover = false;
 

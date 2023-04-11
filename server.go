@@ -96,7 +96,7 @@ func run() error {
 	router.GET("/info", func(c *gin.Context) {
 		user, _ := getUser(sessions.Default(c))
 		if user.Username == "" {
-			c.JSON(200, gin.H{})
+			c.String(200, "")
 			return
 		}
 		c.Set("last", strconv.FormatInt(user.Last, 10))
@@ -104,7 +104,7 @@ func run() error {
 		last, ok := checkLastModified(user.ID, c)
 		c.SetCookie("last", last, 856400*365, "", "", false, true)
 		if ok {
-			c.JSON(200, gin.H{"username": user.Username})
+			c.String(200, user.Username)
 		} else {
 			c.AbortWithStatus(409)
 		}

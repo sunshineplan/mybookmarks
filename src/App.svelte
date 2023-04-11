@@ -5,12 +5,14 @@
   import Sidebar from "./components/Sidebar.svelte";
   import Show from "./components/Show.svelte";
   import Bookmark from "./components/Bookmark.svelte";
-  import { username, showSidebar, component, loading } from "./stores";
+  import { showSidebar, component, loading } from "./stores";
   import { init } from "./bookmark";
+
+  let username: string = "";
 
   const load = async () => {
     loading.start();
-    await init();
+    username = await init();
     loading.end();
   };
   const promise = load();
@@ -24,9 +26,9 @@
   };
 </script>
 
-<Nav bind:username={$username} on:reload={load} />
+<Nav bind:username on:reload={load} />
 {#await promise then _}
-  {#if !$username}
+  {#if !username}
     {#if !$loading}
       <Login on:info={load} />
     {/if}
@@ -41,7 +43,7 @@
     </div>
   {/if}
 {/await}
-<div class={$username ? "loading" : "initializing"} hidden={!$loading}>
+<div class={username ? "loading" : "initializing"} hidden={!$loading}>
   <div class="sk-wave sk-center">
     <div class="sk-wave-rect" />
     <div class="sk-wave-rect" />

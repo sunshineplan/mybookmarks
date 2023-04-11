@@ -1,6 +1,5 @@
 import { writable, get } from 'svelte/store'
 import { Dexie } from 'dexie'
-import { username } from './stores'
 import { fire, post } from './misc'
 
 const db = new Dexie('bookmark')
@@ -153,24 +152,24 @@ const createBookmarks = () => {
 }
 export const bookmarks = createBookmarks()
 
-export const init = async () => {
+export const init = async (): Promise<string> => {
   const resp = await fetch('/info')
   if (resp.ok) {
-    const info = await resp.json()
-    if (Object.keys(info).length) {
-      username.set(info.username)
+    const username = await resp.text()
+    if (username) {
       await categories.get()
       await bookmarks.get()
+      return username
     } else await reset()
   } else if (resp.status == 409) {
     await categories.clear()
     await bookmarks.clear()
-    await init()
+    return await init()
   } else await reset()
+  return ''
 }
 
 const reset = async () => {
-  username.set('')
   category.set(<Category>{})
   bookmark.set(<Bookmark>{})
   categories.set([])
