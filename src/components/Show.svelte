@@ -142,7 +142,11 @@
 
 <svelte:head>
   <title>
-    {$category.category ? $category.category : "Uncategorized"} - My Bookmarks
+    {$category.category === undefined
+      ? "All Bookmarks"
+      : $category.category
+      ? $category.category
+      : "Uncategorized"} - My Bookmarks
   </title>
 </svelte:head>
 
@@ -162,7 +166,11 @@
         on:keydown={categoryKeydown}
         on:paste={pasteText}
       >
-        {$category.category ? $category.category : "Uncategorized"}
+        {$category.category === undefined
+          ? "All Bookmarks"
+          : $category.category
+          ? $category.category
+          : "Uncategorized"}
       </h3>
       {#if $category.category}
         <!-- svelte-ignore a11y-click-events-have-key-events -->

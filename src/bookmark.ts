@@ -17,22 +17,26 @@ const createCategories = () => {
   return {
     subscribe,
     set,
-    clear: async () => {
-      categories.set([])
-      await db.table('categories').clear()
-    },
-    init: async () => {
+    clear: async () => await db.table('categories').clear(),
+    get: async () => {
+      await db.table<Category>('categories').filter(i => i.count == 0).delete()
       const array = await db.table('categories').toArray()
       if (array.length) categories.set(array)
-      else await categories.get()
+      else await categories.fetch()
     },
-    get: async () => {
-      const resp = await fetch('/category/get')
+    fetch: async () => {
+      const resp = await post('/category/get')
       if (resp.ok) {
         const res = await resp.json()
         categories.set(res)
         await db.table('categories').bulkAdd(res)
       } else await fire('Fatal', await resp.text(), 'error')
+    },
+    count: async (category?: Category) => {
+      let n = 0
+      if (category === undefined || category.category === undefined) await db.table('categories').each(i => n += i.count)
+      else await db.table<Category>('categories').where('category').equals(category.category).first(i => n = i.count)
+      return n
     },
     add: async (category: Category) => {
       await db.table('categories').add(category)
@@ -60,7 +64,7 @@ const createCategories = () => {
       const resp = await post('/category/delete', { category })
       if (resp.ok) {
         await db.table('categories').where('category').equals(category.category).delete()
-        const n = await db.table('categories').where('category').equals('').modify((i: Category) => i.count += category.count)
+        const n = await db.table<Category>('categories').where('category').equals('').modify(i => i.count += category.count)
         if (!n) await db.table('categories').add({ category: '', count: category.count })
         await db.table('bookmarks').where('category').equals(category.category).modify({ category: '' })
         categories.set(await db.table('categories').toArray())
@@ -75,21 +79,17 @@ const createBookmarks = () => {
   return {
     subscribe,
     set,
-    clear: async () => {
-      bookmarks.set([])
-      await db.table('bookmarks').clear()
-    },
-    get: async (category?: Category, more?: number) => {
-      bookmarks.load(category)
+    clear: async () => await db.table('bookmarks').clear(),
+    get: async (category?: Category, more?: number, goal?: number) => {
+      await bookmarks.load(category)
       const res = get(bookmarks)
-      let total = 0
-      await db.table('categories').each(i => total += i.count)
-      let count = 0
-      if (category === undefined || category.category === undefined) count = total
-      else await db.table('categories').where('category').equals(category.category).first((i: Category) => count = i.count)
-      if (res.length >= (!more ? Math.min(30, count) : Math.min(30 + more, count))) return
+      const count = await categories.count(category)
+      if (!goal)
+        if (more) goal = Math.min(res.length + more, count)
+        else goal = Math.min(30, count)
+      if (res.length >= goal) return
       await bookmarks.fetch(await db.table('bookmarks').count())
-      await bookmarks.get(category, more)
+      await bookmarks.get(category, more, goal)
     },
     load: async (category?: Category) => {
       if (category === undefined || category.category === undefined)
@@ -114,7 +114,8 @@ const createBookmarks = () => {
             bookmark.seq = res.seq
             await db.table('bookmarks').add(bookmark)
           }
-          await categories.get()
+          await categories.clear()
+          await categories.fetch()
           await bookmarks.get({ category: bookmark.category })
         } else {
           await fire('Error', res.message, 'error')
@@ -128,6 +129,8 @@ const createBookmarks = () => {
       if (resp.ok) {
         await db.table('bookmarks').where('id').equals(bookmark.id).delete()
         await db.table('categories').where('category').equals(bookmark.category).modify((i: Category) => i.count--)
+        const category = await db.table<Category>('categories').get({ 'category': bookmark.category })
+        if (!category.count) await db.table('categories').where('category').equals(bookmark.category).delete()
         categories.set(await db.table('categories').toArray())
         await bookmarks.get({ category: bookmark.category })
         if (!get(bookmarks).length) await bookmarks.get()
@@ -156,7 +159,8 @@ export const init = async () => {
     const info = await resp.json()
     if (Object.keys(info).length) {
       username.set(info.username)
-      await categories.init()
+      await categories.get()
+      await bookmarks.get()
     } else await reset()
   } else if (resp.status == 409) {
     await categories.clear()
@@ -165,10 +169,12 @@ export const init = async () => {
   } else await reset()
 }
 
-export const reset = async () => {
+const reset = async () => {
   username.set('')
   category.set(<Category>{})
   bookmark.set(<Bookmark>{})
+  categories.set([])
+  bookmarks.set([])
   await categories.clear()
   await bookmarks.clear()
 }

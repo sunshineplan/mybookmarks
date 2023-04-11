@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -16,9 +17,11 @@ import (
 )
 
 func run() error {
-	svc.Logger = log.New(*logPath, "", log.LstdFlags)
-	gin.DefaultWriter = svc.Logger
-	gin.DefaultErrorWriter = svc.Logger
+	if *logPath != "" {
+		svc.Logger = log.New(*logPath, "", log.LstdFlags)
+		gin.DefaultWriter = svc.Logger
+		gin.DefaultErrorWriter = svc.Logger
+	}
 
 	if err := initDB(); err != nil {
 		return err
@@ -96,6 +99,7 @@ func run() error {
 			c.JSON(200, gin.H{})
 			return
 		}
+		c.Set("last", strconv.FormatInt(user.Last, 10))
 
 		last, ok := checkLastModified(user.ID, c)
 		c.SetCookie("last", last, 856400*365, "", "", false, true)

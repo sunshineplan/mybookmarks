@@ -24,11 +24,17 @@ func getUser(session sessions.Session) (usr user, err error) {
 	if id == nil {
 		return
 	}
-	key := "id"
+
+	var filter any
 	if *universal {
-		key = "uid"
+		filter = mongodb.M{"uid": id}
+	} else {
+		id, _ := accountClient.ObjectID(id.(string))
+		filter = mongodb.M{"_id": id.Interface()}
 	}
-	err = accountClient.FindOne(mongodb.M{key: id}, nil, &usr)
+	mu.Lock()
+	defer mu.Unlock()
+	err = accountClient.FindOne(filter, nil, &usr)
 	return
 }
 

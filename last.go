@@ -2,11 +2,14 @@ package main
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sunshineplan/database/mongodb"
 )
+
+var mu sync.Mutex
 
 func checkLastModified(id any, c *gin.Context) (string, bool) {
 	v, _ := c.Cookie("last")
@@ -26,6 +29,8 @@ func checkRequired(c *gin.Context) {
 func newLastModified(id any, c *gin.Context) {
 	last := time.Now().UnixNano()
 	go func() {
+		mu.Lock()
+		defer mu.Unlock()
 		objectID, _ := accountClient.ObjectID(id.(string))
 		if _, err := accountClient.UpdateOne(
 			mongodb.M{"_id": objectID.Interface()},
