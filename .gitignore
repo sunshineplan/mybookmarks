@@ -16,6 +16,8 @@
 
 *.ini
 *.log
+*.pid
 
 dist
 node_modules
+mybookmarks

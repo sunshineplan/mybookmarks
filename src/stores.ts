@@ -1,7 +1,5 @@
 import { writable } from 'svelte/store'
 
-export const username = writable('')
-export const total = writable(0)
 export const component = writable('show')
 
 const createShowSidebar = () => {

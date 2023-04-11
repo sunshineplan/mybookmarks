@@ -1,14 +1,14 @@
-declare interface Window {
+interface Window {
   universal: string
   pubkey: string
 }
 
-declare interface Category {
-  category: string
-  count: number
+interface Category {
+  category?: string
+  count?: number
 }
 
-declare interface Bookmark {
+interface Bookmark {
   id: string
   category: string
   bookmark: string

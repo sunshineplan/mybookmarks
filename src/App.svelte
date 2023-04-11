@@ -5,24 +5,17 @@
   import Sidebar from "./components/Sidebar.svelte";
   import Show from "./components/Show.svelte";
   import Bookmark from "./components/Bookmark.svelte";
-  import { username, total, showSidebar, component, loading } from "./stores";
-  import { categories, bookmarks, reset } from "./bookmark";
+  import { showSidebar, component, loading } from "./stores";
+  import { init } from "./bookmark";
 
-  const getInfo = async (event?: CustomEvent) => {
+  let username: string = "";
+
+  const load = async () => {
     loading.start();
-    const resp = await fetch("/info");
-    const info = await resp.json();
-    if (Object.keys(info).length) {
-      $username = info.username;
-      $categories = info.categories;
-      $bookmarks = info.bookmarks;
-      $total = info.total;
-      if (event && event.detail)
-        if (event.detail.init) await bookmarks.more(true);
-    } else reset();
+    username = await init();
     loading.end();
   };
-  const promise = getInfo();
+  const promise = load();
 
   const components: {
     [component: string]: typeof Setting | typeof Show | typeof Bookmark;
@@ -33,24 +26,24 @@
   };
 </script>
 
-<Nav bind:username={$username} on:reload={getInfo} />
+<Nav bind:username on:reload={load} />
 {#await promise then _}
-  {#if !$username}
+  {#if !username}
     {#if !$loading}
-      <Login on:info={getInfo} />
+      <Login on:info={load} />
     {/if}
   {:else}
-    <Sidebar on:reload={getInfo} />
+    <Sidebar on:reload={load} />
     <div
       class="content"
       style="padding-left: 250px; opacity: {$loading ? 0.5 : 1}"
       on:mousedown={showSidebar.close}
     >
-      <svelte:component this={components[$component]} on:reload={getInfo} />
+      <svelte:component this={components[$component]} on:reload={load} />
     </div>
   {/if}
 {/await}
-<div class={$username ? "loading" : "initializing"} hidden={!$loading}>
+<div class={username ? "loading" : "initializing"} hidden={!$loading}>
   <div class="sk-wave sk-center">
     <div class="sk-wave-rect" />
     <div class="sk-wave-rect" />

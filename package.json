@@ -10,6 +10,7 @@
     "@sveltejs/vite-plugin-svelte": "^2.0.4",
     "@tsconfig/svelte": "^4.0.1",
     "@types/sortablejs": "^1.15.1",
+    "dexie": "^3.2.3",
     "jsencrypt": "^3.3.2",
     "sortablejs": "^1.15.0",
     "svelte": "^3.58.0",

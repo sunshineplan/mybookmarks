@@ -9,22 +9,16 @@
   let rememberme = localStorage.getItem("rememberme") == "true" ? true : false;
 
   const login = async () => {
-    if (
-      !(
-        document.querySelector("#username") as HTMLSelectElement
-      ).checkValidity()
-    )
+    if (!document.querySelector<HTMLSelectElement>("#username").checkValidity())
       await fire("Error", "Username cannot be empty.", "error");
     else if (
-      !(
-        document.querySelector("#password") as HTMLSelectElement
-      ).checkValidity()
+      !document.querySelector<HTMLSelectElement>("#password").checkValidity()
     )
       await fire("Error", "Password cannot be empty.", "error");
     else {
       var pwd: string;
       if (window.pubkey && window.pubkey.length)
-        pwd = encrypt(window.pubkey, password) as string;
+        pwd = <string>encrypt(window.pubkey, password);
       else pwd = password;
       const resp = await post(
         window.universal + "/login",

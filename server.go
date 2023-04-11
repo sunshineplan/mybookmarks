@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -16,9 +17,11 @@ import (
 )
 
 func run() error {
-	svc.Logger = log.New(*logPath, "", log.LstdFlags)
-	gin.DefaultWriter = svc.Logger
-	gin.DefaultErrorWriter = svc.Logger
+	if *logPath != "" {
+		svc.Logger = log.New(*logPath, "", log.LstdFlags)
+		gin.DefaultWriter = svc.Logger
+		gin.DefaultErrorWriter = svc.Logger
+	}
 
 	if err := initDB(); err != nil {
 		return err
@@ -91,24 +94,20 @@ func run() error {
 		c.HTML(200, "index.html", nil)
 	})
 	router.GET("/info", func(c *gin.Context) {
-		id, username, _ := getUser(c)
-		if username == "" {
-			c.JSON(200, gin.H{})
+		user, _ := getUser(sessions.Default(c))
+		if user.Username == "" {
+			c.String(200, "")
 			return
 		}
+		c.Set("last", strconv.FormatInt(user.Last, 10))
 
-		ch := make(chan error, 1)
-		var categories []category
-		go func() { var err error; categories, err = getCategory(id); ch <- err }()
-		bookmarks, total, err := getBookmark(id)
-		if err != nil {
-			svc.Println("Failed to get bookmarks:", err)
+		last, ok := checkLastModified(user.ID, c)
+		c.SetCookie("last", last, 856400*365, "", "", false, true)
+		if ok {
+			c.String(200, user.Username)
+		} else {
+			c.AbortWithStatus(409)
 		}
-		if err = <-ch; err != nil {
-			svc.Println("Failed to get categories:", err)
-		}
-
-		c.JSON(200, gin.H{"username": username, "categories": categories, "bookmarks": bookmarks, "total": total})
 	})
 
 	auth := router.Group("/")
@@ -119,7 +118,7 @@ func run() error {
 		session.Options(sessions.Options{MaxAge: -1})
 		if err := session.Save(); err != nil {
 			svc.Print(err)
-			c.String(500, "")
+			c.AbortWithStatus(500)
 			return
 		}
 		c.String(200, "bye")
@@ -127,13 +126,14 @@ func run() error {
 	auth.POST("/chgpwd", authRequired, chgpwd)
 
 	base := router.Group("/")
-	base.Use(authRequired)
-	base.POST("/bookmark/get", moreBookmark)
+	base.Use(authRequired, checkRequired)
+	base.POST("/category/get", getCategory)
+	base.POST("/category/edit", editCategory)
+	base.POST("/category/delete", deleteCategory)
+	base.POST("/bookmark/get", getBookmark)
 	base.POST("/bookmark/add", addBookmark)
 	base.POST("/bookmark/edit/:id", editBookmark)
 	base.POST("/bookmark/delete/:id", deleteBookmark)
-	base.POST("/category/edit", editCategory)
-	base.POST("/category/delete", deleteCategory)
 	base.POST("/reorder", reorder)
 
 	router.NoRoute(func(c *gin.Context) {

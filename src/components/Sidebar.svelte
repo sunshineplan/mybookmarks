@@ -1,11 +1,12 @@
 <script lang="ts">
   import { pasteText } from "../misc";
-  import { total, component, showSidebar } from "../stores";
-  import { category, categories, bookmarks } from "../bookmark";
+  import { component, showSidebar } from "../stores";
+  import { category, categories } from "../bookmark";
 
   let hover = false;
 
-  $: uncategorized = $total - $categories.reduce((a, b) => a + b.count, 0);
+  $: uncategorized = $categories.find((i) => i.category === "");
+  $: total = $categories.reduce((a, b) => a + b.count, 0);
 
   const goto = async (c: Category) => {
     showSidebar.close();
@@ -14,24 +15,20 @@
     $component = "show";
     const div = document.querySelector(".table-responsive");
     if (div) div.scrollTop = 0;
-    await bookmarks.more(true);
   };
 
   const add = async (category: string) => {
     category = category.trim();
     document.querySelector(".new").remove();
-    const newCategory: Category = {
-      category,
-      count: 0,
-    };
-    $categories = [...$categories, newCategory];
+    const newCategory: Category = { category, count: 0 };
+    await categories.add(newCategory);
     await goto(newCategory);
   };
 
   const addCategory = async () => {
     showSidebar.close();
-    const newCategory = document.querySelector(".new");
-    if (newCategory) await add((newCategory as HTMLElement).innerText);
+    const newCategory = document.querySelector<HTMLElement>(".new");
+    if (newCategory) await add(newCategory.innerText);
     const ul = document.querySelector("ul.navbar-nav");
     const li = document.createElement("li");
     li.classList.add("nav-link", "new");
@@ -40,7 +37,7 @@
     else ul.appendChild(li);
     li.addEventListener("paste", pasteText);
     li.addEventListener("keydown", async (event) => {
-      const target = event.target as Element;
+      const target = <Element>event.target;
       const category = target.textContent.trim();
       if (event.key == "Enter") {
         event.preventDefault();
@@ -71,24 +68,17 @@
       );
       if ($component === "show")
         if (event.key == "ArrowUp") {
-          if (index == 0) await goto({ category: "All Bookmarks", count: 0 });
+          if (index == 0) await goto({});
           else if (index > 0) await goto($categories[index - 1]);
-          else if ($category.category == "") {
-            if (len > 0) await goto($categories[len - 1]);
-            else await goto({ category: "All Bookmarks", count: 0 });
-          }
         } else if (event.key == "ArrowDown")
-          if ($category.category == "All Bookmarks") {
+          if ($category.category === undefined) {
             if (len > 0) await goto($categories[0]);
-            else if (uncategorized) await goto({ category: "", count: 0 });
-          } else if (index < len - 1 && $category.category != "")
-            await goto($categories[index + 1]);
-          else if (index == len - 1 && uncategorized)
-            await goto({ category: "", count: 0 });
+            else if (uncategorized) await goto({ category: "" });
+          } else if (index < len - 1) await goto($categories[index + 1]);
     }
   };
   const handleClick = async (event: MouseEvent) => {
-    const target = event.target as Element;
+    const target = <Element>event.target;
     if (
       !target.classList.contains("new") &&
       !target.classList.contains("swal2-confirm") &&
@@ -128,33 +118,33 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <li
         class="navbar-brand category"
-        class:active={$category.category === "All Bookmarks" &&
-          $component === "show"}
-        on:click={async () =>
-          await goto({ category: "All Bookmarks", count: 0 })}
+        class:active={$category.category === undefined && $component === "show"}
+        on:click={async () => await goto({})}
       >
-        All Bookmarks ({$total})
+        All Bookmarks ({total})
       </li>
       {#each $categories as c (c.category)}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <li
-          class="nav-link category"
-          class:active={$category.category === c.category &&
-            $component === "show"}
-          on:click={async () => await goto(c)}
-        >
-          {c.category} ({c.count})
-        </li>
+        {#if c.category != ""}
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <li
+            class="nav-link category"
+            class:active={$category.category === c.category &&
+              $component === "show"}
+            on:click={async () => await goto(c)}
+          >
+            {c.category} ({c.count})
+          </li>
+        {/if}
       {/each}
-      {#if $bookmarks.filter((b) => b.category == "").length}
+      {#if uncategorized}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <li
           class="nav-link category"
           id="uncategorized"
           class:active={$category.category === "" && $component === "show"}
-          on:click={async () => await goto({ category: "", count: 0 })}
+          on:click={async () => await goto({ category: "" })}
         >
-          Uncategorized ({uncategorized})
+          Uncategorized ({uncategorized.count})
         </li>
       {/if}
     </ul>
