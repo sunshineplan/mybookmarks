@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -99,9 +98,9 @@ func run() error {
 			c.String(200, "")
 			return
 		}
-		c.Set("last", strconv.FormatInt(user.Last, 10))
+		c.Set("last", user.Last)
 
-		last, ok := checkLastModified(user.ID, c)
+		last, ok := checkLastModified(c)
 		c.SetCookie("last", last, 856400*365, "", "", false, true)
 		if ok {
 			c.String(200, user.Username)

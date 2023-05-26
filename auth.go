@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/gin-contrib/sessions"
@@ -16,7 +15,7 @@ type user struct {
 	ID       string `json:"_id"`
 	Username string
 	Password string
-	Last     int64
+	Last     string
 }
 
 func getUser(session sessions.Session) (usr user, err error) {
@@ -43,7 +42,7 @@ func authRequired(c *gin.Context) {
 		c.AbortWithStatus(401)
 	} else if user.ID != "" {
 		c.Set("id", user.ID)
-		c.Set("last", strconv.FormatInt(user.Last, 10))
+		c.Set("last", user.Last)
 	} else {
 		c.AbortWithStatus(500)
 	}
