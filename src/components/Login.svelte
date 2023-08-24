@@ -9,10 +9,12 @@
   let rememberme = localStorage.getItem("rememberme") == "true" ? true : false;
 
   const login = async () => {
-    if (!document.querySelector<HTMLSelectElement>("#username").checkValidity())
+    if (
+      !document.querySelector<HTMLSelectElement>("#username")?.checkValidity()
+    )
       await fire("Error", "Username cannot be empty.", "error");
     else if (
-      !document.querySelector<HTMLSelectElement>("#password").checkValidity()
+      !document.querySelector<HTMLSelectElement>("#password")?.checkValidity()
     )
       await fire("Error", "Password cannot be empty.", "error");
     else {
@@ -54,6 +56,7 @@
       Log In
     </h3>
   </header>
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     class="login"
     on:keydown={async (e) => {

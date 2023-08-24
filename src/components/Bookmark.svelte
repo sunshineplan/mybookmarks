@@ -68,6 +68,7 @@
   <title>{mode} Bookmark - My Bookmarks</title>
 </svelte:head>
 
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
   on:keydown={async (e) => {
     if (e.key == "Enter") await save();

@@ -75,6 +75,7 @@
   <h3>Setting</h3>
   <hr />
 </header>
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
   style="padding-left: 20px"
   class="was-validated: {validated}"

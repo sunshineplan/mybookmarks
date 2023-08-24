@@ -14,18 +14,22 @@
   $: $category, bookmarks.get($category);
 
   onMount(() => {
-    const sortable = new Sortable(document.querySelector("#mybookmarks"), {
-      animation: 150,
-      delay: 500,
-      swapThreshold: 0.5,
-      onUpdate,
-    });
-    if (smallSize) formatURL(true);
-    return () => sortable.destroy();
+    const element = document.querySelector<HTMLElement>("#mybookmarks");
+    if (element) {
+      const sortable = new Sortable(element, {
+        animation: 150,
+        delay: 500,
+        swapThreshold: 0.5,
+        onUpdate,
+      });
+      if (smallSize) formatURL(true);
+      return () => sortable.destroy();
+    }
   });
 
   const onUpdate = async (evt: SortableEvent) => {
-    await bookmarks.swap($bookmarks[evt.oldIndex], $bookmarks[evt.newIndex]);
+    if (evt.oldIndex !== undefined && evt.newIndex !== undefined)
+      await bookmarks.swap($bookmarks[evt.oldIndex], $bookmarks[evt.newIndex]);
   };
 
   const formatURL = (isSmall: boolean) => {
@@ -36,7 +40,7 @@
       urls.forEach(
         (url) => (url.text = url.text.replace(/https?:\/\/(www\.)?/i, ""))
       );
-    else urls.forEach((url) => (url.text = url.dataset.url));
+    else urls.forEach((url) => (url.text = url.dataset.url || ""));
   };
 
   const editCategory = async (c: string) => {
@@ -66,19 +70,19 @@
 
   const categoryKeydown = async (event: KeyboardEvent) => {
     const target = <Element>event.target;
-    target.textContent = target.textContent.trim();
+    target.textContent = target.textContent?.trim() || "";
     if (event.key == "Enter") {
       event.preventDefault();
       if (target.textContent)
         editable = !(await editCategory(target.textContent));
       else {
-        target.textContent = $category.category;
+        target.textContent = $category.category || "";
         editable = false;
       }
     } else if (event.key == "Escape") {
       if (target.textContent) target.textContent = "";
       else {
-        target.textContent = $category.category;
+        target.textContent = $category.category || "";
         editable = false;
       }
     }
@@ -98,14 +102,16 @@
     } else {
       editable = true;
       const target = document.querySelector<HTMLElement>("#category");
-      target.setAttribute("contenteditable", "true");
-      target.focus();
-      const range = document.createRange();
-      range.selectNodeContents(target);
-      range.collapse(false);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
+      if (target) {
+        target.setAttribute("contenteditable", "true");
+        target.focus();
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
     }
   };
 
@@ -117,7 +123,7 @@
   };
   const handleScroll = async () => {
     const table = document.querySelector(".table-responsive");
-    if (table.scrollTop + table.clientHeight >= table.scrollHeight)
+    if (table && table.scrollTop + table.clientHeight >= table.scrollHeight)
       await bookmarks.get($category, 15);
   };
   const handleClick = async (event: MouseEvent) => {
@@ -129,12 +135,14 @@
       editable
     ) {
       const element = document.querySelector("#category");
-      element.textContent = element.textContent.trim();
-      if (element.textContent)
-        editable = !(await editCategory(element.textContent));
-      else {
-        target.textContent = $category.category;
-        editable = false;
+      if (element) {
+        element.textContent = element.textContent?.trim() || "";
+        if (element.textContent)
+          editable = !(await editCategory(element.textContent));
+        else {
+          target.textContent = $category.category || "";
+          editable = false;
+        }
       }
     }
   };
@@ -174,6 +182,7 @@
       </h3>
       {#if $category.category}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="icon" on:click={categoryClick}>
           {#if !editable}
             <i class="material-icons edit">edit</i>
@@ -213,6 +222,7 @@
             <td>{bookmark.category}</td>
             <td>
               <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
               <span class="icon" on:click={() => edit(bookmark)}>
                 <i class="material-icons edit">edit</i>
               </span>

@@ -34,6 +34,7 @@
     {/if}
   {:else}
     <Sidebar on:reload={load} />
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       class="content"
       style="padding-left: 250px; opacity: {$loading ? 0.5 : 1}"

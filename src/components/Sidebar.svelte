@@ -6,7 +6,7 @@
   let hover = false;
 
   $: uncategorized = $categories.find((i) => i.category === "");
-  $: total = $categories.reduce((a, b) => a + b.count, 0);
+  $: total = $categories.reduce((a, b) => a + (b.count || 0), 0);
 
   const goto = async (c: Category) => {
     showSidebar.close();
@@ -19,7 +19,7 @@
 
   const add = async (category: string) => {
     category = category.trim();
-    document.querySelector(".new").remove();
+    document.querySelector(".new")?.remove();
     const newCategory: Category = { category, count: 0 };
     await categories.add(newCategory);
     await goto(newCategory);
@@ -32,13 +32,13 @@
     const ul = document.querySelector("ul.navbar-nav");
     const li = document.createElement("li");
     li.classList.add("nav-link", "new");
-    const uncategorized = ul.querySelector("#uncategorized");
-    if (uncategorized) ul.insertBefore(li, uncategorized);
-    else ul.appendChild(li);
+    const uncategorized = ul?.querySelector("#uncategorized");
+    if (uncategorized) ul?.insertBefore(li, uncategorized);
+    else ul?.appendChild(li);
     li.addEventListener("paste", pasteText);
     li.addEventListener("keydown", async (event) => {
       const target = <Element>event.target;
-      const category = target.textContent.trim();
+      const category = target.textContent?.trim();
       if (event.key == "Enter") {
         event.preventDefault();
         if (category) await add(category);
@@ -54,8 +54,8 @@
     range.selectNodeContents(li);
     range.collapse(false);
     const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
   };
 
   const handleKeydown = async (event: KeyboardEvent) => {
@@ -86,7 +86,7 @@
     ) {
       const newCategory = document.querySelector(".new");
       if (newCategory) {
-        const category = newCategory.textContent.trim();
+        const category = newCategory.textContent?.trim();
         if (category) await add(category);
         else newCategory.remove();
       }
@@ -97,6 +97,7 @@
 <svelte:window on:keydown={handleKeydown} on:click={handleClick} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <span
   class="toggle"
   on:click={showSidebar.toggle}
@@ -116,6 +117,7 @@
     </button>
     <ul class="navbar-nav" id="categories">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <li
         class="navbar-brand category"
         class:active={$category.category === undefined && $component === "show"}
@@ -126,6 +128,7 @@
       {#each $categories as c (c.category)}
         {#if c.category != ""}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
           <li
             class="nav-link category"
             class:active={$category.category === c.category &&
@@ -138,6 +141,7 @@
       {/each}
       {#if uncategorized}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
         <li
           class="nav-link category"
           id="uncategorized"
