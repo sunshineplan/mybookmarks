@@ -1,6 +1,6 @@
 module mybookmarks
 
-go 1.21
+go 1.21.0
 
 require (
 	github.com/gin-contrib/sessions v0.0.5
