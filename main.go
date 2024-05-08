@@ -89,6 +89,7 @@ func main() {
 		if err != nil {
 			svc.Fatal(err)
 		}
+		password.SetKey(priv)
 	}
 
 	if err := svc.ParseAndRun(flag.Args()); err != nil {

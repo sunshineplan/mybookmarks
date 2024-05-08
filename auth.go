@@ -48,6 +48,11 @@ func authRequired(c *gin.Context) {
 	}
 }
 
+type info struct {
+	username any
+	ip       string
+}
+
 func login(c *gin.Context) {
 	var login struct {
 		Username, Password string
@@ -59,8 +64,8 @@ func login(c *gin.Context) {
 	}
 	login.Username = strings.ToLower(login.Username)
 
-	if password.IsMaxAttempts(c.ClientIP() + login.Username) {
-		c.JSON(200, gin.H{"status": 0, "message": fmt.Sprintf("Max retries exceeded (%d)", maxRetry)})
+	if password.IsMaxAttempts(info{login.Username, c.ClientIP()}) {
+		c.JSON(200, gin.H{"status": 0, "message": fmt.Sprintf("Max retries exceeded (%d)", *maxRetry)})
 		return
 	}
 
@@ -76,12 +81,7 @@ func login(c *gin.Context) {
 			return
 		}
 	} else {
-		if priv == nil {
-			_, err = password.Compare(c.ClientIP()+login.Username, user.Password, login.Password, false)
-		} else {
-			_, err = password.CompareRSA(c.ClientIP()+login.Username, user.Password, login.Password, false, priv)
-		}
-		if err != nil {
+		if err = password.CompareHashAndPassword(info{login.Username, c.ClientIP()}, user.Password, login.Password); err != nil {
 			if errors.Is(err, password.ErrIncorrectPassword) {
 				message = err.Error()
 			} else {
@@ -125,8 +125,8 @@ func chgpwd(c *gin.Context) {
 	}
 	id, _ := accountClient.ObjectID(userID.(string))
 
-	if password.IsMaxAttempts(c.ClientIP() + username.(string)) {
-		c.JSON(200, gin.H{"status": 0, "message": fmt.Sprintf("Max retries exceeded (%d)", maxRetry), "error": 1})
+	if password.IsMaxAttempts(info{username, c.ClientIP()}) {
+		c.JSON(200, gin.H{"status": 0, "message": fmt.Sprintf("Max retries exceeded (%d)", *maxRetry), "error": 1})
 		return
 	}
 
@@ -134,6 +134,19 @@ func chgpwd(c *gin.Context) {
 	if err := c.BindJSON(&data); err != nil {
 		svc.Print(err)
 		return
+	}
+	var err error
+	if priv != nil {
+		data.Password1, err = password.DecryptPKCS1v15(priv, data.Password1)
+		if err != nil {
+			c.String(400, "Bad Request")
+			return
+		}
+		data.Password2, err = password.DecryptPKCS1v15(priv, data.Password2)
+		if err != nil {
+			c.String(400, "Bad Request")
+			return
+		}
 	}
 
 	var user user
@@ -143,34 +156,40 @@ func chgpwd(c *gin.Context) {
 		return
 	}
 
-	var err error
-	var message, newPassword string
+	var message string
 	var errorCode int
-	if priv == nil {
-		newPassword, err = password.Change(
-			c.ClientIP()+user.Username, user.Password, data.Password, data.Password1, data.Password2, false,
-		)
-	} else {
-		newPassword, err = password.ChangeRSA(
-			c.ClientIP()+user.Username, user.Password, data.Password, data.Password1, data.Password2, false, priv,
-		)
-	}
-	if err != nil {
-		message = err.Error()
-		switch {
-		case errors.Is(err, password.ErrIncorrectPassword):
+	if err = password.CompareHashAndPassword(info{username, c.ClientIP()}, user.Password, data.Password); err != nil {
+		if errors.Is(err, password.ErrIncorrectPassword) {
+			message = err.Error()
 			errorCode = 1
-		case err == password.ErrConfirmPasswordNotMatch || err == password.ErrSamePassword:
-			errorCode = 2
-		case err == password.ErrBlankPassword:
-		default:
+		} else {
 			svc.Print(err)
-			c.AbortWithStatus(500)
+			c.String(500, "Internal Server Error")
 			return
+		}
+	} else {
+		if priv != nil {
+			data.Password, _ = password.DecryptPKCS1v15(priv, data.Password)
+		}
+		switch {
+		case data.Password1 != data.Password2:
+			message = "confirm password doesn't match new password"
+			errorCode = 2
+		case data.Password1 == data.Password:
+			message = "new password cannot be the same as old password"
+			errorCode = 2
+		case data.Password1 == "":
+			message = "new password cannot be blank"
 		}
 	}
 
 	if message == "" {
+		newPassword, err := password.HashPassword(data.Password1)
+		if err != nil {
+			svc.Print(err)
+			c.String(500, "Internal Server Error")
+			return
+		}
 		if _, err := accountClient.UpdateOne(
 			mongodb.M{"_id": id.Interface()},
 			mongodb.M{"$set": mongodb.M{"password": newPassword}},
