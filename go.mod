@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
-	github.com/sunshineplan/database/mongodb v1.0.5
+	github.com/sunshineplan/database/mongodb v1.0.6
 	github.com/sunshineplan/metadata v1.1.1
 	github.com/sunshineplan/password v1.0.5
 	github.com/sunshineplan/service v1.0.20
