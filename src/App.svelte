@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { ComponentType } from "svelte";
   import Nav from "./components/Nav.svelte";
   import Login from "./components/Login.svelte";
   import Setting from "./components/Setting.svelte";
@@ -17,9 +18,7 @@
   };
   const promise = load();
 
-  const components: {
-    [component: string]: typeof Setting | typeof Show | typeof Bookmark;
-  } = {
+  const components: { [component: string]: ComponentType } = {
     setting: Setting,
     show: Show,
     bookmark: Bookmark,
