@@ -5,9 +5,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"flag"
+	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sunshineplan/metadata"
 	"github.com/sunshineplan/password"
 	"github.com/sunshineplan/service"
@@ -90,6 +92,11 @@ func main() {
 			svc.Fatal(err)
 		}
 		password.SetKey(priv)
+	}
+	if *logPath != "" {
+		svc.SetLogger(*logPath, "", log.LstdFlags)
+		gin.DefaultWriter = svc.Logger
+		gin.DefaultErrorWriter = svc.Logger
 	}
 
 	if err := svc.ParseAndRun(flag.Args()); err != nil {

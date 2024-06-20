@@ -12,16 +12,9 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/sunshineplan/utils/log"
 )
 
 func run() error {
-	if *logPath != "" {
-		svc.Logger = log.New(*logPath, "", log.LstdFlags)
-		gin.DefaultWriter = svc.Logger
-		gin.DefaultErrorWriter = svc.Logger
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
