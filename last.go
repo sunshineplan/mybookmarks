@@ -28,6 +28,8 @@ func checkRequired(c *gin.Context) {
 func newLastModified(id any, c *gin.Context) {
 	last := strconv.FormatInt(time.Now().UnixNano(), 10)
 	go updateLast(id, last)
+	username, _ := c.Get("username")
+	userCache.Swap(id, user{ID: id.(string), Username: username.(string), Last: last})
 	c.SetCookie("last", last, 856400*365, "", "", false, true)
 }
 

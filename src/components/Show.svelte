@@ -1,9 +1,9 @@
 <script lang="ts">
   import Sortable, { type SortableEvent } from "sortablejs";
   import { onMount, createEventDispatcher } from "svelte";
-  import { confirm, pasteText } from "../misc";
-  import { component } from "../stores";
-  import { bookmark, bookmarks, category, categories } from "../bookmark";
+  import { poll, confirm, pasteText } from "../misc";
+  import { component, loading } from "../stores";
+  import { init, bookmark, bookmarks, category, categories } from "../bookmark";
 
   const dispatch = createEventDispatcher();
   const isSmall = 700;
@@ -27,6 +27,29 @@
     }
   });
 
+  const subscribe = async (signal: AbortSignal) => {
+    const resp = await poll(signal);
+    if (resp.status == 200) await subscribe(signal);
+    else if (resp.status == 401) {
+      dispatch("reload");
+    } else if (resp.status == 409) {
+      const c = $category;
+      loading.start();
+      await init();
+      $category = c;
+      loading.end();
+      await subscribe(signal);
+    } else {
+      await new Promise((sleep) => setTimeout(sleep, 30000));
+      await subscribe(signal);
+    }
+  };
+  onMount(() => {
+    const controller = new AbortController();
+    subscribe(controller.signal);
+    return () => controller.abort();
+  });
+
   const onUpdate = async (evt: SortableEvent) => {
     if (evt.oldIndex !== undefined && evt.newIndex !== undefined)
       await bookmarks.swap($bookmarks[evt.oldIndex], $bookmarks[evt.newIndex]);
@@ -34,11 +57,11 @@
 
   const formatURL = (isSmall: boolean) => {
     const urls = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>(".url")
+      document.querySelectorAll<HTMLAnchorElement>(".url"),
     );
     if (isSmall)
       urls.forEach(
-        (url) => (url.text = url.text.replace(/https?:\/\/(www\.)?/i, ""))
+        (url) => (url.text = url.text.replace(/https?:\/\/(www\.)?/i, "")),
       );
     else urls.forEach((url) => (url.text = url.dataset.url || ""));
   };
@@ -153,8 +176,8 @@
     {$category.category === undefined
       ? "All Bookmarks"
       : $category.category
-      ? $category.category
-      : "Uncategorized"} - My Bookmarks
+        ? $category.category
+        : "Uncategorized"} - My Bookmarks
   </title>
 </svelte:head>
 
@@ -177,8 +200,8 @@
         {$category.category === undefined
           ? "All Bookmarks"
           : $category.category
-          ? $category.category
-          : "Uncategorized"}
+            ? $category.category
+            : "Uncategorized"}
       </h3>
       {#if $category.category}
         <!-- svelte-ignore a11y-click-events-have-key-events -->

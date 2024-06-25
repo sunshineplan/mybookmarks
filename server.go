@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -99,6 +100,16 @@ func run() error {
 			c.String(200, user.Username)
 		} else {
 			c.AbortWithStatus(409)
+		}
+	})
+	router.GET("/poll", authRequired, func(c *gin.Context) {
+		time.Sleep(time.Minute)
+		user, _ := getUser(sessions.Default(c))
+		last, _ := c.Cookie("last")
+		if user.Last == last {
+			c.String(200, "ok")
+		} else {
+			c.Status(409)
 		}
 	})
 

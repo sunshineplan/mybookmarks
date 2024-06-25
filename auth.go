@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/sunshineplan/database/mongodb"
 	"github.com/sunshineplan/password"
+	"github.com/sunshineplan/utils/cache"
 )
+
+var userCache = cache.New[any, user](true)
 
 type user struct {
 	ID       string `json:"_id"`
@@ -23,6 +27,10 @@ func getUser(session sessions.Session) (usr user, err error) {
 	if id == nil {
 		return
 	}
+	var ok bool
+	if usr, ok = userCache.Get(id); ok {
+		return
+	}
 
 	var filter any
 	if *universal {
@@ -33,7 +41,10 @@ func getUser(session sessions.Session) (usr user, err error) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	err = accountClient.FindOne(filter, nil, &usr)
+	if err = accountClient.FindOne(filter, nil, &usr); err != nil {
+		return
+	}
+	userCache.Set(id, usr, 24*time.Hour, nil)
 	return
 }
 
@@ -42,6 +53,7 @@ func authRequired(c *gin.Context) {
 		c.AbortWithStatus(401)
 	} else if user.ID != "" {
 		c.Set("id", user.ID)
+		c.Set("username", user.Username)
 		c.Set("last", user.Last)
 	} else {
 		c.AbortWithStatus(500)
