@@ -99,11 +99,11 @@ func run() error {
 		if ok {
 			c.String(200, user.Username)
 		} else {
-			c.AbortWithStatus(409)
+			c.Status(409)
 		}
 	})
 	router.GET("/poll", authRequired, func(c *gin.Context) {
-		time.Sleep(time.Minute)
+		time.Sleep(50 * time.Second)
 		user, _ := getUser(sessions.Default(c))
 		last, _ := c.Cookie("last")
 		if user.Last == last {
@@ -121,10 +121,10 @@ func run() error {
 		session.Options(sessions.Options{MaxAge: -1})
 		if err := session.Save(); err != nil {
 			svc.Print(err)
-			c.AbortWithStatus(500)
-			return
+			c.Status(500)
+		} else {
+			c.String(200, "bye")
 		}
-		c.String(200, "bye")
 	})
 	auth.POST("/chgpwd", authRequired, chgpwd)
 
