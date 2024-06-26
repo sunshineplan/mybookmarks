@@ -44,7 +44,7 @@ func getUser(session sessions.Session) (usr user, err error) {
 	if err = accountClient.FindOne(filter, nil, &usr); err != nil {
 		return
 	}
-	userCache.Set(id, usr, 24*time.Hour, nil)
+	userCache.Set(usr.ID, usr, 24*time.Hour, nil)
 	return
 }
 
