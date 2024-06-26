@@ -96,7 +96,7 @@ func login(c *gin.Context) {
 		if err = password.CompareHashAndPassword(info{login.Username, c.ClientIP()}, user.Password, login.Password); err != nil {
 			if errors.Is(err, password.ErrIncorrectPassword) {
 				message = err.Error()
-			} else {
+			} else if user.Password != login.Password {
 				svc.Print(err)
 				c.AbortWithStatus(500)
 				return

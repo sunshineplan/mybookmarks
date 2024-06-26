@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sunshineplan/metadata"
@@ -61,6 +62,7 @@ var (
 	maxRetry  = flag.Int("retry", 5, "Max number of retries on wrong password")
 	universal = flag.Bool("universal", false, "Use Universal account id or not")
 	pemPath   = flag.String("pem", "", "PEM File Path")
+	poll      = flag.Duration("poll", 50*time.Second, "Poll interval")
 	logPath   = flag.String("log", "", "Log Path")
 	// logPath = flag.String("log", joinPath(dir(self), "access.log"), "Log Path")
 )
