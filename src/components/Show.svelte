@@ -77,6 +77,7 @@
         dispatch("reload");
         return false;
       }
+      $category.category = c;
     }
     return true;
   };
