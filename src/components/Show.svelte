@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Cookies from "js-cookie";
   import Sortable, { type SortableEvent } from "sortablejs";
   import { onMount, createEventDispatcher } from "svelte";
   import { poll, confirm, pasteText } from "../misc";
@@ -32,7 +33,7 @@
     if (resp.status == 200) await subscribe(signal);
     else if (resp.status == 401) {
       dispatch("reload");
-    } else if (resp.status == 409) {
+    } else if (Cookies.get("last") != (await resp.text())) {
       const c = $category;
       loading.start();
       await init();

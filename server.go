@@ -87,7 +87,7 @@ func run() error {
 		c.HTML(200, "index.html", nil)
 	})
 	router.GET("/info", func(c *gin.Context) {
-		user, _ := getUser(sessions.Default(c))
+		user, _ := getUser(c)
 		if user.Username == "" {
 			c.String(200, "")
 			return
@@ -95,7 +95,7 @@ func run() error {
 		c.Set("last", user.Last)
 
 		last, ok := checkLastModified(c)
-		c.SetCookie("last", last, 856400*365, "", "", false, true)
+		c.SetCookie("last", last, 856400*365, "", "", false, false)
 		if ok {
 			c.String(200, user.Username)
 		} else {
@@ -104,13 +104,8 @@ func run() error {
 	})
 	router.GET("/poll", authRequired, func(c *gin.Context) {
 		time.Sleep(*poll)
-		user, _ := getUser(sessions.Default(c))
-		last, _ := c.Cookie("last")
-		if user.Last == last {
-			c.String(200, "ok")
-		} else {
-			c.Status(409)
-		}
+		last, _ := c.Get("last")
+		c.String(200, last.(string))
 	})
 
 	auth := router.Group("/")

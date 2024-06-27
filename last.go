@@ -30,7 +30,7 @@ func newLastModified(id any, c *gin.Context) {
 	go updateLast(id, last)
 	username, _ := c.Get("username")
 	userCache.Swap(id, user{ID: id.(string), Username: username.(string), Last: last})
-	c.SetCookie("last", last, 856400*365, "", "", false, true)
+	c.SetCookie("last", last, 856400*365, "", "", false, false)
 }
 
 func updateLast(id any, last string) {

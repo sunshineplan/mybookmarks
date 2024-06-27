@@ -22,8 +22,8 @@ type user struct {
 	Last     string
 }
 
-func getUser(session sessions.Session) (usr user, err error) {
-	id := session.Get("id")
+func getUser(c *gin.Context) (usr user, err error) {
+	id := sessions.Default(c).Get("id")
 	if id == nil {
 		return
 	}
@@ -49,7 +49,7 @@ func getUser(session sessions.Session) (usr user, err error) {
 }
 
 func authRequired(c *gin.Context) {
-	if user, err := getUser(sessions.Default(c)); user.ID == "" || err == mongodb.ErrNoDocuments {
+	if user, err := getUser(c); user.ID == "" || err == mongodb.ErrNoDocuments {
 		c.AbortWithStatus(401)
 	} else if user.ID != "" {
 		c.Set("id", user.ID)

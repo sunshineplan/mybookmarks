@@ -9,8 +9,10 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.5.3",
     "@tsconfig/svelte": "^5.0.4",
+    "@types/js-cookie": "^3.0.6",
     "@types/sortablejs": "^1.15.8",
     "dexie": "^4.0.7",
+    "js-cookie": "^3.0.5",
     "jsencrypt": "^3.3.2",
     "sortablejs": "^1.15.2",
     "svelte": "^4.2.18",
