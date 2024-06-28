@@ -30,16 +30,17 @@
 
   const subscribe = async (signal: AbortSignal) => {
     const resp = await poll(signal);
-    if (resp.status == 200) await subscribe(signal);
-    else if (resp.status == 401) {
-      dispatch("reload");
-    } else if (Cookies.get("last") != (await resp.text())) {
-      const c = $category;
-      loading.start();
-      await init();
-      $category = c;
-      loading.end();
+    if (resp.ok) {
+      if (Cookies.get("last") != (await resp.text())) {
+        const c = $category;
+        loading.start();
+        await init();
+        $category = c;
+        loading.end();
+      }
       await subscribe(signal);
+    } else if (resp.status == 401) {
+      dispatch("reload");
     } else {
       await new Promise((sleep) => setTimeout(sleep, 30000));
       await subscribe(signal);
