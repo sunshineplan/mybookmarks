@@ -144,9 +144,10 @@ const createBookmarks = () => {
       if (resp.ok) {
         if ((await resp.text()) == '1') {
           const array = await db.table('bookmarks').toCollection().sortBy('seq')
+          const seq = b.seq
           if (a.seq > b.seq) array.forEach(i => { if (i.seq >= b.seq && i.seq < a.seq) i.seq++ })
           else array.forEach(i => { if (i.seq > a.seq && i.seq <= b.seq) i.seq-- })
-          array.forEach(i => { if (i.id === a.id) i.seq = b.seq })
+          array.forEach(i => { if (i.id === a.id) i.seq = seq })
           array.sort((a, b) => a.seq - b.seq)
           await db.table('bookmarks').bulkPut(array)
         } else await fire('Fatal', 'Failed to reorder.', 'error')
