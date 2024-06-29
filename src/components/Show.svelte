@@ -31,7 +31,8 @@
   const subscribe = async (signal: AbortSignal) => {
     const resp = await poll(signal);
     if (resp.ok) {
-      if (Cookies.get("last") != (await resp.text())) {
+      const last = await resp.text();
+      if (last && Cookies.get("last") != last) {
         const c = $category;
         loading.start();
         await init();
