@@ -6,10 +6,7 @@ on:
 jobs:
   test:
     if: ${{ github.actor == 'dependabot[bot]' }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest ]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

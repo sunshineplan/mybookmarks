@@ -13,6 +13,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/sunshineplan/database/mongodb"
 )
 
 func run() error {
@@ -102,18 +103,19 @@ func run() error {
 			c.Status(409)
 		}
 	})
-	router.GET("/poll", authRequired, func(c *gin.Context) {
+	router.GET("/poll", func(c *gin.Context) {
 		time.Sleep(*poll)
 		user, err := getUser(c)
-		if err != nil {
-			svc.Print(err)
-			c.Status(500)
-			return
-		}
-		if v, _ := c.Cookie("last"); v == user.Last {
-			c.Status(200)
+		if user.ID == "" || err == mongodb.ErrNoDocuments {
+			c.Status(401)
+		} else if user.ID != "" {
+			if v, _ := c.Cookie("last"); v == user.Last {
+				c.Status(200)
+			} else {
+				c.String(200, user.Last)
+			}
 		} else {
-			c.String(200, user.Last)
+			c.Status(500)
 		}
 	})
 
