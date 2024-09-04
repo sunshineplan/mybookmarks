@@ -158,10 +158,14 @@
     const element = document.querySelector("#category");
     if (target.classList.contains("category")) {
       editable = false;
-    } else if (target.classList.contains("edit")) {
+    } else if (target.classList.contains("delete")) {
       if (element) element.textContent = $category.category || "";
       editable = false;
-    } else if (target.id !== "category" && editable) {
+    } else if (
+      target.id !== "category" &&
+      !target.classList.contains("edit") &&
+      editable
+    ) {
       if (element) {
         element.textContent = element.textContent?.trim() || "";
         if (element.textContent)
@@ -214,7 +218,7 @@
           {#if !editable}
             <i class="material-icons edit">edit</i>
           {:else}
-            <i class="material-icons edit">delete</i>
+            <i class="material-icons delete">delete</i>
           {/if}
         </span>
       {/if}
@@ -271,7 +275,8 @@
     color: #0056b3 !important;
   }
 
-  .edit {
+  .edit,
+  .delete {
     font-size: 18px;
   }
 
