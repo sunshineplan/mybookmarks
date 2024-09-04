@@ -157,6 +157,7 @@
     const target = <Element>event.target;
     if (
       target.id !== "category" &&
+      !target.classList.contains("category") &&
       !target.classList.contains("edit") &&
       !target.classList.contains("swal2-confirm") &&
       editable
