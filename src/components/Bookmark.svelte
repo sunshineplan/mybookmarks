@@ -1,22 +1,23 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import { valid, confirm } from "../misc";
-  import { component } from "../stores";
   import {
-    category as current,
     bookmark,
-    categories,
     bookmarks,
+    categories,
+    category as current,
   } from "../bookmark";
+  import { confirm, valid } from "../misc";
+  import { component } from "../stores";
 
-  const dispatch = createEventDispatcher();
+  let { reload }: { reload: () => Promise<void> } = $props();
 
-  let name = $bookmark ? $bookmark.bookmark : "";
-  let url = $bookmark ? $bookmark.url : "";
-  let category = $bookmark ? $bookmark.category : "";
-  let validated = false;
+  let name = $state($bookmark ? $bookmark.bookmark : "");
+  let url = $state($bookmark ? $bookmark.url : "");
+  let category = $state($bookmark ? $bookmark.category : "");
+  let validated = $state(false);
 
-  $: mode = window.location.pathname == "/bookmark/add" ? "Add" : "Edit";
+  let mode = $derived(
+    window.location.pathname == "/bookmark/add" ? "Add" : "Edit",
+  );
 
   const chkURL = () => {
     if (url && !url.match(/^https?:/) && url.length) url = "http://" + url;
@@ -25,7 +26,7 @@
   const save = async () => {
     if (valid()) {
       validated = false;
-      const b = <Bookmark>{ bookmark: name, url, category };
+      const b = { bookmark: name, url, category } as Bookmark;
       if (mode == "Edit") b.id = $bookmark.id;
       try {
         const res = await bookmarks.save(b);
@@ -33,7 +34,7 @@
         else if (res == 1) name = "";
         else if (res == 2) url = "";
       } catch {
-        dispatch("reload");
+        await reload();
         $current = {};
         goback();
       }
@@ -45,7 +46,7 @@
       try {
         await bookmarks.delete($bookmark);
       } catch {
-        dispatch("reload");
+        await reload();
         $current = {};
       }
       goback();
@@ -59,7 +60,7 @@
 </script>
 
 <svelte:window
-  on:keydown={(e) => {
+  onkeydown={(e) => {
     if (e.key === "Escape") goback();
   }}
 />
@@ -68,9 +69,9 @@
   <title>{mode} Bookmark - My Bookmarks</title>
 </svelte:head>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  on:keydown={async (e) => {
+  onkeydown={async (e) => {
     if (e.key == "Enter") await save();
   }}
 >
@@ -81,7 +82,7 @@
   <div class="form" class:was-validated={validated}>
     <div class="mb-3">
       <label class="form-label" for="bookmark">Bookmark</label>
-      <!-- svelte-ignore a11y-autofocus -->
+      <!-- svelte-ignore a11y_autofocus -->
       <input
         class="form-control"
         id="bookmark"
@@ -100,7 +101,7 @@
         id="url"
         type="url"
         bind:value={url}
-        on:blur={chkURL}
+        onblur={chkURL}
         required
       />
       <div class="invalid-feedback">Please enter a valid URL.</div>
@@ -123,12 +124,12 @@
         Max length: 15 characters. One chinese character equal three characters.
       </small>
     </div>
-    <button class="btn btn-primary" on:click={save}>{mode}</button>
-    <button class="btn btn-primary" on:click={goback}>Cancel</button>
+    <button class="btn btn-primary" onclick={save}>{mode}</button>
+    <button class="btn btn-primary" onclick={goback}>Cancel</button>
   </div>
   {#if mode == "Edit"}
     <div class="form">
-      <button class="btn btn-danger delete" on:click={del}>Delete</button>
+      <button class="btn btn-danger delete" onclick={del}>Delete</button>
     </div>
   {/if}
 </div>

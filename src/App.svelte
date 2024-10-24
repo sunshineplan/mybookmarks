@@ -1,15 +1,15 @@
 <script lang="ts">
-  import type { ComponentType } from "svelte";
-  import Nav from "./components/Nav.svelte";
-  import Login from "./components/Login.svelte";
-  import Setting from "./components/Setting.svelte";
-  import Sidebar from "./components/Sidebar.svelte";
-  import Show from "./components/Show.svelte";
-  import Bookmark from "./components/Bookmark.svelte";
-  import { showSidebar, component, loading } from "./stores";
+  import type { Component } from "svelte";
   import { init } from "./bookmark";
+  import Bookmark from "./components/Bookmark.svelte";
+  import Login from "./components/Login.svelte";
+  import Nav from "./components/Nav.svelte";
+  import Setting from "./components/Setting.svelte";
+  import Show from "./components/Show.svelte";
+  import Sidebar from "./components/Sidebar.svelte";
+  import { component, loading, showSidebar } from "./stores";
 
-  let username: string = "";
+  let username = $state("");
 
   const load = async () => {
     loading.start();
@@ -18,38 +18,43 @@
   };
   const promise = load();
 
-  const components: { [component: string]: ComponentType } = {
+  const components: {
+    [component: string]: Component<{
+      reload: () => Promise<void>;
+    }>;
+  } = {
     setting: Setting,
     show: Show,
     bookmark: Bookmark,
   };
 </script>
 
-<Nav bind:username on:reload={load} />
+<Nav bind:username reload={load} />
 {#await promise then _}
   {#if !username}
     {#if !$loading}
-      <Login on:info={load} />
+      <Login info={load} />
     {/if}
   {:else}
-    <Sidebar on:reload={load} />
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <Sidebar />
+    {@const Component = components[$component]}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="content"
       style="padding-left: 250px; opacity: {$loading ? 0.5 : 1}"
-      on:mousedown={showSidebar.close}
+      onmousedown={showSidebar.close}
     >
-      <svelte:component this={components[$component]} on:reload={load} />
+      <Component reload={load} />
     </div>
   {/if}
 {/await}
 <div class={username ? "loading" : "initializing"} hidden={!$loading}>
   <div class="sk-wave sk-center">
-    <div class="sk-wave-rect" />
-    <div class="sk-wave-rect" />
-    <div class="sk-wave-rect" />
-    <div class="sk-wave-rect" />
-    <div class="sk-wave-rect" />
+    <div class="sk-wave-rect"></div>
+    <div class="sk-wave-rect"></div>
+    <div class="sk-wave-rect"></div>
+    <div class="sk-wave-rect"></div>
+    <div class="sk-wave-rect"></div>
   </div>
 </div>
 

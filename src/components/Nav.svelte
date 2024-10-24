@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { fire, post } from "../misc";
   import { component, showSidebar } from "../stores";
 
-  const dispatch = createEventDispatcher();
+  interface Props {
+    username: string;
+    reload: () => Promise<void>;
+  }
 
-  export let username: string;
+  let { reload, username = $bindable() }: Props = $props();
 
   const setting = () => {
     window.history.pushState({}, "", "/setting");
@@ -16,7 +18,7 @@
   const logout = async () => {
     const resp = await post(window.universal + "/logout", undefined, true);
     if (resp.ok) {
-      dispatch("reload");
+      await reload();
       window.history.pushState({}, "", "/");
       $component = "show";
     } else await fire("Error", await resp.text(), "error");
@@ -25,12 +27,12 @@
 
 <nav class="navbar navbar-light topbar">
   <div class="d-flex" style="height:100%">
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span
       class="brand"
       class:user={username}
-      on:click={() => {
+      onclick={() => {
         window.history.pushState({}, "", "/");
         $component = "show";
       }}
@@ -41,12 +43,12 @@
   <div class="navbar-nav flex-row">
     {#if username}
       <span class="nav-link">{username}</span>
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <span class="nav-link link" on:click={setting}>Setting</span>
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <span class="nav-link link" on:click={logout}>Logout</span>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <span class="nav-link link" onclick={setting}>Setting</span>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <span class="nav-link link" onclick={logout}>Logout</span>
     {:else}
       <span class="nav-link">Log in</span>
     {/if}

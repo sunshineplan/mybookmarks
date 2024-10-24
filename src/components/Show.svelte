@@ -1,18 +1,21 @@
 <script lang="ts">
   import Cookies from "js-cookie";
   import Sortable, { type SortableEvent } from "sortablejs";
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount } from "svelte";
   import { poll, confirm, pasteText } from "../misc";
   import { component, loading } from "../stores";
   import { init, bookmark, bookmarks, category, categories } from "../bookmark";
 
-  const dispatch = createEventDispatcher();
+  let { reload }: { reload: () => Promise<void> } = $props();
+
   const isSmall = 700;
 
   let smallSize = window.innerWidth <= isSmall;
-  let editable = false;
+  let editable = $state(false);
 
-  $: $category, bookmarks.get($category);
+  $effect(() => {
+    bookmarks.get($category);
+  });
 
   onMount(() => {
     const element = document.querySelector<HTMLElement>("#mybookmarks");
@@ -41,7 +44,7 @@
       }
       await subscribe(signal);
     } else if (resp.status == 401) {
-      dispatch("reload");
+      await reload();
     } else {
       await new Promise((sleep) => setTimeout(sleep, 30000));
       await subscribe(signal);
@@ -76,7 +79,7 @@
         await categories.edit($category, c);
         await bookmarks.get({ category: c });
       } catch {
-        dispatch("reload");
+        await reload();
         return false;
       }
       $category.category = c;
@@ -84,8 +87,8 @@
     return true;
   };
   const add = () => {
-    if (!$category.category) $bookmark = <Bookmark>{};
-    else $bookmark = <Bookmark>{ category: $category.category };
+    if (!$category.category) $bookmark = {} as Bookmark;
+    else $bookmark = { category: $category.category } as Bookmark;
     window.history.pushState({}, "", "/bookmark/add");
     $component = "bookmark";
   };
@@ -96,7 +99,7 @@
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {
-    const target = <Element>event.target;
+    const target = event.target as Element;
     target.textContent = target.textContent?.trim() || "";
     if (event.key == "Enter") {
       event.preventDefault();
@@ -122,7 +125,7 @@
           await bookmarks.get();
           editable = false;
         } catch {
-          dispatch("reload");
+          await reload();
         }
         $category = {};
       }
@@ -154,7 +157,7 @@
       await bookmarks.get($category, 15);
   };
   const handleClick = async (event: MouseEvent) => {
-    const target = <Element>event.target;
+    const target = event.target as Element;
     const element = document.querySelector("#category");
     if (target.classList.contains("category")) {
       editable = false;
@@ -190,9 +193,9 @@
 </svelte:head>
 
 <svelte:window
-  on:resize={handleResize}
-  on:scroll|capture={handleScroll}
-  on:click={handleClick}
+  onresize={handleResize}
+  onscrollcapture={handleScroll}
+  onclick={handleClick}
 />
 
 <div style="height: 100%">
@@ -202,8 +205,8 @@
         id="category"
         class:editable
         contenteditable={editable}
-        on:keydown={categoryKeydown}
-        on:paste={pasteText}
+        onkeydown={categoryKeydown}
+        onpaste={pasteText}
       >
         {$category.category === undefined
           ? "All Bookmarks"
@@ -212,9 +215,9 @@
             : "Uncategorized"}
       </h3>
       {#if $category.category}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="icon" on:click={categoryClick}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <span class="icon" onclick={categoryClick}>
           {#if !editable}
             <i class="material-icons edit">edit</i>
           {:else}
@@ -223,7 +226,7 @@
         </span>
       {/if}
     </div>
-    <button class="btn btn-primary" on:click={add}>Add Bookmark</button>
+    <button class="btn btn-primary" onclick={add}>Add Bookmark</button>
   </header>
   <div class="table-responsive">
     <table class="table table-sm">
@@ -232,7 +235,7 @@
           <th>Bookmark</th>
           <th>URL</th>
           <th>Category</th>
-          <th />
+          <th></th>
         </tr>
       </thead>
       <tbody id="mybookmarks">
@@ -252,9 +255,9 @@
             </td>
             <td>{bookmark.category}</td>
             <td>
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="icon" on:click={() => edit(bookmark)}>
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <span class="icon" onclick={() => edit(bookmark)}>
                 <i class="material-icons edit">edit</i>
               </span>
             </td>

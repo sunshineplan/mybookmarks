@@ -3,10 +3,10 @@
   import { component, showSidebar } from "../stores";
   import { category, categories } from "../bookmark";
 
-  let hover = false;
+  let hover = $state(false);
 
-  $: uncategorized = $categories.find((i) => i.category === "");
-  $: total = $categories.reduce((a, b) => a + (b.count || 0), 0);
+  let uncategorized = $derived($categories.find((i) => i.category === ""));
+  let total = $derived($categories.reduce((a, b) => a + (b.count || 0), 0));
 
   const goto = async (c: Category) => {
     showSidebar.close();
@@ -37,7 +37,7 @@
     else ul?.appendChild(li);
     li.addEventListener("paste", pasteText);
     li.addEventListener("keydown", async (event) => {
-      const target = <Element>event.target;
+      const target = event.target as Element;
       const category = target.textContent?.trim();
       if (event.key == "Enter") {
         event.preventDefault();
@@ -64,7 +64,7 @@
       if (newCategory) newCategory.remove();
       const len = $categories.length;
       const index = $categories.findIndex(
-        (c) => c.category === $category.category
+        (c) => c.category === $category.category,
       );
       if ($component === "show")
         if (event.key == "ArrowUp") {
@@ -78,7 +78,7 @@
     }
   };
   const handleClick = async (event: MouseEvent) => {
-    const target = <Element>event.target;
+    const target = event.target as Element;
     if (
       !target.classList.contains("new") &&
       !target.classList.contains("swal2-confirm") &&
@@ -94,15 +94,15 @@
   };
 </script>
 
-<svelte:window on:keydown={handleKeydown} on:click={handleClick} />
+<svelte:window onkeydown={handleKeydown} onclick={handleClick} />
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <span
   class="toggle"
-  on:click={showSidebar.toggle}
-  on:mouseenter={() => (hover = true)}
-  on:mouseleave={() => (hover = false)}
+  onclick={showSidebar.toggle}
+  onmouseenter={() => (hover = true)}
+  onmouseleave={() => (hover = false)}
 >
   <svg viewBox="0 0 70 70" width="40" height="30">
     {#each [10, 30, 50] as y}
@@ -112,41 +112,41 @@
 </span>
 <nav class="nav flex-column navbar-light sidebar" class:show={$showSidebar}>
   <div class="category-menu">
-    <button class="btn btn-primary btn-sm" on:click={addCategory}>
+    <button class="btn btn-primary btn-sm" onclick={addCategory}>
       Add Category
     </button>
     <ul class="navbar-nav" id="categories">
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <li
         class="navbar-brand category"
         class:active={$category.category === undefined && $component === "show"}
-        on:click={async () => await goto({})}
+        onclick={async () => await goto({})}
       >
         All Bookmarks ({total})
       </li>
       {#each $categories as c (c.category)}
         {#if c.category != ""}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <li
             class="nav-link category"
             class:active={$category.category === c.category &&
               $component === "show"}
-            on:click={async () => await goto(c)}
+            onclick={async () => await goto(c)}
           >
             {c.category} ({c.count})
           </li>
         {/if}
       {/each}
       {#if uncategorized}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <li
           class="nav-link category"
           id="uncategorized"
           class:active={$category.category === "" && $component === "show"}
-          on:click={async () => await goto({ category: "" })}
+          onclick={async () => await goto({ category: "" })}
         >
           Uncategorized ({uncategorized.count})
         </li>
