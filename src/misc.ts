@@ -5,7 +5,9 @@ import { loading } from './stores'
 export const encrypt = (pubkey: string, password: string) => {
   const encrypt = new JSEncrypt()
   encrypt.setPublicKey(pubkey)
-  return encrypt.encrypt(password)
+  const s = encrypt.encrypt(password)
+  if (s === false) return password
+  return s
 }
 
 export const fire = async (title?: string, html?: string, icon?: SweetAlertIcon) => {

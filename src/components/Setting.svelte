@@ -1,23 +1,22 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { encrypt, fire, post, valid } from "../misc";
   import { component } from "../stores";
 
-  const dispatch = createEventDispatcher();
+  let { reload }: { reload: () => Promise<void> } = $props();
 
-  let password = "";
-  let password1 = "";
-  let password2 = "";
-  let validated = false;
+  let password = $state("");
+  let password1 = $state("");
+  let password2 = $state("");
+  let validated = $state(false);
 
   const setting = async () => {
     if (valid()) {
       validated = false;
-      var pwd: string, p1: string, p2: string;
+      let pwd: string, p1: string, p2: string;
       if (window.pubkey && window.pubkey.length) {
-        pwd = <string>encrypt(window.pubkey, password);
-        p1 = <string>encrypt(window.pubkey, password1);
-        p2 = <string>encrypt(window.pubkey, password2);
+        pwd = encrypt(window.pubkey, password);
+        p1 = encrypt(window.pubkey, password1);
+        p2 = encrypt(window.pubkey, password2);
       } else {
         pwd = password;
         p1 = password1;
@@ -25,12 +24,8 @@
       }
       const resp = await post(
         window.universal + "/chgpwd",
-        {
-          password: pwd,
-          password1: p1,
-          password2: p2,
-        },
-        true
+        { password: pwd, password1: p1, password2: p2 },
+        true,
       );
       if (resp.ok) {
         const json = await resp.json();
@@ -38,9 +33,9 @@
           await fire(
             "Success",
             "Your password has changed. Please Re-login!",
-            "success"
+            "success",
           );
-          dispatch("reload");
+          await reload();
           window.history.pushState({}, "", "/");
           $component = "show";
         } else {
@@ -62,7 +57,7 @@
 </script>
 
 <svelte:window
-  on:keydown={(e) => {
+  onkeydown={(e) => {
     if (e.key === "Escape") cancel();
   }}
 />
@@ -75,11 +70,11 @@
   <h3>Setting</h3>
   <hr />
 </header>
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   style="padding-left: 20px"
   class="was-validated: {validated}"
-  on:keyup={async (e) => {
+  onkeyup={async (e) => {
     if (e.key == "Enter") await setting();
   }}
 >
@@ -122,8 +117,8 @@
       Max password length: 20 characters.
     </small>
   </div>
-  <button class="btn btn-primary" on:click={setting}>Change</button>
-  <button class="btn btn-primary" on:click={cancel}>Cancel</button>
+  <button class="btn btn-primary" onclick={setting}>Change</button>
+  <button class="btn btn-primary" onclick={cancel}>Cancel</button>
 </div>
 
 <style>
