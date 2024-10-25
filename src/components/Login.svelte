@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { encrypt, fire, post } from "../misc";
+  import { encrypt, fire, post } from "../misc.svelte";
 
   let { info }: { info: () => Promise<void> } = $props();
 

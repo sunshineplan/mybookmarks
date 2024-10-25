@@ -1,18 +1,21 @@
 <script lang="ts">
-  import { pasteText } from "../misc";
-  import { component, showSidebar } from "../stores";
-  import { category, categories } from "../bookmark";
+  import { mybookmarks } from "../bookmark.svelte";
+  import { pasteText, showSidebar } from "../misc.svelte";
 
   let hover = $state(false);
 
-  let uncategorized = $derived($categories.find((i) => i.category === ""));
-  let total = $derived($categories.reduce((a, b) => a + (b.count || 0), 0));
+  const uncategorized = $derived(
+    mybookmarks.categories.find((i) => i.category === ""),
+  );
+  const total = $derived(
+    mybookmarks.categories.reduce((a, b) => a + (b.count || 0), 0),
+  );
 
   const goto = async (c: Category) => {
     showSidebar.close();
-    $category = c;
+    mybookmarks.category = c;
     window.history.pushState({}, "", "/");
-    $component = "show";
+    mybookmarks.component = "show";
     const div = document.querySelector(".table-responsive");
     if (div) div.scrollTop = 0;
   };
@@ -21,7 +24,7 @@
     category = category.trim();
     document.querySelector(".new")?.remove();
     const newCategory: Category = { category, count: 0 };
-    await categories.add(newCategory);
+    await mybookmarks.addCategory(newCategory);
     await goto(newCategory);
   };
 
@@ -62,19 +65,20 @@
     if (event.key == "ArrowUp" || event.key == "ArrowDown") {
       const newCategory = document.querySelector(".new");
       if (newCategory) newCategory.remove();
-      const len = $categories.length;
-      const index = $categories.findIndex(
-        (c) => c.category === $category.category,
+      const len = mybookmarks.categories.length;
+      const index = mybookmarks.categories.findIndex(
+        (c) => c.category === mybookmarks.category.category,
       );
-      if ($component === "show")
+      if (mybookmarks.component === "show")
         if (event.key == "ArrowUp") {
           if (index == 0) await goto({});
-          else if (index > 0) await goto($categories[index - 1]);
+          else if (index > 0) await goto(mybookmarks.categories[index - 1]);
         } else if (event.key == "ArrowDown")
-          if ($category.category === undefined) {
-            if (len > 0) await goto($categories[0]);
+          if (mybookmarks.category.category === undefined) {
+            if (len > 0) await goto(mybookmarks.categories[0]);
             else if (uncategorized) await goto({ category: "" });
-          } else if (index < len - 1) await goto($categories[index + 1]);
+          } else if (index < len - 1)
+            await goto(mybookmarks.categories[index + 1]);
     }
   };
   const handleClick = async (event: MouseEvent) => {
@@ -110,7 +114,10 @@
     {/each}
   </svg>
 </span>
-<nav class="nav flex-column navbar-light sidebar" class:show={$showSidebar}>
+<nav
+  class="nav flex-column navbar-light sidebar"
+  class:show={showSidebar.status}
+>
   <div class="category-menu">
     <button class="btn btn-primary btn-sm" onclick={addCategory}>
       Add Category
@@ -120,19 +127,20 @@
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <li
         class="navbar-brand category"
-        class:active={$category.category === undefined && $component === "show"}
+        class:active={mybookmarks.category.category === undefined &&
+          mybookmarks.component === "show"}
         onclick={async () => await goto({})}
       >
         All Bookmarks ({total})
       </li>
-      {#each $categories as c (c.category)}
+      {#each mybookmarks.categories as c (c.category)}
         {#if c.category != ""}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <li
             class="nav-link category"
-            class:active={$category.category === c.category &&
-              $component === "show"}
+            class:active={mybookmarks.category.category === c.category &&
+              mybookmarks.component === "show"}
             onclick={async () => await goto(c)}
           >
             {c.category} ({c.count})
@@ -145,7 +153,8 @@
         <li
           class="nav-link category"
           id="uncategorized"
-          class:active={$category.category === "" && $component === "show"}
+          class:active={mybookmarks.category.category === "" &&
+            mybookmarks.component === "show"}
           onclick={async () => await goto({ category: "" })}
         >
           Uncategorized ({uncategorized.count})

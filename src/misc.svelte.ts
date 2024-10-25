@@ -1,6 +1,20 @@
 import JSEncrypt from 'jsencrypt'
 import Swal, { type SweetAlertIcon } from 'sweetalert2'
-import { loading } from './stores'
+
+class Toggler {
+  status = $state(false)
+  toggle() { this.status = !this.status }
+  close() { this.status = false }
+}
+export const showSidebar = new Toggler
+
+class Loading {
+  #n = $state(0)
+  show = $derived(this.#n > 0)
+  start() { this.#n += 1 }
+  end() { this.#n -= 1 }
+}
+export const loading = new Loading
 
 export const encrypt = (pubkey: string, password: string) => {
   const encrypt = new JSEncrypt()

@@ -1,18 +1,19 @@
 <script lang="ts">
-  import { fire, post } from "../misc";
-  import { component, showSidebar } from "../stores";
+  import { mybookmarks } from "../bookmark.svelte";
+  import { fire, post, showSidebar } from "../misc.svelte";
 
-  interface Props {
+  let {
+    reload,
+    username = $bindable(),
+  }: {
     username: string;
     reload: () => Promise<void>;
-  }
-
-  let { reload, username = $bindable() }: Props = $props();
+  } = $props();
 
   const setting = () => {
     window.history.pushState({}, "", "/setting");
     if (window.innerWidth <= 900) showSidebar.close();
-    $component = "setting";
+    mybookmarks.component = "setting";
   };
 
   const logout = async () => {
@@ -20,7 +21,7 @@
     if (resp.ok) {
       await reload();
       window.history.pushState({}, "", "/");
-      $component = "show";
+      mybookmarks.component = "show";
     } else await fire("Error", await resp.text(), "error");
   };
 </script>
@@ -34,7 +35,7 @@
       class:user={username}
       onclick={() => {
         window.history.pushState({}, "", "/");
-        $component = "show";
+        mybookmarks.component = "show";
       }}
     >
       My Bookmarks

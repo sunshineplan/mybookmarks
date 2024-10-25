@@ -1,21 +1,15 @@
 <script lang="ts">
-  import {
-    bookmark,
-    bookmarks,
-    categories,
-    category as current,
-  } from "../bookmark";
-  import { confirm, valid } from "../misc";
-  import { component } from "../stores";
+  import { mybookmarks } from "../bookmark.svelte";
+  import { confirm, valid } from "../misc.svelte";
 
   let { reload }: { reload: () => Promise<void> } = $props();
 
-  let name = $state($bookmark ? $bookmark.bookmark : "");
-  let url = $state($bookmark ? $bookmark.url : "");
-  let category = $state($bookmark ? $bookmark.category : "");
+  let name = $state(mybookmarks.bookmark.bookmark || "");
+  let url = $state(mybookmarks.bookmark.url || "");
+  let category = $state(mybookmarks.bookmark.category || "");
   let validated = $state(false);
 
-  let mode = $derived(
+  const mode = $derived(
     window.location.pathname == "/bookmark/add" ? "Add" : "Edit",
   );
 
@@ -27,15 +21,15 @@
     if (valid()) {
       validated = false;
       const b = { bookmark: name, url, category } as Bookmark;
-      if (mode == "Edit") b.id = $bookmark.id;
+      if (mode == "Edit") b.id = mybookmarks.bookmark.id;
       try {
-        const res = await bookmarks.save(b);
+        const res = await mybookmarks.saveBookmark(b);
         if (res === 0) goback();
         else if (res == 1) name = "";
         else if (res == 2) url = "";
       } catch {
         await reload();
-        $current = {};
+        mybookmarks.category = {};
         goback();
       }
     } else validated = true;
@@ -44,10 +38,10 @@
   const del = async () => {
     if (await confirm("bookmark")) {
       try {
-        await bookmarks.delete($bookmark);
+        await mybookmarks.deleteBookmark(mybookmarks.bookmark);
       } catch {
         await reload();
-        $current = {};
+        mybookmarks.category = {};
       }
       goback();
     }
@@ -55,7 +49,7 @@
 
   const goback = () => {
     window.history.pushState({}, "", "/");
-    $component = "show";
+    mybookmarks.component = "show";
   };
 </script>
 
@@ -116,7 +110,7 @@
         maxlength="15"
       />
       <datalist id="category-list">
-        {#each $categories as category (category.category)}
+        {#each mybookmarks.categories as category (category.category)}
           <option>{category.category}</option>
         {/each}
       </datalist>

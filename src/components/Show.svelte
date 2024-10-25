@@ -2,9 +2,8 @@
   import Cookies from "js-cookie";
   import Sortable, { type SortableEvent } from "sortablejs";
   import { onMount } from "svelte";
-  import { poll, confirm, pasteText } from "../misc";
-  import { component, loading } from "../stores";
-  import { init, bookmark, bookmarks, category, categories } from "../bookmark";
+  import { init, mybookmarks } from "../bookmark.svelte";
+  import { confirm, loading, pasteText, poll } from "../misc.svelte";
 
   let { reload }: { reload: () => Promise<void> } = $props();
 
@@ -14,7 +13,7 @@
   let editable = $state(false);
 
   $effect(() => {
-    bookmarks.get($category);
+    mybookmarks.getBookmarks(mybookmarks.category);
   });
 
   onMount(() => {
@@ -36,10 +35,10 @@
     if (resp.ok) {
       const last = await resp.text();
       if (last && Cookies.get("last") != last) {
-        const c = $category;
+        const c = mybookmarks.category;
         loading.start();
         await init();
-        $category = c;
+        mybookmarks.category = c;
         loading.end();
       }
       await subscribe(signal);
@@ -58,7 +57,10 @@
 
   const onUpdate = async (evt: SortableEvent) => {
     if (evt.oldIndex !== undefined && evt.newIndex !== undefined)
-      await bookmarks.swap($bookmarks[evt.oldIndex], $bookmarks[evt.newIndex]);
+      await mybookmarks.swap(
+        mybookmarks.bookmarks[evt.oldIndex],
+        mybookmarks.bookmarks[evt.newIndex],
+      );
   };
 
   const formatURL = (isSmall: boolean) => {
@@ -74,28 +76,31 @@
 
   const editCategory = async (c: string) => {
     c = c.trim();
-    if ($category.category != c) {
+    if (mybookmarks.category.category != c) {
       try {
-        await categories.edit($category, c);
-        await bookmarks.get({ category: c });
+        await mybookmarks.editCategory(mybookmarks.category, c);
+        await mybookmarks.getBookmarks({ category: c });
       } catch {
         await reload();
         return false;
       }
-      $category.category = c;
+      mybookmarks.category.category = c;
     }
     return true;
   };
   const add = () => {
-    if (!$category.category) $bookmark = {} as Bookmark;
-    else $bookmark = { category: $category.category } as Bookmark;
+    if (!mybookmarks.category.category) mybookmarks.bookmark = {} as Bookmark;
+    else
+      mybookmarks.bookmark = {
+        category: mybookmarks.category.category,
+      } as Bookmark;
     window.history.pushState({}, "", "/bookmark/add");
-    $component = "bookmark";
+    mybookmarks.component = "bookmark";
   };
   const edit = (b: Bookmark) => {
-    $bookmark = b;
+    mybookmarks.bookmark = b;
     window.history.pushState({}, "", "/bookmark/edit");
-    $component = "bookmark";
+    mybookmarks.component = "bookmark";
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {
@@ -106,13 +111,13 @@
       if (target.textContent)
         editable = !(await editCategory(target.textContent));
       else {
-        target.textContent = $category.category || "";
+        target.textContent = mybookmarks.category.category || "";
         editable = false;
       }
     } else if (event.key == "Escape") {
       if (target.textContent) target.textContent = "";
       else {
-        target.textContent = $category.category || "";
+        target.textContent = mybookmarks.category.category || "";
         editable = false;
       }
     }
@@ -121,13 +126,13 @@
     if (editable) {
       if (await confirm("category")) {
         try {
-          await categories.delete($category);
-          await bookmarks.get();
+          await mybookmarks.deleteCategory(mybookmarks.category);
+          await mybookmarks.getBookmarks();
           editable = false;
         } catch {
           await reload();
         }
-        $category = {};
+        mybookmarks.category = {};
       }
     } else {
       editable = true;
@@ -154,7 +159,7 @@
   const handleScroll = async () => {
     const table = document.querySelector(".table-responsive");
     if (table && table.scrollTop + table.clientHeight >= table.scrollHeight)
-      await bookmarks.get($category, 15);
+      await mybookmarks.getBookmarks(mybookmarks.category, 15);
   };
   const handleClick = async (event: MouseEvent) => {
     const target = event.target as Element;
@@ -162,7 +167,7 @@
     if (target.classList.contains("category")) {
       editable = false;
     } else if (target.classList.contains("delete")) {
-      if (element) element.textContent = $category.category || "";
+      if (element) element.textContent = mybookmarks.category.category || "";
       editable = false;
     } else if (
       target.id !== "category" &&
@@ -174,7 +179,7 @@
         if (element.textContent)
           editable = !(await editCategory(element.textContent));
         else {
-          element.textContent = $category.category || "";
+          element.textContent = mybookmarks.category.category || "";
           editable = false;
         }
       }
@@ -184,10 +189,10 @@
 
 <svelte:head>
   <title>
-    {$category.category === undefined
+    {mybookmarks.category.category === undefined
       ? "All Bookmarks"
-      : $category.category
-        ? $category.category
+      : mybookmarks.category.category
+        ? mybookmarks.category.category
         : "Uncategorized"} - My Bookmarks
   </title>
 </svelte:head>
@@ -208,13 +213,13 @@
         onkeydown={categoryKeydown}
         onpaste={pasteText}
       >
-        {$category.category === undefined
+        {mybookmarks.category.category === undefined
           ? "All Bookmarks"
-          : $category.category
-            ? $category.category
+          : mybookmarks.category.category
+            ? mybookmarks.category.category
             : "Uncategorized"}
       </h3>
-      {#if $category.category}
+      {#if mybookmarks.category.category}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <span class="icon" onclick={categoryClick}>
@@ -239,7 +244,7 @@
         </tr>
       </thead>
       <tbody id="mybookmarks">
-        {#each $bookmarks as bookmark (bookmark.id)}
+        {#each mybookmarks.bookmarks as bookmark (bookmark.id)}
           <tr>
             <td>{bookmark.bookmark}</td>
             <td>

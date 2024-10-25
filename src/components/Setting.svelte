@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { encrypt, fire, post, valid } from "../misc";
-  import { component } from "../stores";
+  import { mybookmarks } from "../bookmark.svelte";
+  import { encrypt, fire, post, valid } from "../misc.svelte";
 
   let { reload }: { reload: () => Promise<void> } = $props();
 
@@ -37,7 +37,7 @@
           );
           await reload();
           window.history.pushState({}, "", "/");
-          $component = "show";
+          mybookmarks.component = "show";
         } else {
           await fire("Error", json.message, "error");
           if (json.error == 1) password = "";
@@ -52,7 +52,7 @@
 
   const cancel = () => {
     window.history.pushState({}, "", "/");
-    $component = "show";
+    mybookmarks.component = "show";
   };
 </script>
 
