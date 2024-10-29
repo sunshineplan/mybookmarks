@@ -104,7 +104,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <span
   class="toggle"
-  onclick={showSidebar.toggle}
+  onclick={() => showSidebar.toggle()}
   onmouseenter={() => (hover = true)}
   onmouseleave={() => (hover = false)}
 >
