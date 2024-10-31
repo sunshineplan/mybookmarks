@@ -9,7 +9,7 @@ import (
 )
 
 type category struct {
-	ID       string `json:"_id,omitempty"`
+	ID       string `json:"_id,omitempty" bson:"_id"`
 	Category string `json:"category"`
 	Count    int    `json:"count"`
 }
