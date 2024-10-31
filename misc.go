@@ -34,7 +34,7 @@ func addUser(username string) error {
 			User     string `json:"user" bson:"user"`
 			Seq      int    `json:"seq" bson:"seq"`
 			Created  any    `json:"created" bson:"created"`
-		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now()).Interface()},
+		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now())},
 	); err != nil {
 		return err
 	}
@@ -70,14 +70,14 @@ func checkExist(filter any) (ok bool, err error) {
 	return
 }
 
-func reorderBookmark(userID any, orig, dest mongodb.ObjectID) error {
+func reorderBookmark(userID string, orig, dest mongodb.ObjectID) error {
 	var origBookmark, destBookmark bookmark
 
 	c := make(chan error, 1)
 	go func() {
-		c <- bookmarkClient.FindOne(mongodb.M{"_id": orig.Interface()}, nil, &origBookmark)
+		c <- bookmarkClient.FindOne(mongodb.M{"_id": orig}, nil, &origBookmark)
 	}()
-	if err := bookmarkClient.FindOne(mongodb.M{"_id": dest.Interface()}, nil, &destBookmark); err != nil {
+	if err := bookmarkClient.FindOne(mongodb.M{"_id": dest}, nil, &destBookmark); err != nil {
 		return err
 	}
 	if err := <-c; err != nil {
@@ -98,7 +98,7 @@ func reorderBookmark(userID any, orig, dest mongodb.ObjectID) error {
 	}
 
 	if _, err := bookmarkClient.UpdateOne(
-		mongodb.M{"_id": orig.Interface()},
+		mongodb.M{"_id": orig},
 		mongodb.M{"$set": mongodb.M{"seq": destBookmark.Seq}},
 		nil,
 	); err != nil {

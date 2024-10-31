@@ -25,20 +25,21 @@ func checkRequired(c *gin.Context) {
 	}
 }
 
-func newLastModified(id any, c *gin.Context) {
+func newLastModified(id string, c *gin.Context) {
 	last := strconv.FormatInt(time.Now().UnixNano(), 10)
 	go updateLast(id, last)
 	username, _ := c.Get("username")
-	userCache.Swap(id, user{ID: id.(string), Username: username.(string), Last: last})
+	oid, _ := mongodb.OIDFromHex(id)
+	userCache.Swap(id, user{ID: oid, Username: username.(string), Last: last})
 	c.SetCookie("last", last, 856400*365, "", "", false, false)
 }
 
-func updateLast(id any, last string) {
+func updateLast(id string, last string) {
 	mu.Lock()
 	defer mu.Unlock()
-	objectID, _ := accountClient.ObjectID(id.(string))
+	objectID, _ := accountClient.ObjectID(id)
 	if _, err := accountClient.UpdateOne(
-		mongodb.M{"_id": objectID.Interface()},
+		mongodb.M{"_id": objectID},
 		mongodb.M{"$set": mongodb.M{"last": last}},
 		nil,
 	); err != nil {

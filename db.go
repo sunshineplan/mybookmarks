@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/sunshineplan/database/mongodb"
-	"github.com/sunshineplan/database/mongodb/api"
+	"github.com/sunshineplan/database/mongodb/driver"
 	"github.com/sunshineplan/utils/retry"
 )
 
@@ -10,7 +10,7 @@ var accountClient mongodb.Client
 var bookmarkClient mongodb.Client
 
 func initDB() (err error) {
-	var mongo api.Client
+	var mongo driver.Client
 	if err = retry.Do(func() error {
 		return meta.Get("mybookmarks_mongo", &mongo)
 	}, 3, 20); err != nil {

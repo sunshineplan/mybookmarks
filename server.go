@@ -105,16 +105,16 @@ func run() error {
 	})
 	router.GET("/poll", func(c *gin.Context) {
 		time.Sleep(*poll)
-		user, err := getUser(c)
-		if user.ID == "" || err == mongodb.ErrNoDocuments {
+		if user, err := getUser(c); err == errNoUser || err == mongodb.ErrNoDocuments {
 			c.Status(401)
-		} else if user.ID != "" {
+		} else if err == nil {
 			if v, _ := c.Cookie("last"); v == user.Last {
 				c.Status(200)
 			} else {
 				c.String(200, user.Last)
 			}
 		} else {
+			svc.Print(err)
 			c.Status(500)
 		}
 	})

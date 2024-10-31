@@ -9,12 +9,12 @@ import (
 )
 
 type bookmark struct {
-	ID       string `json:"id"`
-	ObjectID string `json:"_id,omitempty" bson:"_id"`
-	Bookmark string `json:"bookmark"`
-	URL      string `json:"url"`
-	Category string `json:"category"`
-	Seq      int    `json:"seq"`
+	ID       string       `json:"id"`
+	ObjectID *mongodb.OID `json:"_id,omitempty" bson:"_id"`
+	Bookmark string       `json:"bookmark"`
+	URL      string       `json:"url"`
+	Category string       `json:"category"`
+	Seq      int          `json:"seq"`
 }
 
 func getBookmark(c *gin.Context) {
@@ -30,8 +30,8 @@ func getBookmark(c *gin.Context) {
 		return
 	}
 	for _, i := range bookmarks {
-		i.ID = i.ObjectID
-		i.ObjectID = ""
+		i.ID = i.ObjectID.Hex()
+		i.ObjectID = nil
 	}
 	c.JSON(200, bookmarks)
 }
@@ -113,7 +113,7 @@ func addBookmark(c *gin.Context) {
 			URL:      data.URL,
 			User:     userID,
 			Seq:      seq,
-			Created:  bookmarkClient.Date(time.Now()).Interface(),
+			Created:  bookmarkClient.Date(time.Now()),
 			Category: data.Category,
 		}
 
@@ -124,7 +124,7 @@ func addBookmark(c *gin.Context) {
 			return
 		}
 
-		newLastModified(userID, c)
+		newLastModified(userID.(string), c)
 		c.JSON(200, gin.H{"status": 1, "id": insertedID.(mongodb.ObjectID).Hex(), "seq": seq})
 		return
 	}
@@ -162,16 +162,16 @@ func editBookmark(c *gin.Context) {
 	var old bookmark
 	var exist1, exist2 bool
 	go func() {
-		ec <- bookmarkClient.FindOne(mongodb.M{"_id": id.Interface(), "user": userID}, nil, &old)
+		ec <- bookmarkClient.FindOne(mongodb.M{"_id": id, "user": userID}, nil, &old)
 	}()
 	go func() {
 		var err error
-		exist1, err = checkExist(mongodb.M{"_id": mongodb.M{"$ne": id.Interface()}, "bookmark": new.Bookmark, "user": userID})
+		exist1, err = checkExist(mongodb.M{"_id": mongodb.M{"$ne": id}, "bookmark": new.Bookmark, "user": userID})
 		ec <- err
 	}()
 	go func() {
 		var err error
-		exist2, err = checkExist(mongodb.M{"_id": mongodb.M{"$ne": id.Interface()}, "url": new.URL, "user": userID})
+		exist2, err = checkExist(mongodb.M{"_id": mongodb.M{"$ne": id}, "url": new.URL, "user": userID})
 		ec <- err
 	}()
 	for i := 0; i < 3; i++ {
@@ -200,13 +200,13 @@ func editBookmark(c *gin.Context) {
 		} else {
 			update = mongodb.M{"$set": mongodb.M{"bookmark": new.Bookmark, "url": new.URL, "category": new.Category}}
 		}
-		if _, err := bookmarkClient.UpdateOne(mongodb.M{"_id": id.Interface()}, update, nil); err != nil {
+		if _, err := bookmarkClient.UpdateOne(mongodb.M{"_id": id}, update, nil); err != nil {
 			svc.Println("Failed to edit bookmark:", err)
 			c.AbortWithStatus(500)
 			return
 		}
 
-		newLastModified(userID, c)
+		newLastModified(userID.(string), c)
 		c.JSON(200, gin.H{"status": 1})
 		return
 	}
@@ -223,7 +223,7 @@ func deleteBookmark(c *gin.Context) {
 	}
 	userID, _ := c.Get("id")
 	var bookmark bookmark
-	if err := bookmarkClient.FindOneAndDelete(mongodb.M{"_id": id.Interface()}, nil, &bookmark); err != nil {
+	if err := bookmarkClient.FindOneAndDelete(mongodb.M{"_id": id}, nil, &bookmark); err != nil {
 		if err == mongodb.ErrNoDocuments {
 			c.AbortWithStatus(403)
 			return
@@ -243,7 +243,7 @@ func deleteBookmark(c *gin.Context) {
 		return
 	}
 
-	newLastModified(userID, c)
+	newLastModified(userID.(string), c)
 	c.JSON(200, gin.H{"status": 1})
 }
 
@@ -269,7 +269,7 @@ func reorder(c *gin.Context) {
 
 	userID, _ := c.Get("id")
 	for _, id := range []mongodb.ObjectID{origID, destID} {
-		if exist, err := checkExist(mongodb.M{"_id": id.Interface(), "user": userID}); err != nil {
+		if exist, err := checkExist(mongodb.M{"_id": id, "user": userID}); err != nil {
 			svc.Println("Failed to get bookmark:", err)
 			c.AbortWithStatus(500)
 			return
@@ -279,7 +279,7 @@ func reorder(c *gin.Context) {
 		}
 	}
 
-	if err := reorderBookmark(userID, origID, destID); err != nil {
+	if err := reorderBookmark(userID.(string), origID, destID); err != nil {
 		svc.Println("Failed to reorder bookmark:", err)
 		c.AbortWithStatus(500)
 		return

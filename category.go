@@ -87,7 +87,7 @@ func editCategory(c *gin.Context) {
 			return
 		}
 
-		newLastModified(userID, c)
+		newLastModified(userID.(string), c)
 		c.JSON(200, gin.H{"status": 1})
 		return
 	}
@@ -112,6 +112,6 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	newLastModified(userID, c)
+	newLastModified(userID.(string), c)
 	c.JSON(200, gin.H{"status": 1})
 }
