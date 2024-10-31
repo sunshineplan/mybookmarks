@@ -42,7 +42,7 @@
     <div
       class="content"
       style="padding-left: 250px; opacity: {loading.show ? 0.5 : 1}"
-      onmousedown={showSidebar.close}
+      onmousedown={() => showSidebar.close()}
     >
       <Component reload={load} />
     </div>

@@ -16,7 +16,7 @@ import (
 var userCache = cache.New[string, user](true)
 
 type user struct {
-	ID       mongodb.OID `bson:"_id"`
+	ID       mongodb.OID `json:"_id" bson:"_id"`
 	Username string
 	Password string
 	Last     string
