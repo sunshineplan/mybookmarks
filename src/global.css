@@ -1,0 +1,31 @@
+:root {
+  --sk-color: #1a73e8;
+}
+
+.content {
+  position: fixed;
+  top: 0;
+  padding-top: 90px;
+  height: 100%;
+  width: 100%;
+}
+
+h3 {
+  cursor: default;
+}
+
+.form {
+  padding: 0 20px;
+}
+
+.form-control {
+  width: 250px;
+}
+
+button+button {
+  margin-left: 0.3em;
+}
+
+.sortable-ghost {
+  opacity: 0;
+}

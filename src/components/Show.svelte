@@ -334,10 +334,6 @@
     overflow: hidden;
   }
 
-  :global(.sortable-ghost) {
-    opacity: 0;
-  }
-
   @media (max-width: 700px) {
     th:nth-of-type(1) {
       width: 120px;

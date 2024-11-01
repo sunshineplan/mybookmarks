@@ -76,34 +76,6 @@
     display: flex;
   }
 
-  :global(:root) {
-    --sk-color: #1a73e8;
-  }
-
-  :global(.content) {
-    position: fixed;
-    top: 0;
-    padding-top: 90px;
-    height: 100%;
-    width: 100%;
-  }
-
-  :global(h3) {
-    cursor: default;
-  }
-
-  :global(.form) {
-    padding: 0 20px;
-  }
-
-  :global(.form-control) {
-    width: 250px;
-  }
-
-  :global(button + button) {
-    margin-left: 0.3em;
-  }
-
   @media (max-width: 900px) {
     .loading {
       left: 0;

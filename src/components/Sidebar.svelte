@@ -258,7 +258,7 @@
     background-color: #eaf5fd;
   }
 
-  :global(.new) {
+  .new {
     outline: 0;
     border-left: 5px solid transparent;
     background-color: #eaf5fd;
