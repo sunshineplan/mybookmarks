@@ -13,6 +13,7 @@ class MyBookmarks {
   bookmark = $state<Bookmark>({} as Bookmark)
   categories = $state<Category[]>([])
   bookmarks = $state<Bookmark[]>([])
+  controller = $state(new AbortController())
   async clear() {
     await db.table('categories').clear()
     await db.table('bookmarks').clear()

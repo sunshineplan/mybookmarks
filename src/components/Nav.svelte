@@ -17,6 +17,7 @@
   };
 
   const logout = async () => {
+    mybookmarks.controller.abort()
     const resp = await post(window.universal + "/logout", undefined, true);
     if (resp.ok) {
       await reload();

@@ -52,17 +52,21 @@
     }
   };
   onMount(() => {
-    const controller = new AbortController();
-    subscribe(controller.signal);
-    return () => controller.abort();
+    mybookmarks.controller = new AbortController();
+    subscribe(mybookmarks.controller.signal);
+    return () => mybookmarks.controller.abort();
   });
 
   const onUpdate = async (evt: SortableEvent) => {
-    if (evt.oldIndex !== undefined && evt.newIndex !== undefined)
+    if (evt.oldIndex !== undefined && evt.newIndex !== undefined) {
+      mybookmarks.controller.abort();
       await mybookmarks.swap(
         mybookmarks.bookmarks[evt.oldIndex],
         mybookmarks.bookmarks[evt.newIndex],
       );
+      mybookmarks.controller = new AbortController();
+      subscribe(mybookmarks.controller.signal);
+    }
   };
 
   const formatURL = (isSmall: boolean) => {
