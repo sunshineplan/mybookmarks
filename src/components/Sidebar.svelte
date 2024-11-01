@@ -3,6 +3,12 @@
   import { pasteText, showSidebar } from "../misc.svelte";
 
   let hover = $state(false);
+  let toggle: HTMLElement;
+  let sidebar: HTMLElement;
+  let addCategoryButton: HTMLElement;
+  let newCategoryElement: HTMLElement;
+  let showNewCategory = $state(false);
+  let newCategory = $state("");
 
   const uncategorized = $derived(
     mybookmarks.categories.find((i) => i.category === ""),
@@ -11,50 +17,32 @@
     mybookmarks.categories.reduce((a, b) => a + (b.count || 0), 0),
   );
 
+  $effect(() => {
+    if (showNewCategory) newCategoryElement.focus();
+  });
+
   const goto = async (c: Category) => {
     showSidebar.close();
     mybookmarks.category = c;
     window.history.pushState({}, "", "/");
     mybookmarks.component = "show";
-    const div = document.querySelector(".table-responsive");
-    if (div) div.scrollTop = 0;
   };
 
-  const add = async (category: string) => {
-    category = category.trim();
-    document.querySelector(".new")?.remove();
-    const newCategory: Category = { category, count: 0 };
-    await mybookmarks.addCategory(newCategory);
-    await goto(newCategory);
+  const add = async () => {
+    newCategory = newCategory.trim();
+    if (newCategory) {
+      const category: Category = { category: newCategory, count: 0 };
+      await mybookmarks.addCategory(category);
+      await goto(category);
+    }
   };
 
   const addCategory = async () => {
-    showSidebar.close();
-    const newCategory = document.querySelector<HTMLElement>(".new");
-    if (newCategory) await add(newCategory.innerText);
-    const ul = document.querySelector("ul.navbar-nav");
-    const li = document.createElement("li");
-    li.classList.add("nav-link", "new");
-    const uncategorized = ul?.querySelector("#uncategorized");
-    if (uncategorized) ul?.insertBefore(li, uncategorized);
-    else ul?.appendChild(li);
-    li.addEventListener("paste", pasteText);
-    li.addEventListener("keydown", async (event) => {
-      const target = event.target as Element;
-      const category = target.textContent?.trim();
-      if (event.key == "Enter") {
-        event.preventDefault();
-        if (category) await add(category);
-        else target.remove();
-      } else if (event.key == "Escape") {
-        if (category) target.textContent = "";
-        else target.remove();
-      }
-    });
-    li.setAttribute("contenteditable", "true");
-    li.focus();
+    if (showNewCategory) await add();
+    else showNewCategory = true;
+    newCategory = "";
     const range = document.createRange();
-    range.selectNodeContents(li);
+    range.selectNodeContents(newCategoryElement);
     range.collapse(false);
     const sel = window.getSelection();
     sel?.removeAllRanges();
@@ -63,8 +51,10 @@
 
   const handleKeydown = async (event: KeyboardEvent) => {
     if (event.key == "ArrowUp" || event.key == "ArrowDown") {
-      const newCategory = document.querySelector(".new");
-      if (newCategory) newCategory.remove();
+      if (showNewCategory) {
+        showNewCategory = false;
+        newCategory = "";
+      }
       const len = mybookmarks.categories.length;
       const index = mybookmarks.categories.findIndex(
         (c) => c.category === mybookmarks.category.category,
@@ -84,17 +74,21 @@
   const handleClick = async (event: MouseEvent) => {
     const target = event.target as Element;
     if (
-      !target.classList.contains("new") &&
-      !target.classList.contains("swal2-confirm") &&
-      target.textContent !== "Add Category"
+      showNewCategory &&
+      !addCategoryButton.contains(target) &&
+      !newCategoryElement.contains(target) &&
+      !target.classList.contains("swal2-confirm")
     ) {
-      const newCategory = document.querySelector(".new");
-      if (newCategory) {
-        const category = newCategory.textContent?.trim();
-        if (category) await add(category);
-        else newCategory.remove();
-      }
+      await add();
+      showNewCategory = false;
+      newCategory = "";
     }
+    if (
+      showSidebar.status &&
+      !toggle.contains(target) &&
+      !sidebar.contains(target)
+    )
+      showSidebar.close();
   };
 </script>
 
@@ -104,6 +98,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <span
   class="toggle"
+  bind:this={toggle}
   onclick={() => showSidebar.toggle()}
   onmouseenter={() => (hover = true)}
   onmouseleave={() => (hover = false)}
@@ -117,9 +112,14 @@
 <nav
   class="nav flex-column navbar-light sidebar"
   class:show={showSidebar.status}
+  bind:this={sidebar}
 >
   <div class="category-menu">
-    <button class="btn btn-primary btn-sm" onclick={addCategory}>
+    <button
+      class="btn btn-primary btn-sm"
+      bind:this={addCategoryButton}
+      onclick={addCategory}
+    >
       Add Category
     </button>
     <ul class="navbar-nav" id="categories">
@@ -147,6 +147,26 @@
           </li>
         {/if}
       {/each}
+      <li
+        class="nav-link new"
+        style:display={showNewCategory ? "" : "none"}
+        bind:this={newCategoryElement}
+        bind:textContent={newCategory}
+        contenteditable
+        onpaste={pasteText}
+        onkeydown={async (event) => {
+          if (event.key == "Enter") {
+            event.preventDefault();
+            newCategory = newCategory.trim();
+            if (newCategory) await add();
+            else newCategory = "";
+            showNewCategory = false;
+          } else if (event.key == "Escape") {
+            newCategory = "";
+            showNewCategory = false;
+          }
+        }}
+      ></li>
       {#if uncategorized}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

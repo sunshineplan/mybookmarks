@@ -11,23 +11,25 @@
 
   let smallSize = window.innerWidth <= isSmall;
   let editable = $state(false);
+  let category: HTMLElement;
+  let table: HTMLElement;
+  let tbody: HTMLElement;
 
   $effect(() => {
     mybookmarks.getBookmarks(mybookmarks.category);
+    table.scrollTop = 0;
+    if (editable) category.focus();
   });
 
   onMount(() => {
-    const element = document.querySelector<HTMLElement>("#mybookmarks");
-    if (element) {
-      const sortable = new Sortable(element, {
-        animation: 150,
-        delay: 500,
-        swapThreshold: 0.5,
-        onUpdate,
-      });
-      if (smallSize) formatURL(true);
-      return () => sortable.destroy();
-    }
+    const sortable = new Sortable(tbody, {
+      animation: 150,
+      delay: 500,
+      swapThreshold: 0.5,
+      onUpdate,
+    });
+    if (smallSize) formatURL(true);
+    return () => sortable.destroy();
   });
 
   const subscribe = async (signal: AbortSignal) => {
@@ -104,20 +106,19 @@
   };
 
   const categoryKeydown = async (event: KeyboardEvent) => {
-    const target = event.target as Element;
-    target.textContent = target.textContent?.trim() || "";
+    category.textContent = category.textContent?.trim() || "";
     if (event.key == "Enter") {
       event.preventDefault();
-      if (target.textContent)
-        editable = !(await editCategory(target.textContent));
+      if (category.textContent)
+        editable = !(await editCategory(category.textContent));
       else {
-        target.textContent = mybookmarks.category.category || "";
+        category.textContent = mybookmarks.category.category || "";
         editable = false;
       }
     } else if (event.key == "Escape") {
-      if (target.textContent) target.textContent = "";
+      if (category.textContent) category.textContent = "";
       else {
-        target.textContent = mybookmarks.category.category || "";
+        category.textContent = mybookmarks.category.category || "";
         editable = false;
       }
     }
@@ -136,17 +137,12 @@
       }
     } else {
       editable = true;
-      const target = document.querySelector<HTMLElement>("#category");
-      if (target) {
-        target.setAttribute("contenteditable", "true");
-        target.focus();
-        const range = document.createRange();
-        range.selectNodeContents(target);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+      const range = document.createRange();
+      range.selectNodeContents(category);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
   };
 
@@ -157,31 +153,27 @@
     }
   };
   const handleScroll = async () => {
-    const table = document.querySelector(".table-responsive");
-    if (table && table.scrollTop + table.clientHeight >= table.scrollHeight)
+    if (table.scrollTop + table.clientHeight >= table.scrollHeight)
       await mybookmarks.getBookmarks(mybookmarks.category, 15);
   };
   const handleClick = async (event: MouseEvent) => {
     const target = event.target as Element;
-    const element = document.querySelector("#category");
     if (target.classList.contains("category")) {
       editable = false;
     } else if (target.classList.contains("delete")) {
-      if (element) element.textContent = mybookmarks.category.category || "";
+      category.textContent = mybookmarks.category.category || "";
       editable = false;
     } else if (
-      target.id !== "category" &&
+      !category.contains(target) &&
       !target.classList.contains("edit") &&
       editable
     ) {
-      if (element) {
-        element.textContent = element.textContent?.trim() || "";
-        if (element.textContent)
-          editable = !(await editCategory(element.textContent));
-        else {
-          element.textContent = mybookmarks.category.category || "";
-          editable = false;
-        }
+      category.textContent = category.textContent?.trim() || "";
+      if (category.textContent)
+        editable = !(await editCategory(category.textContent));
+      else {
+        category.textContent = mybookmarks.category.category || "";
+        editable = false;
       }
     }
   };
@@ -209,6 +201,7 @@
       <h3
         id="category"
         class:editable
+        bind:this={category}
         contenteditable={editable}
         onkeydown={categoryKeydown}
         onpaste={pasteText}
@@ -233,7 +226,7 @@
     </div>
     <button class="btn btn-primary" onclick={add}>Add Bookmark</button>
   </header>
-  <div class="table-responsive">
+  <div class="table-responsive" bind:this={table}>
     <table class="table table-sm">
       <thead>
         <tr>
@@ -243,7 +236,7 @@
           <th></th>
         </tr>
       </thead>
-      <tbody id="mybookmarks">
+      <tbody bind:this={tbody}>
         {#each mybookmarks.bookmarks as bookmark (bookmark.id)}
           <tr>
             <td>{bookmark.bookmark}</td>

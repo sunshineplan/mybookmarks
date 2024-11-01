@@ -7,7 +7,7 @@
   import Setting from "./components/Setting.svelte";
   import Show from "./components/Show.svelte";
   import Sidebar from "./components/Sidebar.svelte";
-  import { loading, showSidebar } from "./misc.svelte";
+  import { loading } from "./misc.svelte";
 
   let username = $state("");
 
@@ -42,7 +42,6 @@
     <div
       class="content"
       style="padding-left: 250px; opacity: {loading.show ? 0.5 : 1}"
-      onmousedown={() => showSidebar.close()}
     >
       <Component reload={load} />
     </div>
