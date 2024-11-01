@@ -1,9 +1,8 @@
 <script lang="ts">
-  import Cookies from "js-cookie";
   import Sortable, { type SortableEvent } from "sortablejs";
   import { onMount } from "svelte";
-  import { init, mybookmarks } from "../bookmark.svelte";
-  import { confirm, loading, pasteText, poll } from "../misc.svelte";
+  import { mybookmarks } from "../bookmark.svelte";
+  import { confirm, pasteText } from "../misc.svelte";
 
   let { reload }: { reload: () => Promise<void> } = $props();
 
@@ -32,40 +31,17 @@
     return () => sortable.destroy();
   });
 
-  const subscribe = async (signal: AbortSignal) => {
-    const resp = await poll(signal);
-    if (resp.ok) {
-      const last = await resp.text();
-      if (last && Cookies.get("last") != last) {
-        const c = mybookmarks.category;
-        loading.start();
-        await init();
-        mybookmarks.category = c;
-        loading.end();
-      }
-      await subscribe(signal);
-    } else if (resp.status == 401) {
-      await reload();
-    } else {
-      await new Promise((sleep) => setTimeout(sleep, 30000));
-      await subscribe(signal);
-    }
-  };
   onMount(() => {
-    mybookmarks.controller = new AbortController();
-    subscribe(mybookmarks.controller.signal);
+    mybookmarks.subscribe(true);
     return () => mybookmarks.controller.abort();
   });
 
   const onUpdate = async (evt: SortableEvent) => {
     if (evt.oldIndex !== undefined && evt.newIndex !== undefined) {
-      mybookmarks.controller.abort();
       await mybookmarks.swap(
         mybookmarks.bookmarks[evt.oldIndex],
         mybookmarks.bookmarks[evt.newIndex],
       );
-      mybookmarks.controller = new AbortController();
-      subscribe(mybookmarks.controller.signal);
     }
   };
 

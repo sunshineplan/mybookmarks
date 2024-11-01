@@ -1,5 +1,6 @@
 import { Dexie } from 'dexie'
-import { fire, post } from './misc.svelte'
+import Cookies from 'js-cookie'
+import { fire, loading, post } from './misc.svelte'
 
 const db = new Dexie('bookmark')
 db.version(1).stores({
@@ -47,6 +48,7 @@ class MyBookmarks {
     } else this.categories = [...array, category]
   }
   async editCategory(category: Category, name: string) {
+    this.controller.abort()
     const resp = await post('/category/edit', { old: category.category, new: name })
     let msg = ''
     if (resp.ok) {
@@ -55,12 +57,15 @@ class MyBookmarks {
         await db.table('categories').update(category.category, { category: name })
         await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: name })
         this.categories = await db.table('categories').toArray()
+        this.subscribe(true)
         return
       } else msg = res.message
     } else msg = await resp.text()
     await fire('Fatal', msg, 'error')
+    this.subscribe(true)
   }
   async deleteCategory(category: Category) {
+    this.controller.abort()
     const resp = await post('/category/delete', { category })
     if (resp.ok) {
       await db.table('categories').where('category').equals(category.category || '').delete()
@@ -73,6 +78,7 @@ class MyBookmarks {
       await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: '' })
       this.categories = await db.table('categories').toArray()
     } else await fire('Fatal', await resp.text(), 'error')
+    this.subscribe(true)
   }
   async getBookmarks(category?: Category, more?: number, goal?: number) {
     const res = await this.#loadBookmarks(category)
@@ -131,6 +137,7 @@ class MyBookmarks {
     } else await fire('Fatal', await resp.text(), 'error')
   }
   async swap(a: Bookmark, b: Bookmark) {
+    this.controller.abort()
     const resp = await post('/reorder', { orig: a.id, dest: b.id })
     if (resp.ok) {
       if ((await resp.text()) == '1') {
@@ -143,6 +150,38 @@ class MyBookmarks {
         await db.table('bookmarks').bulkPut(array)
       } else await fire('Fatal', 'Failed to reorder.', 'error')
     } else await fire('Fatal', await resp.text(), 'error')
+    this.subscribe(true)
+  }
+  async subscribe(reset?: boolean): Promise<boolean> {
+    if (reset)
+      this.controller = new AbortController()
+    let resp: Response
+    try {
+      resp = await fetch('/poll', { signal: this.controller.signal })
+    } catch (e) {
+      let message = ''
+      if (typeof e === 'string')
+        message = e
+      else if (e instanceof Error)
+        message = e.message
+      resp = new Response(message, { status: 500 })
+    }
+    if (resp.ok) {
+      const last = await resp.text()
+      if (last && Cookies.get('last') != last) {
+        const c = this.category
+        loading.start()
+        await init()
+        this.category = c
+        loading.end()
+      }
+      return await this.subscribe()
+    } else if (resp.status == 401) {
+      return false
+    } else {
+      await new Promise((sleep) => setTimeout(sleep, 30000))
+      return await this.subscribe()
+    }
   }
 }
 export const mybookmarks = new MyBookmarks

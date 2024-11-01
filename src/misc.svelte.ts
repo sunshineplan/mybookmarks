@@ -40,22 +40,6 @@ export const valid = () => {
   return result
 }
 
-export const poll = async (signal: AbortSignal) => {
-  let resp: Response
-  try {
-    resp = await fetch('/poll', { signal })
-  } catch (e) {
-    let message = ''
-    if (typeof e === "string") {
-      message = e
-    } else if (e instanceof Error) {
-      message = e.message
-    }
-    resp = new Response(message, { "status": 500 })
-  }
-  return resp
-}
-
 export const post = async (url: string, data?: any, universal?: boolean) => {
   let resp: Response
   const init: RequestInit = {
