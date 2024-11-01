@@ -1,7 +1,6 @@
 <script lang="ts">
+  import { mybookmarks } from "../bookmark.svelte";
   import { encrypt, fire, post } from "../misc.svelte";
-
-  let { info }: { info: () => Promise<void> } = $props();
 
   let username = $state(localStorage.getItem("username"));
   let password = $state("");
@@ -31,7 +30,7 @@
         if (json.status == 1) {
           if (rememberme) localStorage.setItem("rememberme", "true");
           else localStorage.removeItem("rememberme");
-          await info();
+          await mybookmarks.init();
         } else await fire("Error", json.message, "error");
       } else await fire("Error", await resp.text(), "error");
     }

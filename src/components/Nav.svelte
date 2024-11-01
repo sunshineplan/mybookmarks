@@ -2,14 +2,6 @@
   import { mybookmarks } from "../bookmark.svelte";
   import { fire, post, showSidebar } from "../misc.svelte";
 
-  let {
-    reload,
-    username = $bindable(),
-  }: {
-    username: string;
-    reload: () => Promise<void>;
-  } = $props();
-
   const setting = () => {
     window.history.pushState({}, "", "/setting");
     if (window.innerWidth <= 900) showSidebar.close();
@@ -17,10 +9,10 @@
   };
 
   const logout = async () => {
-    mybookmarks.controller.abort()
+    mybookmarks.controller.abort();
     const resp = await post(window.universal + "/logout", undefined, true);
     if (resp.ok) {
-      await reload();
+      await mybookmarks.init();
       window.history.pushState({}, "", "/");
       mybookmarks.component = "show";
     } else await fire("Error", await resp.text(), "error");
@@ -33,7 +25,7 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span
       class="brand"
-      class:user={username}
+      class:user={mybookmarks.username}
       onclick={() => {
         window.history.pushState({}, "", "/");
         mybookmarks.component = "show";
@@ -43,8 +35,8 @@
     </span>
   </div>
   <div class="navbar-nav flex-row">
-    {#if username}
-      <span class="nav-link">{username}</span>
+    {#if mybookmarks.username}
+      <span class="nav-link">{mybookmarks.username}</span>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <span class="nav-link link" onclick={setting}>Setting</span>

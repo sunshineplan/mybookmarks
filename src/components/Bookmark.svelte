@@ -2,8 +2,6 @@
   import { mybookmarks } from "../bookmark.svelte";
   import { confirm, valid } from "../misc.svelte";
 
-  let { reload }: { reload: () => Promise<void> } = $props();
-
   let name = $state(mybookmarks.bookmark.bookmark || "");
   let url = $state(mybookmarks.bookmark.url || "");
   let category = $state(mybookmarks.bookmark.category || "");
@@ -28,7 +26,7 @@
         else if (res == 1) name = "";
         else if (res == 2) url = "";
       } catch {
-        await reload();
+        await mybookmarks.init();
         mybookmarks.category = {};
         goback();
       }
@@ -40,7 +38,7 @@
       try {
         await mybookmarks.deleteBookmark(mybookmarks.bookmark);
       } catch {
-        await reload();
+        await mybookmarks.init();
         mybookmarks.category = {};
       }
       goback();

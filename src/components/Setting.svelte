@@ -2,8 +2,6 @@
   import { mybookmarks } from "../bookmark.svelte";
   import { encrypt, fire, post, valid } from "../misc.svelte";
 
-  let { reload }: { reload: () => Promise<void> } = $props();
-
   let password = $state("");
   let password1 = $state("");
   let password2 = $state("");
@@ -35,7 +33,7 @@
             "Your password has changed. Please Re-login!",
             "success",
           );
-          await reload();
+          await mybookmarks.init();
           window.history.pushState({}, "", "/");
           mybookmarks.component = "show";
         } else {

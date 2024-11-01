@@ -9,6 +9,7 @@ db.version(1).stores({
 })
 
 class MyBookmarks {
+  username = $state('')
   component = $state('show')
   category = $state<Category>({})
   bookmark = $state<Bookmark>({} as Bookmark)
@@ -18,6 +19,36 @@ class MyBookmarks {
   async clear() {
     await db.table('categories').clear()
     await db.table('bookmarks').clear()
+  }
+  async reset() {
+    this.username = ''
+    this.category = {}
+    this.bookmark = {} as Bookmark
+    this.categories = []
+    this.bookmarks = []
+    await this.clear()
+  }
+  async init() {
+    loading.start()
+    let resp: Response
+    try {
+      resp = await fetch('/info')
+    } catch (e) {
+      console.error(e)
+      resp = new Response(null, { "status": 500 })
+    }
+    loading.end()
+    if (resp.ok) {
+      const username = await resp.text()
+      if (username) {
+        await this.getCategories()
+        await this.getBookmarks()
+        this.username = username
+      } else await this.reset()
+    } else if (resp.status == 409) {
+      await this.clear()
+      await this.init()
+    } else await this.reset()
   }
   async getCategories() {
     await db.table<Category>('categories').filter(i => i.count == 0).delete()
@@ -152,60 +183,29 @@ class MyBookmarks {
     } else await fire('Fatal', await resp.text(), 'error')
     this.subscribe(true)
   }
-  async subscribe(reset?: boolean): Promise<boolean> {
+  async subscribe(reset?: boolean) {
     if (reset)
       this.controller = new AbortController()
     let resp: Response
     try {
       resp = await fetch('/poll', { signal: this.controller.signal })
     } catch (e) {
-      let message = ''
-      if (typeof e === 'string')
-        message = e
-      else if (e instanceof Error)
-        message = e.message
-      resp = new Response(message, { status: 500 })
+      if (e instanceof DOMException && e.name === 'AbortError') return
+      console.error(e)
+      resp = new Response(null, { status: 500 })
     }
     if (resp.ok) {
       const last = await resp.text()
       if (last && Cookies.get('last') != last) {
-        const c = this.category
-        loading.start()
-        await init()
-        this.category = c
-        loading.end()
+        await this.init()
       }
-      return await this.subscribe()
+      await this.subscribe()
     } else if (resp.status == 401) {
-      return false
+      await this.init()
     } else {
       await new Promise((sleep) => setTimeout(sleep, 30000))
-      return await this.subscribe()
+      await this.subscribe()
     }
   }
 }
 export const mybookmarks = new MyBookmarks
-
-export const init = async (): Promise<string> => {
-  const resp = await fetch('/info')
-  if (resp.ok) {
-    const username = await resp.text()
-    if (username) {
-      await mybookmarks.getCategories()
-      await mybookmarks.getBookmarks()
-      return username
-    } else await reset()
-  } else if (resp.status == 409) {
-    await mybookmarks.clear()
-    return await init()
-  } else await reset()
-  return ''
-}
-
-const reset = async () => {
-  mybookmarks.category = {}
-  mybookmarks.bookmark = {} as Bookmark
-  mybookmarks.categories = []
-  mybookmarks.bookmarks = []
-  await mybookmarks.clear()
-}

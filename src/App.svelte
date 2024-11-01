@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Component } from "svelte";
-  import { init, mybookmarks } from "./bookmark.svelte";
+  import { mybookmarks } from "./bookmark.svelte";
   import Bookmark from "./components/Bookmark.svelte";
   import Login from "./components/Login.svelte";
   import Nav from "./components/Nav.svelte";
@@ -9,45 +9,40 @@
   import Sidebar from "./components/Sidebar.svelte";
   import { loading } from "./misc.svelte";
 
-  let username = $state("");
-
-  const load = async () => {
-    loading.start();
-    username = await init();
-    loading.end();
-  };
-  const promise = load();
+  const promise = mybookmarks.init();
 
   const components: {
-    [component: string]: Component<{
-      reload: () => Promise<void>;
-    }>;
+    [component: string]: Component;
   } = {
     setting: Setting,
     show: Show,
     bookmark: Bookmark,
   };
+
+  const Content = $derived(components[mybookmarks.component]);
 </script>
 
-<Nav bind:username reload={load} />
+<Nav />
 {#await promise then _}
-  {#if !username}
+  {#if !mybookmarks.username}
     {#if !loading.show}
-      <Login info={load} />
+      <Login />
     {/if}
   {:else}
     <Sidebar />
-    {@const Component = components[mybookmarks.component]}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="content"
       style="padding-left: 250px; opacity: {loading.show ? 0.5 : 1}"
     >
-      <Component reload={load} />
+      <Content />
     </div>
   {/if}
 {/await}
-<div class={username ? "loading" : "initializing"} hidden={!loading.show}>
+<div
+  class={mybookmarks.username ? "loading" : "initializing"}
+  hidden={!loading.show}
+>
   <div class="sk-wave sk-center">
     <div class="sk-wave-rect"></div>
     <div class="sk-wave-rect"></div>

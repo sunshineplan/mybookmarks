@@ -4,8 +4,6 @@
   import { mybookmarks } from "../bookmark.svelte";
   import { confirm, pasteText } from "../misc.svelte";
 
-  let { reload }: { reload: () => Promise<void> } = $props();
-
   const isSmall = 700;
 
   let smallSize = window.innerWidth <= isSmall;
@@ -63,7 +61,7 @@
         await mybookmarks.editCategory(mybookmarks.category, c);
         await mybookmarks.getBookmarks({ category: c });
       } catch {
-        await reload();
+        await mybookmarks.init();
         return false;
       }
       mybookmarks.category.category = c;
@@ -111,7 +109,7 @@
           await mybookmarks.getBookmarks();
           editable = false;
         } catch {
-          await reload();
+          await mybookmarks.init();
         }
         mybookmarks.category = {};
       }
