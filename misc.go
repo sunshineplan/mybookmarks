@@ -29,12 +29,12 @@ func addUser(username string) error {
 
 	if _, err := bookmarkClient.InsertOne(
 		struct {
-			Bookmark string `json:"bookmark" bson:"bookmark"`
-			URL      string `json:"url" bson:"url"`
-			User     string `json:"user" bson:"user"`
-			Seq      int    `json:"seq" bson:"seq"`
-			Created  any    `json:"created" bson:"created"`
-		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Date(time.Now())},
+			Bookmark string       `json:"bookmark" bson:"bookmark"`
+			URL      string       `json:"url" bson:"url"`
+			User     string       `json:"user" bson:"user"`
+			Seq      int          `json:"seq" bson:"seq"`
+			Created  mongodb.Time `json:"created" bson:"created"`
+		}{"Google", "https://www.google.com", insertedID.(mongodb.ObjectID).Hex(), 1, bookmarkClient.Time(time.Now())},
 	); err != nil {
 		return err
 	}

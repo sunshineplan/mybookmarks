@@ -102,18 +102,18 @@ func addBookmark(c *gin.Context) {
 		}
 
 		doc := struct {
-			Bookmark string `json:"bookmark" bson:"bookmark"`
-			URL      string `json:"url" bson:"url"`
-			User     any    `json:"user" bson:"user"`
-			Seq      int    `json:"seq" bson:"seq"`
-			Created  any    `json:"created" bson:"created"`
-			Category string `json:"category,omitempty" bson:"category,omitempty"`
+			Bookmark string       `json:"bookmark" bson:"bookmark"`
+			URL      string       `json:"url" bson:"url"`
+			User     any          `json:"user" bson:"user"`
+			Seq      int          `json:"seq" bson:"seq"`
+			Created  mongodb.Time `json:"created" bson:"created"`
+			Category string       `json:"category,omitempty" bson:"category,omitempty"`
 		}{
 			Bookmark: data.Bookmark,
 			URL:      data.URL,
 			User:     userID,
 			Seq:      seq,
-			Created:  bookmarkClient.Date(time.Now()),
+			Created:  bookmarkClient.Time(time.Now()),
 			Category: data.Category,
 		}
 

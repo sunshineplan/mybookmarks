@@ -1,5 +1,5 @@
 import { Dexie } from 'dexie'
-import Cookies from 'js-cookie'
+import { getCookie } from 'typescript-cookie'
 import { fire, loading, post } from './misc.svelte'
 
 const db = new Dexie('bookmark')
@@ -196,7 +196,7 @@ class MyBookmarks {
     }
     if (resp.ok) {
       const last = await resp.text()
-      if (last && Cookies.get('last') != last) {
+      if (last && getCookie('last') != last) {
         await this.init()
       }
       await this.subscribe()
