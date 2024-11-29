@@ -12,7 +12,7 @@
     "@types/sortablejs": "^1.15.8",
     "dexie": "^4.0.10",
     "jsencrypt": "^3.3.2",
-    "sortablejs": "^1.15.5",
+    "sortablejs": "^1.15.6",
     "svelte": "^5.2.10",
     "svelte-check": "^4.1.0",
     "sweetalert2": "^11.14.5",
