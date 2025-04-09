@@ -31,14 +31,21 @@ func run() error {
 	}
 
 	if *universal {
-		var redisStore struct{ Endpoint, Password, Secret, API string }
+		var redisStore struct{ Endpoint, Username, Password, Secret, API string }
 		if err := meta.Get("account_redis", &redisStore); err != nil {
 			return err
 		}
 
 		js = bytes.ReplaceAll(js, []byte("@universal@"), []byte(redisStore.API))
 
-		store, err := redis.NewStore(10, "tcp", redisStore.Endpoint, redisStore.Password, []byte(redisStore.Secret))
+		store, err := redis.NewStore(
+			10,
+			"tcp",
+			redisStore.Endpoint,
+			redisStore.Username,
+			redisStore.Password,
+			[]byte(redisStore.Secret),
+		)
 		if err != nil {
 			return err
 		}
