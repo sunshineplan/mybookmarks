@@ -27,7 +27,7 @@
         else if (res == 2) url = "";
       } catch {
         await mybookmarks.init();
-        mybookmarks.category = {};
+        mybookmarks.category = undefined;
         goback();
       }
     } else validated = true;
@@ -39,7 +39,7 @@
         await mybookmarks.deleteBookmark(mybookmarks.bookmark);
       } catch {
         await mybookmarks.init();
-        mybookmarks.category = {};
+        mybookmarks.category = undefined;
       }
       goback();
     }
