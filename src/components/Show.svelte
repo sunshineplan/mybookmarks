@@ -30,8 +30,8 @@
   });
 
   onMount(() => {
-    mybookmarks.subscribe(true);
-    return () => mybookmarks.controller.abort();
+    mybookmarks.subscribe();
+    return () => mybookmarks.abort();
   });
 
   const onUpdate = async (evt: SortableEvent) => {

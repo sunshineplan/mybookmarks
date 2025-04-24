@@ -10,12 +10,14 @@ db.version(1).stores({
 
 class MyBookmarks {
   username = $state('')
+  #interval = 0
   component = $state('show')
   category = $state<Category>({})
   bookmark = $state<Bookmark>({} as Bookmark)
   categories = $state<Category[]>([])
   bookmarks = $state<Bookmark[]>([])
-  controller = $state(new AbortController())
+  #timer = 0
+  #controller = new AbortController()
   async clear() {
     await db.table('categories').clear()
     await db.table('bookmarks').clear()
@@ -44,6 +46,7 @@ class MyBookmarks {
         await this.getCategories()
         await this.getBookmarks()
         this.username = username
+        this.#interval = Number(getCookie('interval') || 30)
       } else await this.reset()
     } else if (resp.status == 409) {
       await this.clear()
@@ -79,7 +82,7 @@ class MyBookmarks {
     } else this.categories = [...array, category]
   }
   async editCategory(category: Category, name: string) {
-    this.controller.abort()
+    this.abort()
     const resp = await post('/category/edit', { old: category.category, new: name })
     let msg = ''
     if (resp.ok) {
@@ -88,15 +91,15 @@ class MyBookmarks {
         await db.table('categories').update(category.category, { category: name })
         await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: name })
         this.categories = await db.table('categories').toArray()
-        this.subscribe(true)
+        this.subscribe()
         return
       } else msg = res.message
     } else msg = await resp.text()
     await fire('Fatal', msg, 'error')
-    this.subscribe(true)
+    this.subscribe()
   }
   async deleteCategory(category: Category) {
-    this.controller.abort()
+    this.abort()
     const resp = await post('/category/delete', { category })
     if (resp.ok) {
       await db.table('categories').where('category').equals(category.category || '').delete()
@@ -109,7 +112,7 @@ class MyBookmarks {
       await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: '' })
       this.categories = await db.table('categories').toArray()
     } else await fire('Fatal', await resp.text(), 'error')
-    this.subscribe(true)
+    this.subscribe()
   }
   async getBookmarks(category?: Category, more?: number, goal?: number) {
     const res = await this.#loadBookmarks(category)
@@ -168,7 +171,7 @@ class MyBookmarks {
     } else await fire('Fatal', await resp.text(), 'error')
   }
   async swap(a: Bookmark, b: Bookmark) {
-    this.controller.abort()
+    this.abort()
     const resp = await post('/reorder', { orig: a.id, dest: b.id })
     if (resp.ok) {
       if ((await resp.text()) == '1') {
@@ -181,31 +184,35 @@ class MyBookmarks {
         await db.table('bookmarks').bulkPut(array)
       } else await fire('Fatal', 'Failed to reorder.', 'error')
     } else await fire('Fatal', await resp.text(), 'error')
-    this.subscribe(true)
+    this.subscribe()
   }
-  async subscribe(reset?: boolean) {
-    if (reset)
-      this.controller = new AbortController()
-    let resp: Response
-    try {
-      resp = await fetch('/poll', { signal: this.controller.signal })
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return
-      console.error(e)
-      resp = new Response(null, { status: 500 })
-    }
-    if (resp.ok) {
-      const last = await resp.text()
-      if (last && getCookie('last') != last) {
-        await this.init()
+  subscribe() {
+    this.#controller = new AbortController()
+    const poll = async () => {
+      let resp: Response
+      try {
+        resp = await fetch('/poll', { signal: this.#controller.signal })
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        console.error(e)
+        resp = new Response(null, { status: 500 })
       }
-      await this.subscribe()
-    } else if (resp.status == 401) {
-      await this.init()
-    } else {
-      await new Promise((sleep) => setTimeout(sleep, 30000))
-      await this.subscribe()
+      let timeout = 30
+      if (resp.ok) {
+        const last = await resp.text()
+        if (last && getCookie('last') != last) await this.init()
+        timeout = this.#interval || 30
+      } else if (resp.status == 401) {
+        await this.init()
+        return
+      }
+      this.#timer = setTimeout(poll, timeout * 1000)
     }
+    poll()
+  }
+  abort() {
+    clearTimeout(this.#timer)
+    this.#controller.abort()
   }
 }
 export const mybookmarks = new MyBookmarks
