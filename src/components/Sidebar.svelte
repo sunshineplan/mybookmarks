@@ -23,7 +23,7 @@
 
   const goto = async (c: Category) => {
     showSidebar.close();
-    mybookmarks.category = c;
+    mybookmarks.category = c.category;
     window.history.pushState({}, "", "/");
     mybookmarks.component = "show";
   };
@@ -57,14 +57,14 @@
       }
       const len = mybookmarks.categories.length;
       const index = mybookmarks.categories.findIndex(
-        (c) => c.category === mybookmarks.category.category,
+        (c) => c.category === mybookmarks.category,
       );
       if (mybookmarks.component === "show")
         if (event.key == "ArrowUp") {
           if (index == 0) await goto({});
           else if (index > 0) await goto(mybookmarks.categories[index - 1]);
         } else if (event.key == "ArrowDown")
-          if (mybookmarks.category.category === undefined) {
+          if (mybookmarks.category === undefined) {
             if (len > 0) await goto(mybookmarks.categories[0]);
             else if (uncategorized) await goto({ category: "" });
           } else if (index < len - 1)
@@ -127,7 +127,7 @@
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <li
         class="navbar-brand category"
-        class:active={mybookmarks.category.category === undefined &&
+        class:active={mybookmarks.category === undefined &&
           mybookmarks.component === "show"}
         onclick={async () => await goto({})}
       >
@@ -139,7 +139,7 @@
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <li
             class="nav-link category"
-            class:active={mybookmarks.category.category === c.category &&
+            class:active={mybookmarks.category === c.category &&
               mybookmarks.component === "show"}
             onclick={async () => await goto(c)}
           >
@@ -173,7 +173,7 @@
         <li
           class="nav-link category"
           id="uncategorized"
-          class:active={mybookmarks.category.category === "" &&
+          class:active={mybookmarks.category === "" &&
             mybookmarks.component === "show"}
           onclick={async () => await goto({ category: "" })}
         >

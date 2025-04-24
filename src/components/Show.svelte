@@ -56,24 +56,21 @@
 
   const editCategory = async (c: string) => {
     c = c.trim();
-    if (mybookmarks.category.category != c) {
+    if (mybookmarks.category != c) {
       try {
-        await mybookmarks.editCategory(mybookmarks.category, c);
-        await mybookmarks.getBookmarks({ category: c });
+        await mybookmarks.editCategory(mybookmarks.category!, c);
+        await mybookmarks.getBookmarks(c);
       } catch {
         await mybookmarks.init();
         return false;
       }
-      mybookmarks.category.category = c;
+      mybookmarks.category = c;
     }
     return true;
   };
   const add = () => {
-    if (!mybookmarks.category.category) mybookmarks.bookmark = {} as Bookmark;
-    else
-      mybookmarks.bookmark = {
-        category: mybookmarks.category.category,
-      } as Bookmark;
+    if (!mybookmarks.category) mybookmarks.bookmark = {} as Bookmark;
+    else mybookmarks.bookmark = { category: mybookmarks.category } as Bookmark;
     window.history.pushState({}, "", "/bookmark/add");
     mybookmarks.component = "bookmark";
   };
@@ -90,13 +87,13 @@
       if (category.textContent)
         editable = !(await editCategory(category.textContent));
       else {
-        category.textContent = mybookmarks.category.category || "";
+        category.textContent = mybookmarks.category ?? "";
         editable = false;
       }
     } else if (event.key == "Escape") {
       if (category.textContent) category.textContent = "";
       else {
-        category.textContent = mybookmarks.category.category || "";
+        category.textContent = mybookmarks.category ?? "";
         editable = false;
       }
     }
@@ -105,13 +102,13 @@
     if (editable) {
       if (await confirm("category")) {
         try {
-          await mybookmarks.deleteCategory(mybookmarks.category);
+          await mybookmarks.deleteCategory(mybookmarks.category!);
           await mybookmarks.getBookmarks();
           editable = false;
         } catch {
           await mybookmarks.init();
         }
-        mybookmarks.category = {};
+        mybookmarks.category = undefined;
       }
     } else {
       editable = true;
@@ -139,7 +136,7 @@
     if (target.classList.contains("category")) {
       editable = false;
     } else if (target.classList.contains("delete")) {
-      category.textContent = mybookmarks.category.category || "";
+      category.textContent = mybookmarks.category ?? "";
       editable = false;
     } else if (
       !category.contains(target) &&
@@ -150,7 +147,7 @@
       if (category.textContent)
         editable = !(await editCategory(category.textContent));
       else {
-        category.textContent = mybookmarks.category.category || "";
+        category.textContent = mybookmarks.category ?? "";
         editable = false;
       }
     }
@@ -159,11 +156,9 @@
 
 <svelte:head>
   <title>
-    {mybookmarks.category.category === undefined
+    {mybookmarks.category === undefined
       ? "All Bookmarks"
-      : mybookmarks.category.category
-        ? mybookmarks.category.category
-        : "Uncategorized"} - My Bookmarks
+      : mybookmarks.category || "Uncategorized"} - My Bookmarks
   </title>
 </svelte:head>
 
@@ -184,13 +179,11 @@
         onkeydown={categoryKeydown}
         onpaste={pasteText}
       >
-        {mybookmarks.category.category === undefined
+        {mybookmarks.category === undefined
           ? "All Bookmarks"
-          : mybookmarks.category.category
-            ? mybookmarks.category.category
-            : "Uncategorized"}
+          : mybookmarks.category || "Uncategorized"}
       </h3>
-      {#if mybookmarks.category.category}
+      {#if mybookmarks.category}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <span class="icon" onclick={categoryClick}>

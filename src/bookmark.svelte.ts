@@ -12,7 +12,7 @@ class MyBookmarks {
   username = $state('')
   #interval = 0
   component = $state('show')
-  category = $state<Category>({})
+  category = $state<string | undefined>(undefined)
   bookmark = $state<Bookmark>({} as Bookmark)
   categories = $state<Category[]>([])
   bookmarks = $state<Bookmark[]>([])
@@ -24,7 +24,7 @@ class MyBookmarks {
   }
   async reset() {
     this.username = ''
-    this.category = {}
+    this.category = undefined
     this.bookmark = {} as Bookmark
     this.categories = []
     this.bookmarks = []
@@ -44,7 +44,8 @@ class MyBookmarks {
       const username = await resp.text()
       if (username) {
         await this.getCategories()
-        await this.getBookmarks()
+        if (this.category && !this.#getCategory(this.category)) this.category = undefined
+        await this.getBookmarks(this.category)
         this.username = username
         this.#interval = Number(getCookie('interval') || 30)
       } else await this.reset()
@@ -67,11 +68,14 @@ class MyBookmarks {
       await db.table('categories').bulkAdd(res)
     } else await fire('Fatal', await resp.text(), 'error')
   }
-  async #count(category?: Category) {
+  async #count(category?: string) {
     let n = 0
-    if (category === undefined || category.category === undefined) await db.table('categories').each(i => n += i.count)
-    else await db.table<Category>('categories').where('category').equals(category.category).first(i => n = i ? i.count || 0 : 0)
+    if (category === undefined) await db.table('categories').each(i => n += i.count)
+    else await db.table<Category>('categories').where('category').equals(category).first(i => n = i ? i.count || 0 : 0)
     return n
+  }
+  async #getCategory(category: string) {
+    return await db.table<Category>('categories').where('category').equals(category).first()
   }
   async addCategory(category: Category) {
     await db.table('categories').add(category)
@@ -81,15 +85,16 @@ class MyBookmarks {
       this.categories = array
     } else this.categories = [...array, category]
   }
-  async editCategory(category: Category, name: string) {
+  async editCategory(old: string, name: string) {
     this.abort()
-    const resp = await post('/category/edit', { old: category.category, new: name })
+    const category = await this.#getCategory(old)
+    const resp = await post('/category/edit', { old: category!.category, new: name })
     let msg = ''
     if (resp.ok) {
       const res = await resp.json()
       if (res.status) {
-        await db.table('categories').update(category.category, { category: name })
-        await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: name })
+        await db.table('categories').update(category!.category, { category: name })
+        await db.table('bookmarks').where('category').equals(category!.category ?? '').modify({ category: name })
         this.categories = await db.table('categories').toArray()
         this.subscribe()
         return
@@ -98,23 +103,24 @@ class MyBookmarks {
     await fire('Fatal', msg, 'error')
     this.subscribe()
   }
-  async deleteCategory(category: Category) {
+  async deleteCategory(name: string) {
     this.abort()
+    const category = await this.#getCategory(name)
     const resp = await post('/category/delete', { category })
     if (resp.ok) {
-      await db.table('categories').where('category').equals(category.category || '').delete()
+      await db.table('categories').where('category').equals(category!.category ?? '').delete()
       const n = await db.table<Category>('categories').where('category').equals('').modify(i => {
         if (i && i.count && category && category.count) {
           i.count += category.count
         }
       })
-      if (!n) await db.table('categories').add({ category: '', count: category.count })
-      await db.table('bookmarks').where('category').equals(category.category || '').modify({ category: '' })
+      if (!n) await db.table('categories').add({ category: '', count: category!.count })
+      await db.table('bookmarks').where('category').equals(category!.category ?? '').modify({ category: '' })
       this.categories = await db.table('categories').toArray()
     } else await fire('Fatal', await resp.text(), 'error')
     this.subscribe()
   }
-  async getBookmarks(category?: Category, more?: number, goal?: number) {
+  async getBookmarks(category?: string, more?: number, goal?: number) {
     const res = await this.#loadBookmarks(category)
     const count = await this.#count(category)
     if (!goal)
@@ -124,10 +130,9 @@ class MyBookmarks {
     await this.#fetchBookmarks(await db.table('bookmarks').count())
     await this.getBookmarks(category, more, goal)
   }
-  async #loadBookmarks(category?: Category) {
-    if (category === undefined || category.category === undefined)
-      this.bookmarks = await db.table('bookmarks').toCollection().sortBy('seq')
-    else this.bookmarks = await db.table('bookmarks').where('category').equals(category.category).sortBy('seq')
+  async #loadBookmarks(category?: string) {
+    if (category === undefined) this.bookmarks = await db.table('bookmarks').toCollection().sortBy('seq')
+    else this.bookmarks = await db.table('bookmarks').where('category').equals(category).sortBy('seq')
     return this.bookmarks
   }
   async #fetchBookmarks(start: number) {
@@ -150,7 +155,7 @@ class MyBookmarks {
         }
         await db.table('categories').clear()
         await this.#fetchCategories()
-        await this.getBookmarks({ category: bookmark.category })
+        await this.getBookmarks(bookmark.category)
       } else {
         await fire('Error', res.message, 'error')
         return <number>res.error
@@ -166,7 +171,7 @@ class MyBookmarks {
       const category = await db.table<Category>('categories').get({ 'category': bookmark.category })
       if (!category?.count) await db.table('categories').where('category').equals(bookmark.category).delete()
       this.categories = await db.table('categories').toArray()
-      await this.getBookmarks({ category: bookmark.category })
+      await this.getBookmarks(bookmark.category)
       if (!this.bookmarks.length) await this.getBookmarks()
     } else await fire('Fatal', await resp.text(), 'error')
   }
