@@ -13,7 +13,7 @@ import (
 	"github.com/sunshineplan/utils/cache"
 )
 
-var userCache = cache.New[string, user](true)
+var userCache = cache.NewWithRenew[string, user](true)
 
 type user struct {
 	ID       mongodb.OID `json:"_id" bson:"_id"`
