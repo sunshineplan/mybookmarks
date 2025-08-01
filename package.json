@@ -17,7 +17,7 @@
     "svelte-check": "^4.3.0",
     "sweetalert2": "^11.22.2",
     "tslib": "^2.8.1",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.2",
     "typescript-cookie": "^1.0.6",
     "vite": "^7.0.6"
   }
