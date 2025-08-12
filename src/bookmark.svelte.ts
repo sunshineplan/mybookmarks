@@ -78,15 +78,18 @@ class MyBookmarks {
     return await db.table<Category>('categories').where('category').equals(category).first()
   }
   async addCategory(category: Category) {
+    loading.start()
     await db.table('categories').add(category)
     const array = [...this.categories]
     if (array.slice(-1)[0].category == '') {
       array.splice(array.length - 1, 0, category)
       this.categories = array
     } else this.categories = [...array, category]
+    loading.end()
   }
   async editCategory(old: string, name: string) {
     this.abort()
+    loading.start()
     const category = await this.#getCategory(old)
     const resp = await post('/category/edit', { old: category!.category, new: name })
     let msg = ''
@@ -96,15 +99,18 @@ class MyBookmarks {
         await db.table('categories').update(category!.category, { category: name })
         await db.table('bookmarks').where('category').equals(category!.category ?? '').modify({ category: name })
         this.categories = await db.table('categories').toArray()
+        loading.end()
         this.subscribe()
         return
       } else msg = res.message
     } else msg = await resp.text()
     await fire('Fatal', msg, 'error')
+    loading.end()
     this.subscribe()
   }
   async deleteCategory(name: string) {
     this.abort()
+    loading.start()
     const category = await this.#getCategory(name)
     const resp = await post('/category/delete', { category })
     if (resp.ok) {
@@ -118,6 +124,7 @@ class MyBookmarks {
       await db.table('bookmarks').where('category').equals(category!.category ?? '').modify({ category: '' })
       this.categories = await db.table('categories').toArray()
     } else await fire('Fatal', await resp.text(), 'error')
+    loading.end()
     this.subscribe()
   }
   async getBookmarks(category?: string, more?: number, goal?: number) {
@@ -141,6 +148,7 @@ class MyBookmarks {
     else await fire('Fatal', await resp.text(), 'error')
   }
   async saveBookmark(bookmark: Bookmark) {
+    loading.start()
     let resp: Response | undefined = undefined
     if (bookmark.id) resp = await post('/bookmark/edit/' + bookmark.id, bookmark)
     else resp = await post('/bookmark/add', bookmark)
@@ -158,12 +166,15 @@ class MyBookmarks {
         await this.getBookmarks(bookmark.category)
       } else {
         await fire('Error', res.message, 'error')
+        loading.end()
         return <number>res.error
       }
     } else await fire('Fatal', await resp.text(), 'error')
+    loading.end()
     return 0
   }
   async deleteBookmark(bookmark: Bookmark) {
+    loading.start()
     const resp = await post('/bookmark/delete/' + bookmark.id)
     if (resp.ok) {
       await db.table('bookmarks').where('id').equals(bookmark.id).delete()
@@ -174,9 +185,11 @@ class MyBookmarks {
       await this.getBookmarks(bookmark.category)
       if (!this.bookmarks.length) await this.getBookmarks()
     } else await fire('Fatal', await resp.text(), 'error')
+    loading.end()
   }
   async swap(a: Bookmark, b: Bookmark) {
     this.abort()
+    loading.start()
     const resp = await post('/reorder', { orig: a.id, dest: b.id })
     if (resp.ok) {
       if ((await resp.text()) == '1') {
@@ -189,6 +202,7 @@ class MyBookmarks {
         await db.table('bookmarks').bulkPut(array)
       } else await fire('Fatal', 'Failed to reorder.', 'error')
     } else await fire('Fatal', await resp.text(), 'error')
+    loading.end()
     this.subscribe()
   }
   subscribe() {
