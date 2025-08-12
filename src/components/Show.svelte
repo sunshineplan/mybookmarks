@@ -208,7 +208,7 @@
         </tr>
       </thead>
       <tbody bind:this={tbody}>
-        {#each mybookmarks.bookmarks as bookmark (bookmark.id)}
+        {#each mybookmarks.bookmarks as bookmark (bookmark.seq)}
           <tr>
             <td>{bookmark.bookmark}</td>
             <td>
