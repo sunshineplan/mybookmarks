@@ -1,6 +1,6 @@
 <script lang="ts">
   import { mybookmarks } from "../bookmark.svelte";
-  import { pasteText, showSidebar } from "../misc.svelte";
+  import { loading, pasteText, showSidebar } from "../misc.svelte";
 
   let hover = $state(false);
   let toggle: HTMLElement;
@@ -23,6 +23,7 @@
 
   const goto = async (c: Category) => {
     showSidebar.close();
+    if (loading.show) return;
     mybookmarks.category = c.category;
     window.history.pushState({}, "", "/");
     mybookmarks.component = "show";
@@ -119,6 +120,7 @@
       class="btn btn-primary btn-sm"
       bind:this={addCategoryButton}
       onclick={addCategory}
+      disabled={loading.show}
     >
       Add Category
     </button>
