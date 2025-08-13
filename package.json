@@ -11,7 +11,7 @@
     "@tsconfig/svelte": "^5.0.4",
     "@types/sortablejs": "^1.15.8",
     "dexie": "^4.0.11",
-    "jsencrypt": "^3.3.2",
+    "jsencrypt": "^3.5.4",
     "sortablejs": "^1.15.6",
     "svelte": "^5.38.1",
     "svelte-check": "^4.3.1",
