@@ -1,6 +1,6 @@
 module mybookmarks
 
-go 1.25
+go 1.26
 
 require (
 	github.com/gin-contrib/sessions v1.0.4
@@ -9,7 +9,7 @@ require (
 	github.com/sunshineplan/metadata v1.1.2
 	github.com/sunshineplan/password v1.0.9
 	github.com/sunshineplan/service v1.0.26
-	github.com/sunshineplan/utils v0.1.83
+	github.com/sunshineplan/utils v0.1.84
 )
 
 require (
