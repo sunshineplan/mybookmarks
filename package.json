@@ -7,14 +7,14 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@sveltejs/vite-plugin-svelte": "^7.1.4",
     "@tsconfig/svelte": "^5.0.8",
     "@types/sortablejs": "^1.15.9",
     "dexie": "^4.4.4",
     "jsencrypt": "^3.5.4",
     "sortablejs": "^1.15.7",
     "svelte": "^5.56.4",
-    "svelte-check": "^4.7.1",
+    "svelte-check": "^4.7.2",
     "sweetalert2": "^11.26.25",
     "tslib": "^2.8.1",
     "typescript": "^6.0.3",
