@@ -15,7 +15,7 @@
     "sortablejs": "^1.15.7",
     "svelte": "^5.59.1",
     "svelte-check": "^4.7.8",
-    "sweetalert2": "^11.26.25",
+    "sweetalert2": "^11.26.26",
     "tslib": "^2.9.1",
     "typescript": "^6.0.3",
     "typescript-cookie": "^1.0.6",
